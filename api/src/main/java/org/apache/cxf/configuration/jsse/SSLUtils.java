@@ -22,6 +22,7 @@ package org.apache.cxf.configuration.jsse;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -75,6 +76,8 @@ public final class SSLUtils {
     private static final List<String> DEFAULT_CIPHERSUITE_FILTERS_EXCLUDE =
         Arrays.asList(new String[] {".*_NULL_.*",
                                     ".*_anon_.*"});
+    
+    private static volatile KeyManager[] defaultManagers;
 
     private SSLUtils() {
     }    
@@ -147,23 +150,42 @@ public final class SSLUtils {
     }
 
     public static KeyManager[] getDefaultKeyStoreManagers(Logger log) {
+        if (defaultManagers == null) {
+            loadDefaultKeyManagers(log);
+        }
+        if (defaultManagers.length == 0) {
+            return null;
+        }
+        return defaultManagers;
+    }
+    private static synchronized void loadDefaultKeyManagers(Logger log) {
+        if (defaultManagers != null) {
+            return;
+        }
+            
         String location = getKeystore(null, log);
         String keyStorePassword = getKeystorePassword(null, log);
         String keyPassword = getKeyPassword(null, log);
         FileInputStream fis = null;
         
         try {
-            KeyManagerFactory kmf = 
-                KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());  
-            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            
-            fis = new FileInputStream(location);
-            ks.load(fis, (keyStorePassword != null) ? keyStorePassword.toCharArray() : null);
-            kmf.init(ks, (keyPassword != null) ? keyPassword.toCharArray() : null);
-            return kmf.getKeyManagers();
+            File file = new File(location);
+            if (file.exists()) {
+                KeyManagerFactory kmf = 
+                    KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());  
+                KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+                
+                fis = new FileInputStream(file);
+                ks.load(fis, (keyStorePassword != null) ? keyStorePassword.toCharArray() : null);
+                kmf.init(ks, (keyPassword != null) ? keyPassword.toCharArray() : null);
+                defaultManagers = kmf.getKeyManagers();
+            } else {
+                log.log(Level.FINER, "No default keystore {0}", location);
+                defaultManagers = new KeyManager[0];
+            }
         } catch (Exception e) {
-            log.warning("Default key managers cannot be initialized: " + e.getMessage());
-            return null;
+            log.log(Level.WARNING, "Default key managers cannot be initialized: " + e.getMessage(), e);
+            defaultManagers = new KeyManager[0];
         } finally {
             if (fis != null) {
                 try {
@@ -430,17 +452,21 @@ public final class SSLUtils {
                                            String[] supportedCipherSuites,
                                            FiltersType filters,
                                            Logger log, boolean exclude) {
-        String[] cipherSuites = null;
-        if (!(cipherSuitesList == null || cipherSuitesList.isEmpty())) {
-            cipherSuites = getCiphersFromList(cipherSuitesList, log, exclude);
-            return cipherSuites;
-        }
+        // First check the "include" case only. If we have defined explicit "cipherSuite"
+        // configuration, then just return these. Otherwise see if we have defined ciphersuites
+        // via a system property.
         if (!exclude) {
-            cipherSuites = getSystemCiphersuites(log);
-            if (cipherSuites != null) {
-                return cipherSuites;
+            if (!(cipherSuitesList == null || cipherSuitesList.isEmpty())) {
+                return getCiphersFromList(cipherSuitesList, log, exclude);
+            } else {
+                String[] cipherSuites = getSystemCiphersuites(log);
+                if (cipherSuites != null) {
+                    return cipherSuites;
+                }
             }
         }
+
+        // Otherwise check the "include/exclude" cipherSuiteFilter configuration
         LogUtils.log(log, Level.FINE, "CIPHERSUITES_NOT_SET");
         if (filters == null) {
             LogUtils.log(log, Level.FINE, "CIPHERSUITE_FILTERS_NOT_SET");
@@ -480,11 +506,10 @@ public final class SSLUtils {
                      "CIPHERSUITES_EXCLUDED",
                      excludedCipherSuites);
         if (exclude) {
-            cipherSuites = getCiphersFromList(excludedCipherSuites, log, exclude);
+            return getCiphersFromList(excludedCipherSuites, log, exclude);
         } else {
-            cipherSuites = getCiphersFromList(filteredCipherSuites, log, exclude);
+            return getCiphersFromList(filteredCipherSuites, log, exclude);
         }
-        return cipherSuites;
     }
 
     private static String[] getSystemCiphersuites(Logger log) {

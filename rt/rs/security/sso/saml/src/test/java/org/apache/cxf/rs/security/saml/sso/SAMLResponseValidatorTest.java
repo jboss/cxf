@@ -23,13 +23,15 @@ import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-
+import org.apache.cxf.helpers.DOMUtils;
 import org.apache.ws.security.WSSecurityException;
 import org.apache.ws.security.components.crypto.Crypto;
 import org.apache.ws.security.components.crypto.CryptoType;
@@ -37,9 +39,15 @@ import org.apache.ws.security.components.crypto.Merlin;
 import org.apache.ws.security.saml.ext.AssertionWrapper;
 import org.apache.ws.security.saml.ext.OpenSAMLUtil;
 import org.apache.ws.security.saml.ext.SAMLParms;
+import org.apache.ws.security.saml.ext.bean.AudienceRestrictionBean;
+import org.apache.ws.security.saml.ext.bean.ConditionsBean;
+import org.apache.ws.security.saml.ext.bean.SubjectConfirmationDataBean;
 import org.apache.ws.security.saml.ext.builder.SAML2Constants;
 import org.apache.ws.security.util.Loader;
+import org.joda.time.DateTime;
+import org.opensaml.common.SAMLVersion;
 import org.opensaml.common.SignableSAMLObject;
+import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.Status;
 import org.opensaml.xml.security.x509.BasicX509Credential;
@@ -77,7 +85,7 @@ public class SAMLResponseValidatorTest extends org.junit.Assert {
         SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
         callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
         callbackHandler.setIssuer("http://cxf.apache.org/issuer");
-        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_BEARER);
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
         
         SAMLParms samlParms = new SAMLParms();
         samlParms.setCallbackHandler(callbackHandler);
@@ -116,7 +124,51 @@ public class SAMLResponseValidatorTest extends org.junit.Assert {
         SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
         callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
         callbackHandler.setIssuer("http://cxf.apache.org/issuer");
-        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_BEARER);
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+        
+        response.getAssertions().add(assertion.getSaml2());
+        
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+        
+        Response marshalledResponse = (Response)OpenSAMLUtil.fromDom(policyElement);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator validator = new SAMLProtocolResponseValidator();
+        try {
+            validator.validateSamlResponse(marshalledResponse, null, null);
+            fail("Expected failure on an invalid SAML code");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+    }
+    
+    @org.junit.Test
+    public void testRequestDeniedStatusCode() throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+        
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                "urn:oasis:names:tc:SAML:2.0:status:RequestDenied", null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+        
+        // Create an AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
         
         SAMLParms samlParms = new SAMLParms();
         samlParms.setCallbackHandler(callbackHandler);
@@ -160,7 +212,7 @@ public class SAMLResponseValidatorTest extends org.junit.Assert {
         SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
         callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
         callbackHandler.setIssuer("http://cxf.apache.org/issuer");
-        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_BEARER);
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
         
         SAMLParms samlParms = new SAMLParms();
         samlParms.setCallbackHandler(callbackHandler);
@@ -199,6 +251,69 @@ public class SAMLResponseValidatorTest extends org.junit.Assert {
     }
     
     @org.junit.Test
+    public void testResponseModifiedSignedAssertion() throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+        
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                SAMLProtocolResponseValidator.SAML2_STATUSCODE_SUCCESS, null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+        
+        // Create an AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+        
+        Crypto issuerCrypto = new Merlin();
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        ClassLoader loader = Loader.getClassLoader(SAMLResponseValidatorTest.class);
+        InputStream input = Merlin.loadInputStream(loader, "alice.jks");
+        keyStore.load(input, "password".toCharArray());
+        ((Merlin)issuerCrypto).setKeyStore(keyStore);
+        
+        assertion.signAssertion("alice", "password", issuerCrypto, false);
+        
+        response.getAssertions().add(assertion.getSaml2());
+        
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+        
+        List<Element> assertions = 
+            DOMUtils.findAllElementsByTagNameNS(policyElement, SAMLConstants.SAML20_NS, "Assertion");
+        assertNotNull(assertions);
+        assertTrue(assertions.size() == 1);
+        assertions.get(0).setAttributeNS(null, "newattr", "http://apache.org");
+        
+        Response marshalledResponse = (Response)OpenSAMLUtil.fromDom(policyElement);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator validator = new SAMLProtocolResponseValidator();
+        try {
+           // Validate the Response
+            validator.validateSamlResponse(
+                marshalledResponse, issuerCrypto, new KeystorePasswordCallback()
+            );
+            fail("Expected failure on a bad signature");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+        
+    }
+    
+    @org.junit.Test
     public void testSignedResponse() throws Exception {
         DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
         docBuilderFactory.setNamespaceAware(true);
@@ -218,7 +333,121 @@ public class SAMLResponseValidatorTest extends org.junit.Assert {
         SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
         callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
         callbackHandler.setIssuer("http://cxf.apache.org/issuer");
-        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_BEARER);
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+        
+        Crypto issuerCrypto = new Merlin();
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        ClassLoader loader = Loader.getClassLoader(SAMLResponseValidatorTest.class);
+        InputStream input = Merlin.loadInputStream(loader, "alice.jks");
+        keyStore.load(input, "password".toCharArray());
+        ((Merlin)issuerCrypto).setKeyStore(keyStore);
+        
+        response.getAssertions().add(assertion.getSaml2());
+        signResponse(response, "alice", "password", issuerCrypto);
+        
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+        
+        Response marshalledResponse = (Response)OpenSAMLUtil.fromDom(policyElement);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator validator = new SAMLProtocolResponseValidator();
+        try {
+            validator.validateSamlResponse(marshalledResponse, null, new KeystorePasswordCallback());
+            fail("Expected failure on no Signature Crypto");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+        
+        // Validate the Response
+        validator.validateSamlResponse(
+            marshalledResponse, issuerCrypto, new KeystorePasswordCallback()
+        );
+    }
+    
+    @org.junit.Test
+    public void testModifiedSignedResponse() throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+        
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                SAMLProtocolResponseValidator.SAML2_STATUSCODE_SUCCESS, null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+        
+        // Create an AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+        
+        Crypto issuerCrypto = new Merlin();
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        ClassLoader loader = Loader.getClassLoader(SAMLResponseValidatorTest.class);
+        InputStream input = Merlin.loadInputStream(loader, "alice.jks");
+        keyStore.load(input, "password".toCharArray());
+        ((Merlin)issuerCrypto).setKeyStore(keyStore);
+        
+        response.getAssertions().add(assertion.getSaml2());
+        signResponse(response, "alice", "password", issuerCrypto);
+        
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+        
+        policyElement.setAttributeNS(null, "newattr", "http://apache.org");
+        
+        Response marshalledResponse = (Response)OpenSAMLUtil.fromDom(policyElement);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator validator = new SAMLProtocolResponseValidator();
+        try {
+            // Validate the Response
+            validator.validateSamlResponse(
+                marshalledResponse, issuerCrypto, new KeystorePasswordCallback()
+            );
+            fail("Expected failure on a bad signature");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+    }
+    
+    @org.junit.Test
+    public void testSignedResponseNoKeyInfo() throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+        
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                SAMLProtocolResponseValidator.SAML2_STATUSCODE_SUCCESS, null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+        
+        // Create an AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
         
         SAMLParms samlParms = new SAMLParms();
         samlParms.setCallbackHandler(callbackHandler);
@@ -255,6 +484,309 @@ public class SAMLResponseValidatorTest extends org.junit.Assert {
         );
     }
 
+    @org.junit.Test
+    public void testResponseInvalidVersion() throws Exception {
+        SubjectConfirmationDataBean subjectConfirmationData = new SubjectConfirmationDataBean();
+        subjectConfirmationData.setAddress("http://apache.org");
+        subjectConfirmationData.setInResponseTo("12345");
+        subjectConfirmationData.setNotAfter(new DateTime().plusMinutes(5));
+        subjectConfirmationData.setRecipient("http://recipient.apache.org");
+        
+        // Create a AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        
+        callbackHandler.setSubjectConfirmationData(subjectConfirmationData);
+        
+        ConditionsBean conditions = new ConditionsBean();
+        conditions.setNotBefore(new DateTime());
+        conditions.setNotAfter(new DateTime().plusMinutes(5));
+        
+        AudienceRestrictionBean audienceRestriction = new AudienceRestrictionBean();
+        audienceRestriction.setAudienceURIs(Collections.singletonList("http://service.apache.org"));
+        conditions.setAudienceRestrictions(Collections.singletonList(audienceRestriction));
+        callbackHandler.setConditions(conditions);
+        
+        Response response = createResponse(subjectConfirmationData, callbackHandler);
+        response.setVersion(SAMLVersion.VERSION_10);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator protocolValidator = new SAMLProtocolResponseValidator();
+        
+        try {
+            protocolValidator.validateSamlResponse(response, null, null);
+            fail("Expected failure on bad response");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+    }
+    
+    @org.junit.Test
+    public void testAssertionBadSubjectConfirmationMethod() throws Exception {
+        SubjectConfirmationDataBean subjectConfirmationData = new SubjectConfirmationDataBean();
+        subjectConfirmationData.setAddress("http://apache.org");
+        subjectConfirmationData.setInResponseTo("12345");
+        subjectConfirmationData.setNotAfter(new DateTime().plusMinutes(5));
+        subjectConfirmationData.setRecipient("http://recipient.apache.org");
+        
+        // Create a AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod("xyz");
+        
+        callbackHandler.setSubjectConfirmationData(subjectConfirmationData);
+        
+        ConditionsBean conditions = new ConditionsBean();
+        conditions.setNotBefore(new DateTime());
+        conditions.setNotAfter(new DateTime().plusMinutes(5));
+        
+        AudienceRestrictionBean audienceRestriction = new AudienceRestrictionBean();
+        audienceRestriction.setAudienceURIs(Collections.singletonList("http://service.apache.org"));
+        conditions.setAudienceRestrictions(Collections.singletonList(audienceRestriction));
+        callbackHandler.setConditions(conditions);
+        
+        Response response = createResponse(subjectConfirmationData, callbackHandler);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator protocolValidator = new SAMLProtocolResponseValidator();
+        
+        try {
+            protocolValidator.validateSamlResponse(response, null, null);
+            fail("Expected failure on bad response");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+    }
+    
+    @org.junit.Test
+    public void testResponseIssueInstant() throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+        
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                SAMLProtocolResponseValidator.SAML2_STATUSCODE_SUCCESS, null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+        
+        response.setIssueInstant(new DateTime().plusMinutes(5));
+        
+        // Create an AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+        
+        response.getAssertions().add(assertion.getSaml2());
+        
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+        
+        Response marshalledResponse = (Response)OpenSAMLUtil.fromDom(policyElement);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator validator = new SAMLProtocolResponseValidator();
+        try {
+            validator.validateSamlResponse(marshalledResponse, null, null);
+            fail("Expected failure on an invalid Response IssueInstant");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+    }
+    
+    @org.junit.Test
+    public void testAssertionIssueInstant() throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+        
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                SAMLProtocolResponseValidator.SAML2_STATUSCODE_SUCCESS, null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+        
+        // Create an AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+        
+        assertion.getSaml2().setIssueInstant(new DateTime().plusMinutes(5));
+        
+        response.getAssertions().add(assertion.getSaml2());
+        
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+        
+        Response marshalledResponse = (Response)OpenSAMLUtil.fromDom(policyElement);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator validator = new SAMLProtocolResponseValidator();
+        try {
+            validator.validateSamlResponse(marshalledResponse, null, null);
+            fail("Expected failure on an invalid Assertion IssueInstant");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+    }
+    
+    @org.junit.Test
+    public void testFutureAuthnInstant() throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+        
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                SAMLProtocolResponseValidator.SAML2_STATUSCODE_SUCCESS, null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+        
+        // Create an AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        callbackHandler.setAuthnInstant(new DateTime().plusDays(1));
+        
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+        
+        response.getAssertions().add(assertion.getSaml2());
+        
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+        
+        Response marshalledResponse = (Response)OpenSAMLUtil.fromDom(policyElement);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator validator = new SAMLProtocolResponseValidator();
+        try {
+            validator.validateSamlResponse(marshalledResponse, null, null);
+            fail("Expected failure on an invalid Assertion AuthnInstant");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+    }
+    
+    @org.junit.Test
+    public void testStaleSessionNotOnOrAfter() throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+        
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                SAMLProtocolResponseValidator.SAML2_STATUSCODE_SUCCESS, null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+        
+        // Create an AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        callbackHandler.setSessionNotOnOrAfter(new DateTime().minusDays(1));
+        
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+        
+        response.getAssertions().add(assertion.getSaml2());
+        
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+        
+        Response marshalledResponse = (Response)OpenSAMLUtil.fromDom(policyElement);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator validator = new SAMLProtocolResponseValidator();
+        try {
+            validator.validateSamlResponse(marshalledResponse, null, null);
+            fail("Expected failure on an invalid SessionNotOnOrAfter");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+    }
+    
+    @org.junit.Test
+    public void testInvalidSubjectLocality() throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+        
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                SAMLProtocolResponseValidator.SAML2_STATUSCODE_SUCCESS, null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+        
+        // Create an AuthenticationAssertion
+        SAML2CallbackHandler callbackHandler = new SAML2CallbackHandler();
+        callbackHandler.setStatement(SAML2CallbackHandler.Statement.AUTHN);
+        callbackHandler.setIssuer("http://cxf.apache.org/issuer");
+        callbackHandler.setConfirmationMethod(SAML2Constants.CONF_SENDER_VOUCHES);
+        callbackHandler.setSubjectLocality("xyz.123", null);
+        
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+        
+        response.getAssertions().add(assertion.getSaml2());
+        
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+        
+        Response marshalledResponse = (Response)OpenSAMLUtil.fromDom(policyElement);
+        
+        // Validate the Response
+        SAMLProtocolResponseValidator validator = new SAMLProtocolResponseValidator();
+        try {
+            validator.validateSamlResponse(marshalledResponse, null, null);
+            fail("Expected failure on an invalid SessionNotOnOrAfter");
+        } catch (WSSecurityException ex) {
+            // expected
+        }
+    }
     
     /**
      * Sign a SAML Response
@@ -321,4 +853,35 @@ public class SAMLResponseValidatorTest extends org.junit.Assert {
         signableObject.releaseChildrenDOM(true);
     }
     
+    private Response createResponse(
+        SubjectConfirmationDataBean subjectConfirmationData,
+        SAML2CallbackHandler callbackHandler
+    ) throws Exception {
+        DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        docBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        Document doc = docBuilder.newDocument();
+
+        Status status = 
+            SAML2PResponseComponentBuilder.createStatus(
+                SAMLProtocolResponseValidator.SAML2_STATUSCODE_SUCCESS, null
+            );
+        Response response = 
+            SAML2PResponseComponentBuilder.createSAMLResponse(
+                "http://cxf.apache.org/saml", "http://cxf.apache.org/issuer", status
+            );
+
+        // Create an AuthenticationAssertion
+        SAMLParms samlParms = new SAMLParms();
+        samlParms.setCallbackHandler(callbackHandler);
+        AssertionWrapper assertion = new AssertionWrapper(samlParms);
+
+        response.getAssertions().add(assertion.getSaml2());
+
+        Element policyElement = OpenSAMLUtil.toDom(response, doc);
+        doc.appendChild(policyElement);
+        assertNotNull(policyElement);
+
+        return (Response)OpenSAMLUtil.fromDom(policyElement);
+    }
 }

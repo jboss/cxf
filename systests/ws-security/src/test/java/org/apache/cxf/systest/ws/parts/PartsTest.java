@@ -302,6 +302,44 @@ public class PartsTest extends AbstractBusClientServerTestBase {
     }
     
     @org.junit.Test
+    public void testMultipleEncryptedElements() throws Exception {
+        
+        SpringBusFactory bf = new SpringBusFactory();
+        URL busFile = PartsTest.class.getResource("client/client.xml");
+
+        Bus bus = bf.createBus(busFile.toString());
+        SpringBusFactory.setDefaultBus(bus);
+        SpringBusFactory.setThreadDefaultBus(bus);
+
+        URL wsdl = PartsTest.class.getResource("DoubleItParts.wsdl");
+        Service service = Service.create(wsdl, SERVICE_QNAME);
+       
+        // Successful invocation
+        QName portQName = new QName(NAMESPACE, "DoubleItEncryptedElementsPort3");
+        DoubleItPortType port = service.getPort(portQName, DoubleItPortType.class);
+        updateAddressPort(port, PORT);
+        
+        port.doubleIt(25);
+        
+        // This should fail, as the service requires that the header must be encrypted
+        portQName = new QName(NAMESPACE, "DoubleItEncryptedElementsPort2");
+        port = service.getPort(portQName, DoubleItPortType.class);
+        updateAddressPort(port, PORT);
+        
+        try {
+            port.doubleIt(25);
+            fail("Failure expected on a header which isn't encrypted");
+        } catch (javax.xml.ws.soap.SOAPFaultException ex) {
+            String error = "EncryptedElements";
+            assertTrue(ex.getMessage().contains(error)
+                       || ex.getMessage().contains("To must be encrypted"));
+        }
+        
+        ((java.io.Closeable)port).close();
+        bus.shutdown(true);
+    }
+    
+    @org.junit.Test
     public void testContentEncryptedElements() throws Exception {
 
         SpringBusFactory bf = new SpringBusFactory();

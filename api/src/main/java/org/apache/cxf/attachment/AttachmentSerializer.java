@@ -72,27 +72,21 @@ public class AttachmentSerializer {
         bodyBoundary = AttachmentUtil.getUniqueBoundaryValue();
 
         String bodyCt = (String) message.get(Message.CONTENT_TYPE);
-        bodyCt = bodyCt.replaceAll("\"", "\\\"");
-        
-        // The bodyCt string is used enclosed within "", so if it contains the character ", it
-        // should be adjusted, like in the following case:
-        //   application/soap+xml; action="urn:ihe:iti:2007:RetrieveDocumentSet"
-        // The attribute action is added in SoapActionOutInterceptor, when SOAP 1.2 is used
-        // The string has to be changed in:
-        //   application/soap+xml"; action="urn:ihe:iti:2007:RetrieveDocumentSet
-        // so when it is enclosed within "", the result must be:
-        //   "application/soap+xml"; action="urn:ihe:iti:2007:RetrieveDocumentSet"
-        // instead of 
-        //   "application/soap+xml; action="urn:ihe:iti:2007:RetrieveDocumentSet""
-        // that is wrong because when used it produces:
-        //   type="application/soap+xml; action="urn:ihe:iti:2007:RetrieveDocumentSet""
-        if ((bodyCt.indexOf('"') != -1) && (bodyCt.indexOf(';') != -1)) {
+        String bodyCtParams = null;
+        String bodyCtParamsEscaped = null;
+        // split the bodyCt to its head that is the type and its properties so that we
+        // can insert the values at the right places based on the soap version and the mtom option
+        // bodyCt will be of the form
+        // soap11 -> text/xml
+        // soap12 -> application/soap+xml; action="urn:ihe:iti:2007:RetrieveDocumentSet"
+        if (bodyCt.indexOf(';') != -1) {
             int pos = bodyCt.indexOf(';');
-            StringBuilder st = new StringBuilder(bodyCt.substring(0 , pos));
-            st.append("\"").append(bodyCt.substring(pos, bodyCt.length() - 1));
-            bodyCt = st.toString();
-        }        
-        
+            // get everything from the semi-colon
+            bodyCtParams = bodyCt.substring(pos);
+            bodyCtParamsEscaped = escapeQuotes(bodyCtParams); 
+            // keep the type/subtype part in bodyCt
+            bodyCt = bodyCt.substring(0, pos);
+        }
         // Set transport mime type
         String requestMimeType = multipartType == null ? DEFAULT_MULTIPART_TYPE : multipartType;
         
@@ -107,17 +101,15 @@ public class AttachmentSerializer {
         // type is a required parameter for multipart/related only
         if (xopOrMultipartRelated
             && requestMimeType.indexOf("type=") == -1) {
-            ct.append("; ");
             if (xop) {
-                ct.append("type=\"application/xop+xml\"");
+                ct.append("; type=\"application/xop+xml\"");
             } else {
-                ct.append("type=\"").append(bodyCt).append("\"");
+                ct.append("; type=\"").append(bodyCt).append("\"");
             }    
         }
         
         // boundary
-        ct.append("; ")
-            .append("boundary=\"")
+        ct.append("; boundary=\"")
             .append(bodyBoundary)
             .append("\"");
             
@@ -127,19 +119,21 @@ public class AttachmentSerializer {
         // for simpler multipart/related payloads but is not needed for
         // multipart/mixed, multipart/form-data
         if (xopOrMultipartRelated) {
-            ct.append("; ")
-                .append("start=\"<")
+            ct.append("; start=\"<")
                 .append(checkAngleBrackets(rootContentId))
                 .append(">\"");
         }
         
         // start-info is a required parameter for XOP/MTOM, may be needed for
         // other WS cases but is redundant in simpler multipart/related cases
+        // the parameters need to be included within the start-info's value in the escaped form
         if (writeOptionalTypeParameters || xop) {
-            ct.append("; ")
-                .append("start-info=\"")
-                .append(bodyCt)
-                .append("\"");
+            ct.append("; start-info=\"")
+                .append(bodyCt);
+            if (bodyCtParamsEscaped != null) {
+                ct.append(bodyCtParamsEscaped);
+            }
+            ct.append("\"");
         }
         
         
@@ -159,17 +153,27 @@ public class AttachmentSerializer {
         StringBuilder mimeBodyCt = new StringBuilder();
         String bodyType = getHeaderValue("Content-Type", null);
         if (bodyType == null) {
-            mimeBodyCt.append((xop ? "application/xop+xml" : "text/xml") + "; charset=")
-                .append(encoding)
-                .append("; type=\"")
-                .append(bodyCt)
-                .append("\"");
+            mimeBodyCt.append(xop ? "application/xop+xml" : bodyCt)
+                .append("; charset=").append(encoding);
+            if (xop) {
+                mimeBodyCt.append("; type=\"").append(bodyCt);
+                if (bodyCtParamsEscaped != null) {
+                    mimeBodyCt.append(bodyCtParamsEscaped);
+                }
+                mimeBodyCt.append("\"");
+            } else if (bodyCtParams != null) {
+                mimeBodyCt.append(bodyCtParams);
+            }
         } else {
             mimeBodyCt.append(bodyType);
         }
         
         writeHeaders(mimeBodyCt.toString(), rootContentId, rootHeaders, writer);
         out.write(writer.getBuffer().toString().getBytes(encoding));
+    }
+
+    private static String escapeQuotes(String s) {
+        return s.indexOf('"') != 0 ? s.replace("\"", "\\\"") : s;    
     }
 
     private String getHeaderValue(String name, String defaultValue) {
@@ -189,12 +193,9 @@ public class AttachmentSerializer {
     
     private static void writeHeaders(String contentType, String attachmentId, 
                                      Map<String, List<String>> headers, Writer writer) throws IOException {
-        writer.write("\r\n");
-        writer.write("Content-Type: ");
+        writer.write("\r\nContent-Type: ");
         writer.write(contentType);
-        writer.write("\r\n");
-
-        writer.write("Content-Transfer-Encoding: binary\r\n");
+        writer.write("\r\nContent-Transfer-Encoding: binary\r\n");
 
         if (attachmentId != null) {
             attachmentId = checkAngleBrackets(attachmentId);
@@ -209,7 +210,8 @@ public class AttachmentSerializer {
                 || "Content-Transfer-Encoding".equalsIgnoreCase(name)) {
                 continue;
             }
-            writer.write(name + ": ");
+            writer.write(name);
+            writer.write(": ");
             List<String> values = entry.getValue();
             for (int i = 0; i < values.size(); i++) {
                 writer.write(values.get(i));
@@ -238,8 +240,7 @@ public class AttachmentSerializer {
         if (message.getAttachments() != null) {
             for (Attachment a : message.getAttachments()) {
                 StringWriter writer = new StringWriter();                
-                writer.write("\r\n");
-                writer.write("--");
+                writer.write("\r\n--");
                 writer.write(bodyBoundary);
                 
                 Map<String, List<String>> headers = null;
@@ -265,8 +266,7 @@ public class AttachmentSerializer {
             }
         }
         StringWriter writer = new StringWriter();                
-        writer.write("\r\n");
-        writer.write("--");
+        writer.write("\r\n--");
         writer.write(bodyBoundary);
         writer.write("--");
         out.write(writer.getBuffer().toString().getBytes(encoding));

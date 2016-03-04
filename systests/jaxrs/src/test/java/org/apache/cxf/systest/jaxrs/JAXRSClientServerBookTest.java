@@ -92,7 +92,14 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
                    launchServer(BookServer.class, true));
         createStaticBus();
     }
-    
+    @Test
+    public void testExceptionFromFaultyResponseHandler() throws Exception {
+        String address = "http://localhost:" + PORT + "/bookstore/faultyResponseHandler";
+        WebClient wc = WebClient.create(address);
+        WebClient.getConfig(wc).getHttpConduit().getClient().setAutoRedirect(true);
+        Response r = wc.get();
+        assertEquals(500, r.getStatus());
+    }
     @Test
     public void testGetBookRoot() throws Exception {
         String address = "http://localhost:" + PORT + "/bookstore/;JSESSIONID=xxx";
@@ -100,6 +107,15 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         Book book = wc.get(Book.class);
         assertEquals(124L, book.getId());
         assertEquals("root", book.getName());
+    }
+    @Test
+    public void testGetBookUntypedStreamingResponse() throws Exception {
+        String address = "http://localhost:" + PORT + "/bookstore/books/streamingresponse";
+        WebClient wc = WebClient.create(address);
+        wc.accept("text/xml");
+        Book book = wc.get(Book.class);
+        assertEquals(124L, book.getId());
+        assertEquals("stream", book.getName());
     }
     @Test
     public void testGetBookQueryGZIP() throws Exception {
@@ -286,7 +302,6 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     public void testUseMapperOnBus() {
         String address = "http://localhost:" + PORT + "/bookstore/mapperonbus";
         WebClient wc = WebClient.create(address);
-        WebClient.getConfig(wc).getHttpConduit().getClient().setReceiveTimeout(10000000L);
         Response r = wc.post(null);
         assertEquals(500, r.getStatus());
         MediaType mt = r.getMediaType();
@@ -336,9 +351,7 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     
     private void doTestGetChapterFromSelectedBook(String address) {
         
-        WebClient wc = 
-            WebClient.create(address);
-        WebClient.getConfig(wc).getHttpConduit().getClient().setReceiveTimeout(1000000);
+        WebClient wc = WebClient.create(address);
         wc.accept("application/xml");
         Chapter chapter = wc.get(Chapter.class);
         assertEquals("chapter 1", chapter.getTitle());    
@@ -385,7 +398,19 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         assertEquals(123L, book.getId());
         
     }
-    
+    @Test
+    public void testProxyBeanParam2() throws Exception {
+        BookStore store = JAXRSClientFactory.create("http://localhost:" + PORT, BookStore.class);
+        WebClient.getConfig(store).getHttpConduit().getClient().setReceiveTimeout(10000000L);
+        BookStore.BookBean2 bean = new BookStore.BookBean2();
+        bean.setId(100L);
+        bean.setId2(23L);
+        BookStore.BookBeanNested nested = new BookStore.BookBeanNested();
+        nested.setId4(123);
+        Book book = store.getTwoBeanParamsBook(bean, nested);
+        assertEquals(123L, book.getId());
+        
+    }
     @Test
     public void testGetBookWithCustomHeader() throws Exception {
         
@@ -439,7 +464,6 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         String base = "http://localhost:" + PORT;
         String endpointAddress = base + "/bookstore/name-in-query"; 
         WebClient wc = WebClient.create(endpointAddress);
-        WebClient.getConfig(wc).getHttpConduit().getClient().setReceiveTimeout(1000000);
         String name = "Many        spaces";
         wc.query("name", name);
         String content = wc.get(String.class);
@@ -496,7 +520,6 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         String endpointAddress =
             "http://localhost:" + PORT + "/bookstore/outfault"; 
         WebClient wc = WebClient.create(endpointAddress);
-        WebClient.getConfig(wc).getHttpConduit().getClient().setReceiveTimeout(1000000L);
         Response r = wc.get();
         assertEquals(403, r.getStatus());
     }
@@ -678,6 +701,41 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         BookStore store = JAXRSClientFactory.create("http://localhost:" + PORT, BookStore.class);
         Book book = store.getBookWithSpace("123");
         assertEquals(123L, book.getId());
+        assertEquals("CXF in Action", book.getName());
+    }
+    
+    @Test
+    public void testBookWithSpaceProxyPathUrlEncoded() throws Exception {
+        JAXRSClientFactoryBean bean = new JAXRSClientFactoryBean();
+        bean.setServiceClass(BookStore.class);
+        bean.setAddress("http://localhost:" + PORT);
+        bean.setProperties(Collections.<String, Object>singletonMap("url.encode.client.parameters", Boolean.TRUE));
+        BookStore store = bean.create(BookStore.class);
+        Book book = store.getBookWithSemicolon("123;:", "custom;:header");
+        assertEquals(123L, book.getId());
+        assertEquals("CXF in Action%3B%3A", book.getName());
+    }
+    
+    @Test
+    public void testBookWithSpaceProxyPathUrlEncodedSemicolonOnly() throws Exception {
+        JAXRSClientFactoryBean bean = new JAXRSClientFactoryBean();
+        bean.setServiceClass(BookStore.class);
+        bean.setAddress("http://localhost:" + PORT);
+        bean.getProperties(true).put("url.encode.client.parameters", "true");
+        bean.getProperties(true).put("url.encode.client.parameters.list", ";");
+        BookStore store = bean.create(BookStore.class);
+        Book book = store.getBookWithSemicolon("123;:", "custom;:header");
+        assertEquals(123L, book.getId());
+        assertEquals("CXF in Action%3B:", book.getName());
+    }
+    
+    @Test
+    public void testBookWithSpaceProxyNonEncodedSemicolon() throws Exception {
+        BookStore store = JAXRSClientFactory.create("http://localhost:" + PORT,
+                                                    BookStore.class);
+        Book book = store.getBookWithSemicolon("123;", "custom;:header");
+        assertEquals(123L, book.getId());
+        assertEquals("CXF in Action;", book.getName());
     }
     
     @Test
@@ -1253,6 +1311,19 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     }
     
     @Test
+    public void testStatusAngHeadersFromStream() throws Exception {
+        String address = "http://localhost:" + PORT + "/bookstore/books/statusFromStream";
+        WebClient wc = WebClient.create(address);
+        wc.accept("text/xml");
+        Response r = wc.get();
+        assertEquals(503, r.getStatus());
+        assertEquals("text/plain", r.getMediaType().toString());
+        assertEquals("CustomValue", r.getHeaderString("CustomHeader"));
+        assertEquals("Response is not available", r.readEntity(String.class));
+        
+    }
+    
+    @Test
     public void testWriteAndFailEarly() throws Exception {
         getAndCompare("http://localhost:" + PORT + "/bookstore/books/fail-early",
                       "This is supposed to go on the wire",
@@ -1801,7 +1872,6 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     public void testGetBookByHeaderPerRequestContextFault() throws Exception {
         String address = "http://localhost:" + PORT + "/bookstore2/bookheaders";
         WebClient wc = WebClient.create(address);
-        WebClient.getConfig(wc).getHttpConduit().getClient().setReceiveTimeout(1000000);
         wc.accept("application/xml");
         wc.header("BOOK", "1", "3", "4");
         Response r = wc.get();
@@ -1877,7 +1947,6 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
         provider.setOutTransformElements(outMap);
         WebClient wc = WebClient.create("http://localhost:" + PORT + "/bookstore/books/adapter-list",
                                         Collections.singletonList(provider));
-        WebClient.getConfig(wc).getHttpConduit().getClient().setReceiveTimeout(10000000);
         Response r = wc.type("application/xml").accept("application/json")
             .post(new Books(new Book("CXF", 123L)));
         assertEquals("{\"Book\":[{\"id\":123,\"name\":\"CXF\"}]}",
@@ -1903,7 +1972,6 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     @Test
     public void testGetBookAdapterInterfaceProxy() throws Exception {
         BookStore store = JAXRSClientFactory.create("http://localhost:" + PORT, BookStore.class);
-        WebClient.getConfig(store).getHttpConduit().getClient().setReceiveTimeout(10000000L);
         BookInfoInterface info = store.getBookAdapterInterface();
         assertEquals(123L, info.getId());
     }
@@ -1977,7 +2045,6 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     
     private void doTestGetBookWithResourceContext(String address) throws Exception {
         WebClient wc = WebClient.create(address);
-        WebClient.getConfig(wc).getHttpConduit().getClient().setReceiveTimeout(1000000);
         wc.accept("application/xml");
         wc.query("bookid", "12345");
         wc.query("bookname", "bookcontext");
@@ -2051,14 +2118,15 @@ public class JAXRSClientServerBookTest extends AbstractBusClientServerTestBase {
     
     @Test
     public void testAddBookEmptyContent() throws Exception {
-        Response r = WebClient.create("http://localhost:" + PORT + "/bookstore/books").post(null);
+        Response r = WebClient.create("http://localhost:" + PORT + "/bookstore/books")
+            .type("*/*").post(null);
         assertEquals(400, r.getStatus());
     }
     
     @Test
     public void testAddBookEmptyContentWithNullable() throws Exception {
-        Book defaultBook = 
-            WebClient.create("http://localhost:" + PORT + "/bookstore/books/null").post(null, Book.class);
+        Book defaultBook = WebClient.create("http://localhost:" + PORT + "/bookstore/books/null")
+            .type("*/*").post(null, Book.class);
         assertEquals("Default Book", defaultBook.getName());
     }
     

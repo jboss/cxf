@@ -44,6 +44,7 @@ public class SAMLSSOResponseValidator {
     private String clientAddress;
     private String requestId;
     private String spIdentifier;
+    private boolean enforceResponseSigned;
     private boolean enforceAssertionsSigned = true;
     private boolean enforceKnownIssuer = true;
     private TokenReplayCache<String> replayCache;
@@ -91,8 +92,13 @@ public class SAMLSSOResponseValidator {
             throw new WSSecurityException(WSSecurityException.FAILURE, "invalidSAMLsecurity");
         }
         
+        if (enforceResponseSigned && !samlResponse.isSigned()) {
+            LOG.fine("The Response must be signed!");
+            throw new WSSecurityException(WSSecurityException.FAILURE, "invalidSAMLsecurity");
+        }
+        
         // Validate Assertions
-        boolean foundValidSubject = false;
+        org.opensaml.saml2.core.Assertion validAssertion = null;
         Date sessionNotOnOrAfter = null;
         for (org.opensaml.saml2.core.Assertion assertion : samlResponse.getAssertions()) {
             // Check the Issuer
@@ -114,7 +120,7 @@ public class SAMLSSOResponseValidator {
                 org.opensaml.saml2.core.Subject subject = assertion.getSubject();
                 if (validateAuthenticationSubject(subject, assertion.getID(), postBinding)) {
                     validateAudienceRestrictionCondition(assertion.getConditions());
-                    foundValidSubject = true;
+                    validAssertion = assertion;
                     // Store Session NotOnOrAfter
                     for (AuthnStatement authnStatment : assertion.getAuthnStatements()) {
                         if (authnStatment.getSessionNotOnOrAfter() != null) {
@@ -123,10 +129,9 @@ public class SAMLSSOResponseValidator {
                     }
                 }
             }
-            
         }
         
-        if (!foundValidSubject) {
+        if (validAssertion == null) {
             LOG.fine("The Response did not contain any Authentication Statement that matched "
                      + "the Subject Confirmation criteria");
             throw new WSSecurityException(WSSecurityException.FAILURE, "invalidSAMLsecurity");
@@ -135,9 +140,10 @@ public class SAMLSSOResponseValidator {
         SSOValidatorResponse validatorResponse = new SSOValidatorResponse();
         validatorResponse.setResponseId(samlResponse.getID());
         validatorResponse.setSessionNotOnOrAfter(sessionNotOnOrAfter);
-        // the assumption for now is that SAMLResponse will contain only a single assertion
-        Element assertionElement = samlResponse.getAssertions().get(0).getDOM();
+
+        Element assertionElement = validAssertion.getDOM();
         validatorResponse.setAssertion(DOM2Writer.nodeToString(assertionElement.cloneNode(true)));
+        
         return validatorResponse;
     }
     
@@ -268,20 +274,26 @@ public class SAMLSSOResponseValidator {
     private boolean matchSaml2AudienceRestriction(
         String appliesTo, List<AudienceRestriction> audienceRestrictions
     ) {
-        boolean found = false;
+        boolean oneMatchFound = false;
         if (audienceRestrictions != null && !audienceRestrictions.isEmpty()) {
             for (AudienceRestriction audienceRestriction : audienceRestrictions) {
                 if (audienceRestriction.getAudiences() != null) {
+                    boolean matchFound = false;
                     for (org.opensaml.saml2.core.Audience audience : audienceRestriction.getAudiences()) {
                         if (appliesTo.equals(audience.getAudienceURI())) {
-                            return true;
+                            matchFound = true;
+                            oneMatchFound = true;
+                            break;
                         }
+                    }
+                    if (!matchFound) {
+                        return false;
                     }
                 }
             }
         }
 
-        return found;
+        return oneMatchFound;
     }
 
     public String getIssuerIDP() {
@@ -326,6 +338,17 @@ public class SAMLSSOResponseValidator {
     
     public void setReplayCache(TokenReplayCache<String> replayCache) {
         this.replayCache = replayCache;
+    }
+
+    public boolean isEnforceResponseSigned() {
+        return enforceResponseSigned;
+    }
+
+    /**
+     * Enforce whether a SAML Response must be signed.
+     */
+    public void setEnforceResponseSigned(boolean enforceResponseSigned) {
+        this.enforceResponseSigned = enforceResponseSigned;
     }
     
 }

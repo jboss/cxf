@@ -118,27 +118,29 @@ public abstract class AbstractBindingPolicyValidator implements BindingPolicyVal
         for (WSSecurityEngineResult signedResult : signedResults) {
             List<WSDataRef> dataRefs = 
                     CastUtils.cast((List<?>)signedResult.get(WSSecurityEngineResult.TAG_DATA_REF_URIS));
-            for (WSDataRef dataRef : dataRefs) {
-                String xpath = dataRef.getXpath();
-                if (xpath != null) {
-                    String[] nodes = StringUtils.split(xpath, "/");
-                    // envelope/Body || envelope/Header/header || envelope/Header/wsse:Security/header
-                    if (nodes.length < 3 || nodes.length > 5) {
-                        return false;
+            if (dataRefs != null) {
+                for (WSDataRef dataRef : dataRefs) {
+                    String xpath = dataRef.getXpath();
+                    if (xpath != null) {
+                        String[] nodes = StringUtils.split(xpath, "/");
+                        // envelope/Body || envelope/Header/header || envelope/Header/wsse:Security/header
+                        if (nodes.length < 3 || nodes.length > 5) {
+                            return false;
+                        }
+                        
+                        if (!(nodes[2].contains("Header") || nodes[2].contains("Body"))) {
+                            return false;
+                        }
+                        
+                        if (nodes.length == 5 && !nodes[3].contains("Security")) {
+                            return false;
+                        }
+                        
+                        if (nodes.length == 4 && nodes[2].contains("Body")) {
+                            return false;
+                        }
+                        
                     }
-                    
-                    if (!(nodes[2].contains("Header") || nodes[2].contains("Body"))) {
-                        return false;
-                    }
-                    
-                    if (nodes.length == 5 && !nodes[3].contains("Security")) {
-                        return false;
-                    }
-                    
-                    if (nodes.length == 4 && nodes[2].contains("Body")) {
-                        return false;
-                    }
-                    
                 }
             }
         }
@@ -398,13 +400,15 @@ public abstract class AbstractBindingPolicyValidator implements BindingPolicyVal
             Integer actInt = (Integer)result.get(WSSecurityEngineResult.TAG_ACTION);
             if (actInt.intValue() == WSConstants.SIGN && !foundPrimarySignature) {
                 foundPrimarySignature = true;
-                String sigId = (String)result.get(WSSecurityEngineResult.TAG_ID);
-                if (sigId == null || !isIdEncrypted(sigId, results)) {
+                Element sigElement = 
+                    (Element)result.get(WSSecurityEngineResult.TAG_TOKEN_ELEMENT);
+                if (sigElement == null || !isElementEncrypted(sigElement, results)) {
                     return false;
                 }
             } else if (actInt.intValue() == WSConstants.SC) {
-                String sigId = (String)result.get(WSSecurityEngineResult.TAG_ID);
-                if (sigId == null || !isIdEncrypted(sigId, results)) {
+                Element sigElement = 
+                    (Element)result.get(WSSecurityEngineResult.TAG_TOKEN_ELEMENT);
+                if (sigElement == null || !isElementEncrypted(sigElement, results)) {
                     return false;
                 }
             }
@@ -413,9 +417,9 @@ public abstract class AbstractBindingPolicyValidator implements BindingPolicyVal
     }
     
     /**
-     * Return true if the given id was encrypted
+     * Return true if the given Element was encrypted
      */
-    private boolean isIdEncrypted(String sigId, List<WSSecurityEngineResult> results) {
+    private boolean isElementEncrypted(Element element, List<WSSecurityEngineResult> results) {
         for (WSSecurityEngineResult wser : results) {
             Integer actInt = (Integer)wser.get(WSSecurityEngineResult.TAG_ACTION);
             if (actInt.intValue() == WSConstants.ENCR) {
@@ -424,12 +428,8 @@ public abstract class AbstractBindingPolicyValidator implements BindingPolicyVal
                 if (el != null) {
                     for (WSDataRef r : el) {
                         Element protectedElement = r.getProtectedElement();
-                        if (protectedElement != null) {
-                            String id = protectedElement.getAttributeNS(null, "Id");
-                            String wsuId = protectedElement.getAttributeNS(WSConstants.WSU_NS, "Id");
-                            if (sigId.equals(id) || sigId.equals(wsuId)) {
-                                return true;
-                            }
+                        if (element.equals(protectedElement)) {
+                            return true;
                         }
                     }
                 }

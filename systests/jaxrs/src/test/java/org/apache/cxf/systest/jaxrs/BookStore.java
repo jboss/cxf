@@ -46,6 +46,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.CookieParam;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
+import javax.ws.rs.Encoded;
 import javax.ws.rs.GET;
 import javax.ws.rs.HEAD;
 import javax.ws.rs.HeaderParam;
@@ -88,13 +89,17 @@ import org.apache.cxf.helpers.IOUtils;
 import org.apache.cxf.jaxrs.ext.MessageContext;
 import org.apache.cxf.jaxrs.ext.Nullable;
 import org.apache.cxf.jaxrs.ext.Oneway;
+import org.apache.cxf.jaxrs.ext.PATCH;
+import org.apache.cxf.jaxrs.ext.StreamingResponse;
 import org.apache.cxf.jaxrs.ext.search.QueryContext;
 import org.apache.cxf.jaxrs.ext.search.SearchCondition;
 import org.apache.cxf.jaxrs.ext.search.SearchContext;
 import org.apache.cxf.jaxrs.ext.xml.XMLInstruction;
 import org.apache.cxf.jaxrs.ext.xml.XSISchemaLocation;
+import org.apache.cxf.jaxrs.impl.MetadataMap;
 import org.apache.cxf.jaxrs.impl.ResourceContextImpl;
 import org.apache.cxf.jaxrs.utils.InjectionUtils;
+import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.PhaseInterceptorChain;
 import org.apache.cxf.systest.jaxrs.BookServer20.CustomHeaderAdded;
 import org.apache.cxf.systest.jaxrs.BookServer20.PostMatchMode;
@@ -122,6 +127,8 @@ public class BookStore {
     private UriInfo ui;
     @Context 
     private ResourceContext resourceContext;
+    @Context 
+    private MessageContext messageContext;
     
     @BeanParam
     private BookBean theBookBean;
@@ -142,6 +149,12 @@ public class BookStore {
         //System.out.println("PreDestroy called");
     }
 
+    @GET
+    @Path("faultyResponseHandler")
+    public Book testFaultyResponseHandler() {
+        return new Book("root", 124L);
+    }
+    
     @GET
     @Path("/")
     public Book getBookRoot() {
@@ -241,6 +254,14 @@ public class BookStore {
         return book;
     }
     
+    @PATCH
+    @Path("/patch")
+    @Produces("application/xml")
+    @Consumes("application/xml")
+    public Response patchBook(Book book) {
+        return Response.ok(book).build();
+    }
+    
     @DELETE
     @Path("/deletebody")
     @Produces("application/xml")
@@ -275,6 +296,18 @@ public class BookStore {
         
         long id = bean.getId() + bean.getId2() + bean.getId3(); 
         
+        return books.get(id);
+    }
+    @GET
+    @Path("/twoBeanParams/{id}")
+    @Produces("application/xml")
+    public Book getTwoBeanParamsBook(@BeanParam BookBean2 bean1, 
+                                     @BeanParam BookBeanNested bean2) {
+        
+        long id = bean1.getId() + bean1.getId2() + bean1.getId3(); 
+        if (bean2.getId4() != id) {
+            throw new RuntimeException();
+        }
         return books.get(id);
     }
     
@@ -869,6 +902,24 @@ public class BookStore {
     }
     
     @GET
+    @Path("/thebooks/{bookId}/")
+    @Produces("application/xml")
+    public Book getBookWithSemicolon(@Encoded @PathParam("bookId") String id,
+                                     @HeaderParam("customheader") String custom) {
+        if (!"custom;:header".equals(custom)) {
+            throw new RuntimeException();
+        }
+        Book b = new Book();
+        b.setId(Long.valueOf(id.substring(0, 3)));
+        b.setName("CXF in Action" + id.substring(3));
+        String absPath = ui.getAbsolutePath().toString();
+        if (absPath.contains("123;")) {
+            b.setName(b.getName() + ";");
+        }
+        return b;
+    }
+    
+    @GET
     @Path("/books/search")
     @Produces("application/xml")
     public Book getBook(@Context SearchContext searchContext) 
@@ -1003,6 +1054,13 @@ public class BookStore {
     public Book echoBookElement(Book element) throws Exception {
         return element;
     }
+    @POST
+    @Path("/books/json/echo")
+    @Consumes("application/json")
+    @Produces("application/json")
+    public Book echoBookElementJson(Book element) throws Exception {
+        return element;
+    }
     
     @SuppressWarnings("unchecked")
     @POST
@@ -1085,6 +1143,29 @@ public class BookStore {
     @Produces("application/bar")
     public StreamingOutput failEarlyInWrite() {
         return new StreamingOutputImpl(true);
+    }
+    
+    @GET
+    @Path("/books/statusFromStream")
+    @Produces("text/xml")
+    public StreamingOutput statusFromStream() {
+        return new ResponseStreamingOutputImpl();
+    }
+    
+    @SuppressWarnings("rawtypes")
+    @GET
+    @Path("/books/streamingresponse")
+    @Produces("text/xml")
+    public Response getBookStreamingResponse() {
+        return Response.ok(new StreamingResponse() {
+
+            @SuppressWarnings("unchecked")
+            @Override
+            public void writeTo(Writer writer) throws IOException {
+                writer.write(new Book("stream", 124L));
+            }
+            
+        }).build();
     }
     
     @GET
@@ -1557,6 +1638,18 @@ public class BookStore {
         } 
         
     }
+    private class ResponseStreamingOutputImpl implements StreamingOutput {
+        public void write(OutputStream output) throws IOException, WebApplicationException {
+            BookStore.this.messageContext.put(Message.RESPONSE_CODE, 503);
+            MultivaluedMap<String, String> headers = new MetadataMap<String, String>();
+            headers.putSingle("Content-Type", "text/plain");
+            headers.putSingle("CustomHeader", "CustomValue");
+            BookStore.this.messageContext.put(Message.PROTOCOL_HEADERS, headers);
+            
+            output.write("Response is not available".getBytes());
+        } 
+        
+    }
     
     private Book createCglibProxy(final Book book) {
         final InvocationHandler handler = new InvocationHandler() {
@@ -1608,7 +1701,52 @@ public class BookStore {
 
         
     }
+    public static class BookBeanNested {
+        private long id4;
+
+        public long getId4() {
+            return id4;
+        }
+        @QueryParam("id4")
+        public void setId4(long id4) {
+            this.id4 = id4;
+        }
+        
+    }
     
+    public static class BookBean2 {
+        private long id;
+        private long id2;
+        private long id3;
+        public long getId() {
+            return id;
+        }
+
+        @PathParam("id")
+        public void setId(long id) {
+            this.id = id;
+        }
+        
+        public long getId2() {
+            return id2;
+        }
+        @QueryParam("id2")
+        public void setId2(long id2) {
+            this.id2 = id2;
+        }
+        
+        @Context
+        public void setUriInfo(UriInfo ui) {
+            String id3Value = ui.getQueryParameters().getFirst("id3");
+            if (id3Value != null) {
+                this.id3 = Long.valueOf(id3Value);
+            }
+        }
+
+        public long getId3() {
+            return id3;
+        }
+    }
     public static class BookNotReturnedException extends RuntimeException {
 
         private static final long serialVersionUID = 4935423670510083220L;

@@ -28,7 +28,6 @@ import java.util.logging.Level;
 import javax.xml.crypto.dsig.Reference;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
-import javax.xml.xpath.XPathExpressionException;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -521,6 +520,11 @@ public class TransportBindingHandler extends AbstractBindingBuilder {
             if (crypto == null) {
                 crypto = getSignatureCrypto(wrapper);
             }
+            if (crypto == null) {
+                LOG.fine("No signature Crypto properties are available");
+                throw new WSSecurityException("No signature Crypto properties are available");
+            }
+            
             String uname = crypto.getX509Identifier(secTok.getX509Certificate());
             if (uname == null) {
                 String userNameKey = SecurityConstants.SIGNATURE_USERNAME;
@@ -597,17 +601,12 @@ public class TransportBindingHandler extends AbstractBindingBuilder {
         
         if (signedElements != null) {
             // Handle SignedElements
-            try {
-                result.addAll(
-                    this.getElements(
-                        "Element", signedElements.getXPathExpressions(), 
-                        signedElements.getDeclaredNamespaces(), found, true
-                    )
-                );
-            } catch (XPathExpressionException e) {
-                LOG.log(Level.FINE, e.getMessage(), e);
-                // REVISIT
-            }
+            result.addAll(
+                this.getElements(
+                    "Element", signedElements.getXPathExpressions(), 
+                    signedElements.getDeclaredNamespaces(), found, true
+                )
+            );
         }
 
         return result;

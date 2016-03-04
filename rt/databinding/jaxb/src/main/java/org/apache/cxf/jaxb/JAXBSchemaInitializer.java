@@ -609,7 +609,8 @@ class JAXBSchemaInitializer extends ServiceModelVisitor {
         try {
             //a subclass could mark the message method as transient
             Method m = cls.getMethod("getMessage");
-            if (!m.isAnnotationPresent(XmlTransient.class)) {
+            if (!m.isAnnotationPresent(XmlTransient.class)
+                && m.getDeclaringClass().equals(Throwable.class)) {
                 JAXBBeanInfo beanInfo = getBeanInfo(java.lang.String.class);
                 XmlSchemaElement exEle = new XmlSchemaElement(schema, false);
                 exEle.setName("message");

@@ -209,7 +209,8 @@ public class JMSDestination extends AbstractMultiplexDestination
             }
             getLogger().log(Level.FINE, "server received request: ", message);
              // Build CXF message from JMS message
-            Message inMessage = new MessageImpl();            
+            Message inMessage = new MessageImpl();
+            
             JMSUtils.populateIncomingContext(message, inMessage, 
                                              JMSConstants.JMS_SERVER_REQUEST_HEADERS, jmsConfig);
             
@@ -247,7 +248,8 @@ public class JMSDestination extends AbstractMultiplexDestination
             }
             //need to propagate any exceptions back to Spring container 
             //so transactions can occur
-            if (inMessage.getContent(Exception.class) != null && session != null) {
+            if (inMessage.getContent(Exception.class) != null && session != null
+                    && jmsConfig.isPropogateExceptions()) {
                 PlatformTransactionManager m = jmsConfig.getTransactionManager();
                 if (m != null) {
                     TransactionStatus status = m.getTransaction(null);

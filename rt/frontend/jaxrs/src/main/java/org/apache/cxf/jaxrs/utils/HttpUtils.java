@@ -22,7 +22,6 @@ package org.apache.cxf.jaxrs.utils;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -127,13 +126,7 @@ public final class HttpUtils {
     
     public static String urlEncode(String value, String enc) {
         
-        try {
-            value = URLEncoder.encode(value, enc);
-        } catch (UnsupportedEncodingException ex) {
-            throw new RuntimeException(ex);
-        }
-        
-        return value;
+        return UrlUtils.urlEncode(value, enc);
     }
     
     public static String pathEncode(String value) {
@@ -203,15 +196,24 @@ public final class HttpUtils {
         if (value == null) {
             return null;
         }
-        
-        String[] values = StringUtils.split(value, "-");
-        if (values.length == 0 || values.length > 2) {
+        String language = null;
+        String locale = null;
+        int index = value.indexOf('-');
+        if (index == 0 || index == value.length() - 1) {
             throw new IllegalArgumentException("Illegal locale value : " + value);
         }
-        if (values.length == 1) {
-            return new Locale(values[0]);
+        
+        if (index > 0) {
+            language = value.substring(0, index);
+            locale = value.substring(index + 1);
         } else {
-            return new Locale(values[0], values[1]);
+            language = value;
+        }
+        
+        if (locale == null) {
+            return new Locale(language);
+        } else {
+            return new Locale(language, locale);
         }
         
     }

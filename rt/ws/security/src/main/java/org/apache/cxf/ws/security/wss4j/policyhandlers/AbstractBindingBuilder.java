@@ -700,11 +700,13 @@ public abstract class AbstractBindingBuilder {
                     Document doc = token.getToken().getOwnerDocument();
                     boolean saml1 = WSConstants.WSS_SAML_TOKEN_TYPE.equals(tokenType)
                         || WSConstants.SAML_NS.equals(tokenType);
-                    String id = null;
-                    if (saml1) {
-                        id = token.getToken().getAttributeNS(null, "AssertionID");
-                    } else {
-                        id = token.getToken().getAttributeNS(null, "ID");
+                    String id = token.getId();
+                    if (id == null || "".equals(id)) {
+                        if (saml1) {
+                            id = token.getToken().getAttributeNS(null, "AssertionID");
+                        } else {
+                            id = token.getToken().getAttributeNS(null, "ID");
+                        }
                     }
                     SecurityTokenReference secRef = 
                         createSTRForSamlAssertion(doc, id, saml1, false);
@@ -1244,21 +1246,12 @@ public abstract class AbstractBindingBuilder {
         // Handle sign/enc parts
         result.addAll(this.getParts(sign, includeBody, parts, found));
         
-        
         // Handle sign/enc elements
-        try {
-            result.addAll(this.getElements("Element", xpaths, namespaces, found, sign));
-        } catch (XPathExpressionException e) {
-            LOG.log(Level.FINE, e.getMessage(), e);
-            // REVISIT
-        }
+        result.addAll(this.getElements("Element", xpaths, namespaces, found, sign));
         
         // Handle content encrypted elements
-        try {
+        if (!sign) {
             result.addAll(this.getElements("Content", contentXpaths, cnamespaces, found, sign));
-        } catch (XPathExpressionException e) {
-            LOG.log(Level.FINE, e.getMessage(), e);
-            // REVISIT
         }
         
         return result;
@@ -1371,7 +1364,7 @@ public abstract class AbstractBindingBuilder {
     protected List<WSEncryptionPart> getElements(String encryptionModifier,
             List<String> xpaths, Map<String, String> namespaces,
             List<Element> found,
-            boolean forceId) throws XPathExpressionException, SOAPException {
+            boolean forceId) throws SOAPException {
         
         List<WSEncryptionPart> result = new ArrayList<WSEncryptionPart>();
         
@@ -1382,40 +1375,53 @@ public abstract class AbstractBindingBuilder {
                 if (namespaces != null) {
                     xpath.setNamespaceContext(new MapNamespaceContext(namespaces));
                 }
-               
-                NodeList list = (NodeList)xpath.evaluate(expression, saaj.getSOAPPart().getEnvelope(),
-                                               XPathConstants.NODESET);
-                for (int x = 0; x < list.getLength(); x++) {
-                    Element el = (Element)list.item(x);
-                    
-                    if (!found.contains(el)) {
-                        String id = null;
-                        if (forceId) {
-                            id = this.addWsuIdToElement(el);
-                        } else {
-                            //not forcing an ID on this.  Use one if there is one 
-                            //there already, but don't force one
-                            Attr idAttr = el.getAttributeNodeNS(null, "Id");
-                            if (idAttr == null) {
-                                //then try the wsu:Id value
-                                idAttr = el.getAttributeNodeNS(PolicyConstants.WSU_NAMESPACE_URI, "Id");
-                            }
-                            if (idAttr != null) {
-                                id = idAttr.getValue();
-                            }
-                        }
-                        WSEncryptionPart part = 
-                            new WSEncryptionPart(id, encryptionModifier);
-                        part.setElement(el);
-                        part.setXpath(expression);
+
+                NodeList list = null;
+                try {
+                    list = (NodeList)xpath.evaluate(expression, saaj.getSOAPPart().getEnvelope(),
+                                                             XPathConstants.NODESET);
+                } catch (XPathExpressionException e) {
+                    LOG.log(Level.WARNING, "Failure in evaluating an XPath expression", e);
+                }
+                
+                if (list != null) {
+                    for (int x = 0; x < list.getLength(); x++) {
+                        Element el = (Element)list.item(x);
                         
-                        result.add(part);
+                        if (!found.contains(el)) {
+                            String id = setIdOnElement(el, forceId);
+                            WSEncryptionPart part = 
+                                new WSEncryptionPart(id, encryptionModifier);
+                            part.setElement(el);
+                            part.setXpath(expression);
+                            
+                            result.add(part);
+                        }
                     }
                 }
             }
         }
         
         return result;
+    }
+    
+    private String setIdOnElement(Element element, boolean forceId) {
+        if (forceId) {
+            return this.addWsuIdToElement(element);
+        }
+        
+        //not forcing an ID on this.  Use one if there is one 
+        //there already, but don't force one
+        Attr idAttr = element.getAttributeNodeNS(null, "Id");
+        if (idAttr == null) {
+            //then try the wsu:Id value
+            idAttr = element.getAttributeNodeNS(PolicyConstants.WSU_NAMESPACE_URI, "Id");
+        }
+        if (idAttr != null) {
+            return idAttr.getValue();
+        }
+        
+        return null;
     }
     
     protected WSSecEncryptedKey getEncryptedKeyBuilder(TokenWrapper wrapper, 
@@ -1440,13 +1446,11 @@ public abstract class AbstractBindingBuilder {
         encrKey.prepare(saaj.getSOAPPart(), crypto);
         
         if (alsoIncludeToken) {
-            CryptoType cryptoType = new CryptoType(CryptoType.TYPE.ALIAS);
-            cryptoType.setAlias(encrUser);
-            X509Certificate[] certs = crypto.getX509Certificates(cryptoType);
+            X509Certificate encCert = getEncryptCert(crypto, encrUser);
             BinarySecurity bstToken = new X509Security(saaj.getSOAPPart());
-            ((X509Security) bstToken).setX509Certificate(certs[0]);
+            ((X509Security) bstToken).setX509Certificate(encCert);
             bstToken.addWSUNamespace();
-            bstToken.setID(wssConfig.getIdAllocator().createSecureId("X509-", certs[0]));
+            bstToken.setID(wssConfig.getIdAllocator().createSecureId("X509-", encCert));
             WSSecurityUtil.prependChildElement(
                 secHeader.getSecurityHeader(), bstToken.getElement()
             );
@@ -1454,6 +1458,18 @@ public abstract class AbstractBindingBuilder {
         }
         
         return encrKey;
+    }
+
+    private X509Certificate getEncryptCert(Crypto crypto, String encrUser) throws WSSecurityException {
+        // Check for prepared encryption certificate
+        X509Certificate encCert = (X509Certificate)message.getContextualProperty(SecurityConstants.ENCRYPT_CERT);
+        if (encCert != null) {
+            return encCert;
+        }
+        CryptoType cryptoType = new CryptoType(CryptoType.TYPE.ALIAS);
+        cryptoType.setAlias(encrUser);
+        X509Certificate[] certs = crypto.getX509Certificates(cryptoType);
+        return certs[0];
     }
 
     public Crypto getSignatureCrypto(TokenWrapper wrapper) throws WSSecurityException {
@@ -1606,6 +1622,13 @@ public abstract class AbstractBindingBuilder {
     
     public String setEncryptionUser(WSSecEncryptedKey encrKeyBuilder, TokenWrapper token,
                                   boolean sign, Crypto crypto) {
+        // Check for prepared certificate property
+        X509Certificate encrCert = (X509Certificate)message.getContextualProperty(SecurityConstants.ENCRYPT_CERT);
+        if (encrCert != null) {
+            encrKeyBuilder.setUseThisCert(encrCert);
+            return null;
+        }
+
         String encrUser = (String)message.getContextualProperty(sign 
                                                                 ? SecurityConstants.SIGNATURE_USERNAME
                                                                 : SecurityConstants.ENCRYPT_USERNAME);

@@ -125,6 +125,7 @@ public class JAXRSContainer extends AbstractCXFToolContainer {
         }
         sg.setPackageName((String)context.get(WadlToolConstants.CFG_PACKAGENAME));
         sg.setResourceName((String)context.get(WadlToolConstants.CFG_RESOURCENAME));
+        sg.setEncoding((String)context.get(WadlToolConstants.CFG_ENCODING));
 
         String wadlNs = (String)context.get(WadlToolConstants.CFG_WADL_NAMESPACE);
         if (wadlNs != null) {
@@ -155,6 +156,7 @@ public class JAXRSContainer extends AbstractCXFToolContainer {
         sg.setResponseMethods(getResponseMethods());
                 
         sg.setGenerateEnums(context.optionSet(WadlToolConstants.CFG_GENERATE_ENUMS));
+        sg.setValidateWadl(context.optionSet(WadlToolConstants.CFG_VALIDATE_WADL));
         boolean inheritResourceParams = context.optionSet(WadlToolConstants.CFG_INHERIT_PARAMS);
         sg.setInheritResourceParams(inheritResourceParams);
         if (inheritResourceParams) {

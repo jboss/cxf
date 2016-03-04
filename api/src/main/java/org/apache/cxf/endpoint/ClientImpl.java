@@ -381,7 +381,9 @@ public class ClientImpl
         try {
             return invoke(oi, params, context, exchange);
         } finally {
-            responseContext.put(Thread.currentThread(), resp);
+            if (responseContext != null) {
+                responseContext.put(Thread.currentThread(), resp);
+            }
         }
     }
     public Object[] invoke(BindingOperationInfo oi,
@@ -392,7 +394,7 @@ public class ClientImpl
         } finally {
             if (context != null) {
                 Map<String, Object> resp = CastUtils.cast((Map<?, ?>)context.get(RESPONSE_CONTEXT));
-                if (resp != null) {
+                if (resp != null && responseContext != null) {
                     responseContext.put(Thread.currentThread(), resp);
                 }
             }
@@ -746,7 +748,9 @@ public class ClientImpl
     }
 
     public void onMessage(Message message) {
-
+        if (bus == null) {
+            throw new IllegalStateException("Message received on a Client that has been closed or destroyed.");
+        }
         Endpoint endpoint = message.getExchange().getEndpoint();
         if (endpoint == null) {
             // in this case correlation will occur outside the transport,
@@ -856,7 +860,7 @@ public class ClientImpl
                                                                 .getOutMessage()
                                                                 .get(Message.INVOCATION_CONTEXT));
                 resCtx = CastUtils.cast((Map<?, ?>)resCtx.get(RESPONSE_CONTEXT));
-                if (resCtx != null) {
+                if (resCtx != null && responseContext != null) {
                     responseContext.put(Thread.currentThread(), resCtx);
                 }
                 try {

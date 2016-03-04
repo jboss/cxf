@@ -24,14 +24,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.w3c.dom.Element;
-
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.sts.request.ReceivedToken;
+import org.apache.cxf.sts.request.ReceivedToken.STATE;
+
 import org.apache.ws.security.WSConstants;
 import org.apache.ws.security.WSSecurityException;
 import org.apache.ws.security.saml.ext.AssertionWrapper;
 import org.apache.ws.security.saml.ext.builder.SAML1Constants;
 import org.apache.ws.security.saml.ext.builder.SAML2Constants;
+
 import org.opensaml.saml1.core.AudienceRestrictionCondition;
 
 /**
@@ -66,7 +68,7 @@ public class SAMLDelegationHandler implements TokenDelegationHandler {
         ReceivedToken delegateTarget = tokenParameters.getToken();
         response.setToken(delegateTarget);
         
-        if (!delegateTarget.isDOMElement()) {
+        if (delegateTarget.getState() != STATE.VALID || !delegateTarget.isDOMElement()) {
             return response;
         }
         

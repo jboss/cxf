@@ -138,25 +138,20 @@ public class AsyncHTTPConduit extends URLConnectionHTTPConduit {
         if (o == null) {
             o = factory.getUseAsyncPolicy();
         }
-        if (o instanceof String) {
-            o = UseAsyncPolicy.valueOf(o.toString().toUpperCase());
+        switch (UseAsyncPolicy.getPolicy(o)) {
+        case ALWAYS:
+            o = true;
+            break;
+        case NEVER:
+            o = false;
+            break;
+        case ASYNC_ONLY:
+        default:
+            o = !message.getExchange().isSynchronous();
+            break;
         }
-        if (o instanceof UseAsyncPolicy) {
-            switch ((UseAsyncPolicy)o) {
-            case ALWAYS:
-                o = true;
-                break;
-            case NEVER:
-                o = false;
-                break;
-            case ASYNC_ONLY:
-            default:
-                o = !message.getExchange().isSynchronous();
-                break;
-            }
             
-        } 
-        if (uri.getScheme().equals("https") 
+        if (uri.getScheme().equals("https")
             && tlsClientParameters != null
             && tlsClientParameters.getSSLSocketFactory() != null) {
             //if they configured in an SSLSocketFactory, we cannot do anything
@@ -851,6 +846,29 @@ public class AsyncHTTPConduit extends URLConnectionHTTPConduit {
                                                          SSLUtils.getSupportedCipherSuites(sslcontext), 
                                                          tlsClientParameters.getCipherSuitesFilter(), LOG, false);
         sslengine.setEnabledCipherSuites(cipherSuites);
+        
+        String protocol = tlsClientParameters.getSecureSocketProtocol() != null ? tlsClientParameters
+            .getSecureSocketProtocol() : "TLS";
+            
+        String p[] = findProtocols(protocol, sslengine.getSupportedProtocols());
+        if (p != null) {
+            sslengine.setEnabledProtocols(p);
+        }
+    }
+    
+    private String[] findProtocols(String p, String[] options) {
+        List<String> list = new ArrayList<String>();
+        for (String s : options) {
+            if (s.equals(p)) {
+                return new String[] {p};
+            } else if (s.startsWith(p)) {
+                list.add(s);
+            }
+        }
+        if (list.isEmpty()) {
+            return null;
+        }
+        return list.toArray(new String[list.size()]);
     }
 
     protected static KeyManager[] getKeyManagersWithCertAlias(TLSClientParameters tlsClientParameters,

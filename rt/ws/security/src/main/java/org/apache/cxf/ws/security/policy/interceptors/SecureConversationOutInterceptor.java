@@ -37,6 +37,7 @@ import org.apache.cxf.ws.policy.AssertionInfo;
 import org.apache.cxf.ws.policy.AssertionInfoMap;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.policy.SP12Constants;
+import org.apache.cxf.ws.security.policy.interceptors.IssuedTokenInterceptorProvider.IssuedTokenOutInterceptor;
 import org.apache.cxf.ws.security.policy.model.SecureConversationToken;
 import org.apache.cxf.ws.security.policy.model.Trust10;
 import org.apache.cxf.ws.security.policy.model.Trust13;
@@ -51,6 +52,8 @@ class SecureConversationOutInterceptor extends AbstractPhaseInterceptor<SoapMess
     
     public SecureConversationOutInterceptor() {
         super(Phase.PREPARE_SEND);
+        addBefore(SpnegoContextTokenOutInterceptor.class.getName());
+        addBefore(IssuedTokenOutInterceptor.class.getName());
     }
     
     public void handleMessage(SoapMessage message) throws Fault {

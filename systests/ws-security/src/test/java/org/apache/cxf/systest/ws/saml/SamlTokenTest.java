@@ -154,6 +154,21 @@ public class SamlTokenTest extends AbstractBusClientServerTestBase {
         ((BindingProvider)saml1Port).getRequestContext().put(
             "ws-security.saml-callback-handler", new SamlCallbackHandler(false)
         );
+        ((BindingProvider)saml1Port).getRequestContext().put(
+            SecurityConstants.SELF_SIGN_SAML_ASSERTION, true
+        );
+        ((BindingProvider)saml1Port).getRequestContext().put(
+            SecurityConstants.SIGNATURE_USERNAME, "alice"
+        );
+        ((BindingProvider)saml1Port).getRequestContext().put(
+            SecurityConstants.SIGNATURE_PROPERTIES, 
+            "org/apache/cxf/systest/ws/wssec10/client/alice.properties"
+        );
+        ((BindingProvider)saml1Port).getRequestContext().put(
+            SecurityConstants.CALLBACK_HANDLER, 
+            "org.apache.cxf.systest.ws.wssec10.client.KeystorePasswordCallback"
+        );
+        
         
         int result = saml1Port.doubleIt(25);
         assertTrue(result == 50);
@@ -640,7 +655,7 @@ public class SamlTokenTest extends AbstractBusClientServerTestBase {
                 service.getPort(portQName, DoubleItPortType.class);
         updateAddressPort(saml2Port, PORT);
         
-        SamlCallbackHandler callbackHandler = new SamlCallbackHandler();
+        SamlCallbackHandler callbackHandler = new SamlCallbackHandler(true);
         callbackHandler.setConfirmationMethod(SAML2Constants.CONF_BEARER);
         ((BindingProvider)saml2Port).getRequestContext().put(
             "ws-security.saml-callback-handler", callbackHandler
@@ -740,6 +755,21 @@ public class SamlTokenTest extends AbstractBusClientServerTestBase {
         
         SamlRoleCallbackHandler roleCallbackHandler = 
             new SamlRoleCallbackHandler();
+        roleCallbackHandler.setConfirmationMethod(SAML2Constants.CONF_BEARER);
+        ((BindingProvider)saml2Port).getRequestContext().put(
+            SecurityConstants.SELF_SIGN_SAML_ASSERTION, true
+        );
+        ((BindingProvider)saml2Port).getRequestContext().put(
+            SecurityConstants.SIGNATURE_USERNAME, "alice"
+        );
+        ((BindingProvider)saml2Port).getRequestContext().put(
+            SecurityConstants.SIGNATURE_PROPERTIES, 
+            "org/apache/cxf/systest/ws/wssec10/client/alice.properties"
+        );
+        ((BindingProvider)saml2Port).getRequestContext().put(
+            SecurityConstants.CALLBACK_HANDLER, 
+            "org.apache.cxf.systest.ws.wssec10.client.KeystorePasswordCallback"
+        );
         roleCallbackHandler.setRoleName("manager");
         ((BindingProvider)saml2Port).getRequestContext().put(
             "ws-security.saml-callback-handler", roleCallbackHandler
@@ -858,7 +888,6 @@ public class SamlTokenTest extends AbstractBusClientServerTestBase {
         saml2Port.doubleIt(25);
         
         try {
-            // Now use an "unknown" audience restriction
             audienceRestriction = new AudienceRestrictionBean();
             audienceRestriction.setAudienceURIs(Collections.singletonList(
                 "https://localhost:" + PORT2 + "/DoubleItSaml2Transport2unknown"));
@@ -867,11 +896,54 @@ public class SamlTokenTest extends AbstractBusClientServerTestBase {
             conditions.setAudienceRestrictions(audienceRestrictions);
             callbackHandler.setConditions(conditions);
             
+            portQName = new QName(NAMESPACE, "DoubleItSaml2TransportPort3");
+            saml2Port = service.getPort(portQName, DoubleItPortType.class);
+            updateAddressPort(saml2Port, PORT2);
+            
+            ((BindingProvider)saml2Port).getRequestContext().put(
+                "ws-security.saml-callback-handler", callbackHandler
+            );
+            
             saml2Port.doubleIt(25);
             fail("Failure expected on unknown AudienceRestriction");
         } catch (javax.xml.ws.soap.SOAPFaultException ex) {
             // expected
         }
+    }
+    
+    @org.junit.Test
+    public void testAudienceRestrictionServiceName() throws Exception {
+
+        SpringBusFactory bf = new SpringBusFactory();
+        URL busFile = SamlTokenTest.class.getResource("client/client.xml");
+
+        Bus bus = bf.createBus(busFile.toString());
+        SpringBusFactory.setDefaultBus(bus);
+        SpringBusFactory.setThreadDefaultBus(bus);
+
+        URL wsdl = SamlTokenTest.class.getResource("DoubleItSaml.wsdl");
+        Service service = Service.create(wsdl, SERVICE_QNAME);
+        QName portQName = new QName(NAMESPACE, "DoubleItSaml2TransportPort2");
+        DoubleItPortType saml2Port = 
+                service.getPort(portQName, DoubleItPortType.class);
+        updateAddressPort(saml2Port, PORT2);
+        
+        // Create a SAML Token with an AudienceRestrictionCondition
+        ConditionsBean conditions = new ConditionsBean();
+        List<AudienceRestrictionBean> audienceRestrictions = new ArrayList<AudienceRestrictionBean>();
+        AudienceRestrictionBean audienceRestriction = new AudienceRestrictionBean();
+        audienceRestriction.setAudienceURIs(Collections.singletonList(
+            service.getServiceName().toString()));
+        audienceRestrictions.add(audienceRestriction);
+        conditions.setAudienceRestrictions(audienceRestrictions);
+        
+        SamlCallbackHandler callbackHandler = new SamlCallbackHandler();
+        callbackHandler.setConditions(conditions);
+        ((BindingProvider)saml2Port).getRequestContext().put(
+            "ws-security.saml-callback-handler", callbackHandler
+        );
+        
+        saml2Port.doubleIt(25);
     }
     
 }

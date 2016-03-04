@@ -129,6 +129,14 @@ public final class SecurityConstants {
      */
     public static final String ENCRYPT_CRYPTO = "ws-security.encryption.crypto";
     
+    /**
+     * A message property for prepared X509 certificate to be used for encryption. 
+     * If this is not defined, then the certificate will be either loaded from the 
+     * keystore {@link ENCRYPT_PROPERTIES} or extracted from request 
+     * (if {@link ENCRYPT_USERNAME} has value "useReqSigCert").
+     */
+    public static final String ENCRYPT_CERT = "ws-security.encryption.certificate";
+
     //
     // Boolean WS-Security configuration tags, e.g. the value should be "true" or "false".
     //
@@ -166,6 +174,12 @@ public final class SecurityConstants {
      * will be generated when the SAML Assertion is constructed. The default is false.
      */
     public static final String SELF_SIGN_SAML_ASSERTION = "ws-security.self-sign-saml-assertion";
+    
+    /**
+     * Whether to allow unsigned saml assertions as SecurityContext Principals. The default is false.
+     */
+    public static final String ENABLE_UNSIGNED_SAML_ASSERTION_PRINCIPAL = 
+            "ws-security.enable.unsigned-saml-assertion.principal";
     
     /**
      * Whether to cache UsernameToken nonces. The default value is "true" for message recipients, and 
@@ -209,6 +223,27 @@ public final class SecurityConstants {
      */
     public static final String KERBEROS_USE_CREDENTIAL_DELEGATION = 
         "ws-security.kerberos.use.credential.delegation";
+    
+    /**
+     * Whether to request credential delegation or not in the KerberosClient. If this is set to "true",
+     * then it tries to get a kerberos service ticket that can be used for delegation. The default
+     * is "false".
+     */
+    public static final String KERBEROS_REQUEST_CREDENTIAL_DELEGATION = 
+        "ws-security.kerberos.request.credential.delegation";
+    
+    /**
+     * Whether the Kerberos username is in servicename form or not. The default is "false".
+     */
+    public static final String KERBEROS_IS_USERNAME_IN_SERVICENAME_FORM = 
+        "ws-security.kerberos.is.username.in.servicename.form";
+    
+    /**
+     * Enable SAML AudienceRestriction validation. If this is set to "true", then IF the
+     * SAML Token contains Audience Restriction URIs, one of them must match either the
+     * request URL or the Service QName. The default is "true".
+     */
+    public static final String AUDIENCE_RESTRICTION_VALIDATION = "ws-security.validate.audience-restriction";
     
     //
     // Non-boolean WS-Security Configuration parameters
@@ -544,6 +579,18 @@ public final class SecurityConstants {
      * client credentials.
      */
     public static final String DELEGATED_CREDENTIAL = "ws-security.delegated.credential";
+    
+    /**
+     * This is the value in seconds within which a token is considered to be expired by the
+     * client. When a cached token (from a STS) is retrieved by the client, it is considered
+     * to be expired if it will expire in a time less than the value specified by this tag.
+     * This prevents token expiry when the message is en route / being processed by the
+     * service. When the token is found to be expired then it will be renewed via the STS.
+     * 
+     * The default value is 0 (seconds), meaning that this functionality is disabled by default.
+     */
+    public static final String STS_TOKEN_IMMINENT_EXPIRY_VALUE =
+        "ws-security.sts.token.imminent-expiry-value";
 
     //
     // Internal tags
@@ -574,7 +621,10 @@ public final class SecurityConstants {
             TOKEN, TOKEN_ID, SUBJECT_ROLE_CLASSIFIER, SUBJECT_ROLE_CLASSIFIER_TYPE, MUST_UNDERSTAND,
             ASYMMETRIC_SIGNATURE_ALGORITHM, ENABLE_SAML_ONE_TIME_USE_CACHE, SAML_ONE_TIME_USE_CACHE_INSTANCE,
             CACHE_IDENTIFIER, CACHE_ISSUED_TOKEN_IN_ENDPOINT, PREFER_WSMEX_OVER_STS_CLIENT_CONFIG,
-            DELEGATED_CREDENTIAL, KERBEROS_USE_CREDENTIAL_DELEGATION
+            DELEGATED_CREDENTIAL, KERBEROS_USE_CREDENTIAL_DELEGATION, 
+            KERBEROS_IS_USERNAME_IN_SERVICENAME_FORM, STS_TOKEN_IMMINENT_EXPIRY_VALUE,
+            KERBEROS_REQUEST_CREDENTIAL_DELEGATION, ENABLE_UNSIGNED_SAML_ASSERTION_PRINCIPAL,
+            AUDIENCE_RESTRICTION_VALIDATION
         }));
         ALL_PROPERTIES = Collections.unmodifiableSet(s);
     }

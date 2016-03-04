@@ -127,7 +127,7 @@ public class JAXRSInInterceptor extends AbstractPhaseInterceptor<Message> {
         // Content-Type
         String requestContentType = null;
         List<String> ctHeaderValues = protocolHeaders.get(Message.CONTENT_TYPE);
-        if (ctHeaderValues != null) {
+        if (ctHeaderValues != null && !ctHeaderValues.isEmpty()) {
             requestContentType = ctHeaderValues.get(0);
             message.put(Message.CONTENT_TYPE, requestContentType);
         }
@@ -239,10 +239,11 @@ public class JAXRSInInterceptor extends AbstractPhaseInterceptor<Message> {
         setExchangeProperties(message, ori, values, resources.size());
         
         // Global and name-bound post-match request filters
-        if (JAXRSUtils.runContainerRequestFilters(providerFactory,
-                                                  message,
-                                                  false, 
-                                                  ori.getNameBindings())) {
+        if (!ori.isSubResourceLocator()
+            && JAXRSUtils.runContainerRequestFilters(providerFactory,
+                                                      message,
+                                                      false, 
+                                                      ori.getNameBindings())) {
             return;
         }
         
@@ -348,6 +349,9 @@ public class JAXRSInInterceptor extends AbstractPhaseInterceptor<Message> {
         mout.setInterceptorChain(
              OutgoingChainInterceptor.getOutInterceptorChain(inMessage.getExchange()));
         inMessage.getExchange().setOutMessage(mout);
+        if (r.getStatus() >= Response.Status.BAD_REQUEST.getStatusCode()) {
+            inMessage.getExchange().put("cxf.io.cacheinput", Boolean.FALSE);
+        }
         return mout;
     }
 }

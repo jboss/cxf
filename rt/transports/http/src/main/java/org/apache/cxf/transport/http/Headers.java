@@ -26,9 +26,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import java.util.logging.Level;
@@ -38,6 +40,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.cxf.common.logging.LogUtils;
+import org.apache.cxf.common.util.PropertyUtils;
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.helpers.HttpHeaderHelper;
 import org.apache.cxf.message.Message;
@@ -55,8 +58,22 @@ public class Headers {
     public static final String PROTOCOL_HEADERS_CONTENT_TYPE = Message.CONTENT_TYPE.toLowerCase();
     public static final String ADD_HEADERS_PROPERTY = "org.apache.cxf.http.add-headers";             
     public static final String HTTP_HEADERS_SETCOOKIE = "Set-Cookie";
-    
+    public static final String HTTP_HEADERS_LINK = "Link";
+    public static final String EMPTY_REQUEST_PROPERTY = "org.apache.cxf.empty.request";
+    private static final String SET_EMPTY_REQUEST_CT_PROPERTY = "set.content.type.for.empty.request";
     private static final Logger LOG = LogUtils.getL7dLogger(Headers.class);
+    
+    /**
+     * Known HTTP headers whose values have to be represented as individual HTTP headers
+     */
+    private static final Set<String> HTTP_HEADERS_SINGLE_VALUE_ONLY;
+    
+    static {
+        HTTP_HEADERS_SINGLE_VALUE_ONLY = new HashSet<String>();
+        HTTP_HEADERS_SINGLE_VALUE_ONLY.add(HTTP_HEADERS_SETCOOKIE);
+        HTTP_HEADERS_SINGLE_VALUE_ONLY.add(HTTP_HEADERS_LINK);
+    }
+    
     private final Message message;
     private final Map<String, List<String>> headers;
 
@@ -251,10 +268,13 @@ public class Headers {
      * @param headers The Message protocol headers.
      */
     void logProtocolHeaders(Level level) {
-        for (String header : headers.keySet()) {
-            List<String> headerList = headers.get(header);
-            for (String value : headerList) {
-                LOG.log(level, header + ": " + value);
+        if (LOG.isLoggable(level)) {
+            for (String header : headers.keySet()) {
+                List<String> headerList = headers.get(header);
+                for (String value : headerList) {
+                    LOG.log(level, header + ": "
+                            + (value == null ? "<null>" : value.toString()));
+                }
             }
         }
     }
@@ -269,8 +289,29 @@ public class Headers {
      * @throws IOException
      */
     public void setProtocolHeadersInConnection(HttpURLConnection connection) throws IOException {
-        String ct = determineContentType();
-        connection.setRequestProperty(HttpHeaderHelper.CONTENT_TYPE, ct);
+        // If no Content-Type is set for empty requests then HttpUrlConnection:
+        // - sets a form Content-Type for empty POST 
+        // - replaces custom Accept value with */* if HTTP proxy is used
+                
+        boolean dropContentType = false;
+        boolean emptyRequest = PropertyUtils.isTrue(message.get(EMPTY_REQUEST_PROPERTY));
+        if (emptyRequest) { 
+            Object setCtForEmptyRequestProp = message.getContextualProperty(SET_EMPTY_REQUEST_CT_PROPERTY);
+            if (setCtForEmptyRequestProp != null) {
+                // If SET_EMPTY_REQUEST_CT_PROPERTY is set then do as a user prefers.
+                // CT will be dropped if setting CT for empty requests was explicitly disabled
+                dropContentType = PropertyUtils.isFalse(setCtForEmptyRequestProp);
+            } else if ("GET".equals((String)message.get(Message.HTTP_REQUEST_METHOD))) {
+                // otherwise if it is GET then just drop it
+                dropContentType = true;
+            }
+            
+        }
+        if (!dropContentType) {
+            String ct = emptyRequest && !headers.containsKey(Message.CONTENT_TYPE) ? "*/*" : determineContentType();
+            connection.setRequestProperty(HttpHeaderHelper.CONTENT_TYPE, ct);
+        }
+         
         transferProtocolHeadersToURLConnection(connection);
         logProtocolHeaders(Level.FINE);
     }
@@ -307,7 +348,7 @@ public class Headers {
             }
             if (addHeaders || HttpHeaderHelper.COOKIE.equalsIgnoreCase(header)) {
                 for (String s : headerList) {
-                    connection.addRequestProperty(HttpHeaderHelper.COOKIE, s);
+                    connection.addRequestProperty(header, s);
                 }
             } else {
                 StringBuilder b = new StringBuilder();

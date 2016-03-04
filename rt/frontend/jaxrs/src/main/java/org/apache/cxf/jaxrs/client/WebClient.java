@@ -82,7 +82,7 @@ public class WebClient extends AbstractClient {
     private static final String REQUEST_TYPE = "request.type";
     private static final String RESPONSE_CLASS = "response.class";
     private static final String RESPONSE_TYPE = "response.type";
-    
+    private BodyWriter bodyWriter = new BodyWriter();    
     protected WebClient(String baseAddress) {
         this(convertStringToURI(baseAddress));
     }
@@ -968,13 +968,9 @@ public class WebClient extends AbstractClient {
     
     private MultivaluedMap<String, String> prepareHeaders(Class<?> responseClass, Object body) {
         MultivaluedMap<String, String> headers = getHeaders();
-        boolean contentTypeNotSet = headers.getFirst(HttpHeaders.CONTENT_TYPE) == null;
-        if (contentTypeNotSet) {
-            String ct = "*/*";
-            if (body != null) { 
-                ct = body instanceof Form ? MediaType.APPLICATION_FORM_URLENCODED 
-                                          : MediaType.APPLICATION_XML;
-            }
+        if (body != null && headers.getFirst(HttpHeaders.CONTENT_TYPE) == null) {
+            String ct = body instanceof Form ? MediaType.APPLICATION_FORM_URLENCODED 
+                                      : MediaType.APPLICATION_XML;
             headers.putSingle(HttpHeaders.CONTENT_TYPE, ct);
         }
         
@@ -1102,9 +1098,8 @@ public class WebClient extends AbstractClient {
         reqContext.put(RESPONSE_CLASS, responseClass);
         reqContext.put(RESPONSE_TYPE, outGenericType);
         
-        if (body != null) {
-            m.getInterceptorChain().add(new BodyWriter());
-        }
+        m.getInterceptorChain().add(bodyWriter);
+      
         setPlainOperationNameProperty(m, httpMethod + ":" + uri.toString());
         return m;
     }

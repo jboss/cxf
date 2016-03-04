@@ -30,6 +30,9 @@ import java.util.ResourceBundle;
 import javax.xml.namespace.QName;
 import javax.xml.soap.AttachmentPart;
 import javax.xml.soap.MessageFactory;
+import javax.xml.soap.SOAPBody;
+import javax.xml.soap.SOAPElement;
+import javax.xml.soap.SOAPEnvelope;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPHeader;
 import javax.xml.soap.SOAPMessage;
@@ -37,6 +40,9 @@ import javax.xml.soap.SOAPPart;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.events.Attribute;
+import javax.xml.stream.events.Namespace;
+import javax.xml.stream.events.XMLEvent;
 import javax.xml.transform.dom.DOMSource;
 
 import org.w3c.dom.Document;
@@ -159,6 +165,7 @@ public class SAAJInInterceptor extends AbstractSoapInterceptor {
     
     
     
+    @SuppressWarnings("unchecked")
     public void handleMessage(SoapMessage message) throws Fault {
         if (isGET(message)) {
             return;
@@ -184,6 +191,13 @@ public class SAAJInInterceptor extends AbstractSoapInterceptor {
             Document node = (Document) message.getContent(Node.class);
             if (node != part && node != null) {
                 StaxUtils.copy(node, new SAAJStreamWriter(part));
+            } else {
+                SOAPEnvelope env = soapMessage.getSOAPPart().getEnvelope();
+                List<XMLEvent> events = (List<XMLEvent>)message.get(ReadHeadersInterceptor.ENVELOPE_EVENTS);
+                applyEvents(events, env);
+                SOAPBody body = soapMessage.getSOAPBody();
+                events = (List<XMLEvent>)message.get(ReadHeadersInterceptor.BODY_EVENTS);
+                applyEvents(events, body);
             }
             message.setContent(Node.class, soapMessage.getSOAPPart());
 
@@ -237,6 +251,18 @@ public class SAAJInInterceptor extends AbstractSoapInterceptor {
             throw new SoapFault(new org.apache.cxf.common.i18n.Message(
                     "SOAPHANDLERINTERCEPTOR_EXCEPTION", BUNDLE), e, message
                     .getVersion().getSender());
+        }
+    }
+
+    private static void applyEvents(List<XMLEvent> events, SOAPElement el) throws SOAPException {
+        if (events != null) {
+            for (XMLEvent ev : events) {
+                if (ev.isNamespace()) {
+                    el.addNamespaceDeclaration(((Namespace)ev).getPrefix(), ((Namespace)ev).getNamespaceURI());
+                } else if (ev.isAttribute()) {
+                    el.addAttribute(((Attribute)ev).getName(), ((Attribute)ev).getValue());
+                }
+            }
         }
     }
 

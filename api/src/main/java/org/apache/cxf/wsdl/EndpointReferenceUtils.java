@@ -21,7 +21,6 @@ package org.apache.cxf.wsdl;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.net.MalformedURLException;
@@ -230,9 +229,7 @@ public final class EndpointReferenceUtils {
             LSInputImpl impl = new LSInputImpl();
             impl.setSystemId(newId);
             impl.setBaseURI(newId);
-            impl.setCharacterStream(
-                new InputStreamReader(
-                    new ByteArrayInputStream(value)));
+            impl.setByteStream(new ByteArrayInputStream(value));
             return impl;
         }
     }
@@ -740,9 +737,13 @@ public final class EndpointReferenceUtils {
             return null;
         }
         Schema schema = serviceInfo.getProperty(Schema.class.getName(), Schema.class);
-        if (schema == null && !serviceInfo.hasProperty(Schema.class.getName())) {
-            synchronized (serviceInfo) {
-                return createSchema(serviceInfo, b);
+        if (schema == null && !serviceInfo.hasProperty(Schema.class.getName() + ".CHECKED")) {
+            try {
+                synchronized (serviceInfo) {
+                    return createSchema(serviceInfo, b);
+                }
+            } finally {
+                serviceInfo.setProperty(Schema.class.getName() + ".CHECKED", Boolean.TRUE);
             }
         }
         return schema;

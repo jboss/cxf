@@ -42,6 +42,8 @@ import org.apache.cxf.common.util.ReflectionInvokationHandler;
 import org.apache.cxf.common.util.ReflectionUtil;
 import org.apache.cxf.configuration.jsse.SSLUtils;
 import org.apache.cxf.configuration.jsse.TLSClientParameters;
+import org.apache.cxf.transport.https.httpclient.DefaultHostnameVerifier;
+import org.apache.cxf.transport.https.httpclient.PublicSuffixMatcherLoader;
 
 
 /**
@@ -161,11 +163,11 @@ public class HttpsURLConnectionFactory {
                 .getInstance(protocol, provider);
             ctx.getClientSessionContext().setSessionTimeout(tlsClientParameters.getSslCacheTimeout());
             KeyManager[] keyManagers = tlsClientParameters.getKeyManagers();
-            if (tlsClientParameters.getCertAlias() != null) {
-                getKeyManagersWithCertAlias(tlsClientParameters, keyManagers);
-            }
             if (keyManagers == null) {
                 keyManagers = SSLUtils.getDefaultKeyStoreManagers(LOG);
+            }
+            if (tlsClientParameters.getCertAlias() != null) {
+                getKeyManagersWithCertAlias(tlsClientParameters, keyManagers);
             }
             ctx.init(keyManagers, tlsClientParameters.getTrustManagers(),
                      tlsClientParameters.getSecureRandom());
@@ -176,7 +178,7 @@ public class HttpsURLConnectionFactory {
             // The SSLSocketFactoryWrapper enables certain cipher suites
             // from the policy.
             socketFactory = new SSLSocketFactoryWrapper(ctx.getSocketFactory(), cipherSuites,
-                                                        tlsClientParameters.getSecureSocketProtocol());
+                                                        protocol);
             //recalc the hashcode since somet of the above MAY have changed the tlsClientParameters 
             lastTlsHash = tlsClientParameters.hashCode();
         } else {
@@ -188,9 +190,9 @@ public class HttpsURLConnectionFactory {
         if (tlsClientParameters.isUseHttpsURLConnectionDefaultHostnameVerifier()) {
             verifier = HttpsURLConnection.getDefaultHostnameVerifier();
         } else if (tlsClientParameters.isDisableCNCheck()) {
-            verifier = CertificateHostnameVerifier.ALLOW_ALL;
+            verifier = new AllowAllHostnameVerifier();
         } else {
-            verifier = CertificateHostnameVerifier.DEFAULT;
+            verifier = new DefaultHostnameVerifier(PublicSuffixMatcherLoader.getDefault());
         }
         
         if (connection instanceof HttpsURLConnection) {
@@ -264,7 +266,7 @@ public class HttpsURLConnectionFactory {
     
     protected void getKeyManagersWithCertAlias(TLSClientParameters tlsClientParameters,
                                                KeyManager[] keyManagers) throws GeneralSecurityException {
-        if (tlsClientParameters.getCertAlias() != null) {
+        if (tlsClientParameters.getCertAlias() != null && keyManagers != null) {
             for (int idx = 0; idx < keyManagers.length; idx++) {
                 if (keyManagers[idx] instanceof X509KeyManager
                     && !(keyManagers[idx] instanceof AliasedX509ExtendedKeyManager)) {

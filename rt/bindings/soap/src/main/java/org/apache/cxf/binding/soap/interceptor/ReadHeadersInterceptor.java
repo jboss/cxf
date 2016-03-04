@@ -21,7 +21,10 @@ package org.apache.cxf.binding.soap.interceptor;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.xml.namespace.QName;
@@ -55,6 +58,7 @@ import org.apache.cxf.headers.HeaderProcessor;
 import org.apache.cxf.helpers.DOMUtils;
 import org.apache.cxf.helpers.ServiceUtils;
 import org.apache.cxf.interceptor.Fault;
+import org.apache.cxf.message.MessageUtils;
 import org.apache.cxf.phase.Phase;
 import org.apache.cxf.staxutils.PartialXMLStreamReader;
 import org.apache.cxf.staxutils.StaxUtils;
@@ -63,6 +67,9 @@ import org.apache.cxf.staxutils.W3CDOMStreamWriter;
 
 
 public class ReadHeadersInterceptor extends AbstractSoapInterceptor {
+    
+    public static final String ENVELOPE_EVENTS = "envelope.events";
+    public static final String BODY_EVENTS = "body.events";
     /**
      * 
      */
@@ -129,7 +136,8 @@ public class ReadHeadersInterceptor extends AbstractSoapInterceptor {
         message.setVersion(soapVersion);
         return soapVersion;
     }
-    
+
+    //CHECKSTYLE:OFF MethodLength
     public void handleMessage(SoapMessage message) {
         if (isGET(message)) {
             LOG.fine("ReadHeadersInterceptor skipped in HTTP GET method");
@@ -182,10 +190,26 @@ public class ReadHeadersInterceptor extends AbstractSoapInterceptor {
                     doc = (Document)nd;
                     StaxUtils.readDocElements(doc, doc, filteredReader, false, false);
                 } else {
+                    final boolean addNC = 
+                        MessageUtils.getContextualBoolean(
+                            message, "org.apache.cxf.binding.soap.addNamespaceContext", false);
+                    Map<String, String> bodyNC = addNC ? new HashMap<String, String>() : null;
+                    if (addNC) {
+                        // add the Envelope-Level declarations
+                        addCurrentNamespaceDecls(xmlReader, bodyNC);
+                    }
                     HeadersProcessor processor = new HeadersProcessor(soapVersion);
                     doc = processor.process(filteredReader);
                     if (doc != null) {
                         message.setContent(Node.class, doc);
+                    } else {
+                        message.put(ENVELOPE_EVENTS, processor.getEnvAttributeAndNamespaceEvents());
+                        message.put(BODY_EVENTS, processor.getBodyAttributeAndNamespaceEvents());
+                    }
+                    if (addNC) {
+                        // add the Body-level declarations
+                        addCurrentNamespaceDecls(xmlReader, bodyNC);
+                        message.put("soap.body.ns.context", bodyNC);
                     }
                 }
 
@@ -263,6 +287,18 @@ public class ReadHeadersInterceptor extends AbstractSoapInterceptor {
             }
         }
     }
+    //CHECKSTYLE:ON
+
+    private void addCurrentNamespaceDecls(XMLStreamReader xmlReader, Map<String, String> bodyNsMap) {
+        for (int i = 0; i < xmlReader.getNamespaceCount(); i++) {
+            String nsuri = xmlReader.getNamespaceURI(i);
+            if ("".equals(nsuri)) {
+                bodyNsMap.remove("");
+            } else {
+                bodyNsMap.put(xmlReader.getNamespacePrefix(i), nsuri);
+            }
+        }
+    }
 
     /**
      * A convenient class for parsing the message header stream into a DOM document;
@@ -272,15 +308,24 @@ public class ReadHeadersInterceptor extends AbstractSoapInterceptor {
      * out while parsing the stream).
      */
     private static class HeadersProcessor {
-        private static final XMLEventFactory FACTORY = XMLEventFactory.newFactory();
-        private final QName soapVersionHeader;
+        private static final XMLEventFactory FACTORY = XMLEventFactory.newInstance();
+        private final String ns;
+        private final String header;
+        private final String body;
+        private final String envelope;
         private final List<XMLEvent> events = new ArrayList<XMLEvent>(8);
+        private List<XMLEvent> envEvents;
+        private List<XMLEvent> bodyEvents;
         private StreamToDOMContext context;
         private Document doc;
         private Node parent;
+        private QName lastStartElementQName;
 
         public HeadersProcessor(SoapVersion version) {
-            this.soapVersionHeader = version.getHeader();
+            this.header = version.getHeader().getLocalPart();
+            this.ns = version.getEnvelope().getNamespaceURI();
+            this.envelope = version.getEnvelope().getLocalPart();
+            this.body = version.getBody().getLocalPart();
         }
 
         public Document process(XMLStreamReader reader) throws XMLStreamException {
@@ -343,9 +388,9 @@ public class ReadHeadersInterceptor extends AbstractSoapInterceptor {
 
         private void addEvent(XMLEvent event) {
             if (event.isStartElement()) {
-                QName qName = event.asStartElement().getName();
-                if (soapVersionHeader.getLocalPart().equals(qName.getLocalPart())
-                    && soapVersionHeader.getNamespaceURI().equals(qName.getNamespaceURI())) {
+                lastStartElementQName = event.asStartElement().getName();
+                if (header.equals(lastStartElementQName.getLocalPart())
+                    && ns.equals(lastStartElementQName.getNamespaceURI())) {
                     // process all events recorded so far
                     context = new StreamToDOMContext(true, false, false);
                     doc = DOMUtils.createDocument();
@@ -361,7 +406,37 @@ public class ReadHeadersInterceptor extends AbstractSoapInterceptor {
                     events.add(event);
                 }
             } else {
+                if (event.isNamespace() || event.isAttribute()) {
+                    final String lastEl = lastStartElementQName.getLocalPart();
+                    if (body.equals(lastEl) && ns.equals(lastStartElementQName.getNamespaceURI())) {
+                        if (bodyEvents == null) {
+                            bodyEvents = new ArrayList<XMLEvent>();
+                        }
+                        bodyEvents.add(event);
+                    } else if (envelope.equals(lastEl) && ns.equals(lastStartElementQName.getNamespaceURI())) {
+                        if (envEvents == null) {
+                            envEvents = new ArrayList<XMLEvent>();
+                        }
+                        envEvents.add(event);
+                    }
+                }
                 events.add(event);
+            }
+        }
+        
+        public List<XMLEvent> getBodyAttributeAndNamespaceEvents() {
+            if (bodyEvents == null) {
+                return Collections.emptyList();
+            } else {
+                return Collections.unmodifiableList(bodyEvents);
+            }
+        }
+        
+        public List<XMLEvent> getEnvAttributeAndNamespaceEvents() {
+            if (envEvents == null) {
+                return Collections.emptyList();
+            } else {
+                return Collections.unmodifiableList(envEvents);
             }
         }
     }

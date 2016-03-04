@@ -154,6 +154,7 @@ public final class JAXRSUtils {
     private static final String PATH_SEGMENT_SEP = "/";
     private static final String REPORT_FAULT_MESSAGE_PROPERTY = "org.apache.cxf.jaxrs.report-fault-message";
     private static final String NO_CONTENT_EXCEPTION = "javax.ws.rs.core.NoContentException";
+    private static final String HTTP_CHARSET_PARAM = "charset"; 
     
     private JAXRSUtils() {        
     }
@@ -986,12 +987,18 @@ public final class JAXRSUtils {
         return instance;
     }
     
-    public static <T> T createContextValue(Message m, Type genericType, Class<T> clazz) {
- 
+    public static Message getContextMessage(Message m) {
+        
         Message contextMessage = m.getExchange() != null ? m.getExchange().getInMessage() : m;
         if (contextMessage == null && Boolean.FALSE.equals(m.get(Message.INBOUND_MESSAGE))) {
             contextMessage = m;
         }
+        return contextMessage;
+    }
+    
+    public static <T> T createContextValue(Message m, Type genericType, Class<T> clazz) {
+ 
+        Message contextMessage = getContextMessage(m);
         Object o = null;
         if (UriInfo.class.isAssignableFrom(clazz)) {
             o = createUriInfo(contextMessage);
@@ -1172,7 +1179,10 @@ public final class JAXRSUtils {
                 } else {
                     name = part.substring(0, index);
                     value =  index < part.length() ? part.substring(index + 1) : "";
-                    if (decode || (decodePlus && value.contains("+"))) {
+                    if (decodePlus && value.contains("+")) {
+                        value = value.replace('+', ' ');
+                    }
+                    if (decode) {
                         value = (";".equals(sep))
                             ? HttpUtils.pathDecode(value) : HttpUtils.urlDecode(value); 
                     }
@@ -1370,6 +1380,10 @@ public final class JAXRSUtils {
                     for (Map.Entry<String, String> entry : userType.getParameters().entrySet()) {
                         String value = requiredType.getParameters().get(entry.getKey());
                         if (value != null && !value.equals(entry.getValue())) {
+                            if (HTTP_CHARSET_PARAM.equals(entry.getKey()) 
+                                && value.equalsIgnoreCase(entry.getValue())) {
+                                continue;
+                            }
                             parametersMatched = false;
                             break;
                         }

@@ -47,9 +47,9 @@ public class JexlClaimsMapperTest extends org.junit.Assert {
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
             {
-                "src/test/resources/jexlClaimMappingsWithoutFunctions.script"
+                "jexlClaimMappingsWithoutFunctions.script"
             }, {
-                "src/test/resources/jexlClaimMappingsWithFunctions.script"
+                "jexlClaimMappingsWithFunctions.script"
             }
         };
         return Arrays.asList(data);
@@ -164,8 +164,42 @@ public class JexlClaimsMapperTest extends org.junit.Assert {
         assertEquals(1, claim.getValues().size());
         assertEquals("test@apache.com", claim.getValues().get(0));
     }
+    
+    @Test
+    public void testSingleToMultiValue() throws IOException {
+        ClaimCollection result = jcm.mapClaims("A", createClaimCollection(), "B", createProperties());
 
-    @SuppressWarnings("unchecked")
+        assertNotNull(result);
+        Claim claim = findClaim(result, "http://my.schema.org/identity/claims/single2multi");
+        assertNotNull(claim);
+        assertNotNull(claim.getValues());
+        assertEquals(3, claim.getValues().size());
+        assertEquals("Value2", claim.getValues().get(1));
+    }
+
+    @Test
+    public void testMultiToSingleValue() throws IOException {
+        ClaimCollection result = jcm.mapClaims("A", createClaimCollection(), "B", createProperties());
+
+        assertNotNull(result);
+        Claim claim = findClaim(result, "http://my.schema.org/identity/claims/multi2single");
+        assertNotNull(claim);
+        assertNotNull(claim.getValues());
+        assertEquals(1, claim.getValues().size());
+        assertEquals("Value1,Value2,Value3", claim.getValues().get(0));
+    }
+    
+    @Test
+    public void testValueFilter() throws IOException {
+        ClaimCollection result = jcm.mapClaims("A", createClaimCollection(), "B", createProperties());
+
+        assertNotNull(result);
+        Claim claim = findClaim(result, "http://my.schema.org/identity/claims/filter");
+        assertEquals(2, claim.getValues().size());
+        assertTrue(claim.getValues().contains("match"));
+        assertTrue(claim.getValues().contains("second_match"));
+    }
+
     protected ClaimCollection createClaimCollection() {
         ClaimCollection cc = new ClaimCollection();
         Claim c = new Claim();
@@ -219,5 +253,5 @@ public class JexlClaimsMapperTest extends org.junit.Assert {
         }
         return null;
     }
-
+    
 }

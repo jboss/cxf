@@ -40,7 +40,10 @@ import javax.wsdl.Definition;
 import javax.wsdl.Types;
 import javax.wsdl.extensions.ExtensibilityElement;
 import javax.wsdl.extensions.schema.Schema;
+import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.dom.DOMSource;
@@ -58,7 +61,6 @@ import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.util.ModCountCopyOnWriteArrayList;
 import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.configuration.Configurable;
-import org.apache.cxf.configuration.Configurer;
 import org.apache.cxf.databinding.source.SourceDataBinding;
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.endpoint.ClientImpl;
@@ -526,6 +528,11 @@ public abstract class AbstractSTSClient implements Configurable, InterceptorProv
                             bus.getExtension(WSDLManager.class).getDefinition((Element)s.getAny());
                     } else if ("http://www.w3.org/2001/XMLSchema".equals(s.getDialect())) {
                         Element schemaElement = (Element)s.getAny();
+                        if (schemaElement ==  null) {
+                            String schemaLocation = s.getLocation();
+                            LOG.info("XSD schema location: " + schemaLocation);
+                            schemaElement = downloadSchema(schemaLocation);
+                        }
                         QName schemaName = 
                             new QName(schemaElement.getNamespaceURI(), schemaElement.getLocalName());
                         WSDLManager wsdlManager = bus.getExtension(WSDLManager.class);
@@ -587,10 +594,22 @@ public abstract class AbstractSTSClient implements Configurable, InterceptorProv
                     client = new ClientImpl(bus, endpoint);
                 }
             } catch (Exception ex) {
-                throw new TrustException(LOG, "WS_MEX_ERROR", ex);
+                throw new TrustException("WS_MEX_ERROR", ex, LOG);
             }
         }
     }
+    
+    private Element downloadSchema(String schemaLocation) throws Exception {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setNamespaceAware(true);
+        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, Boolean.TRUE);
+        dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        
+        DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
+        Document document = documentBuilder.parse(schemaLocation);
+        return document.getDocumentElement();
+    }
+    
     protected String findMEXLocation(EndpointReferenceType ref, boolean useEPRWSAAddrAsMEXLocation) {
         if (ref.getMetadata() != null && ref.getMetadata().getAny() != null) {
             for (Object any : ref.getMetadata().getAny()) {
@@ -627,7 +646,6 @@ public abstract class AbstractSTSClient implements Configurable, InterceptorProv
         if (client != null) {
             return;
         }
-        bus.getExtension(Configurer.class).configureBean(name, this);
 
         if (wsdlLocation != null) {
             WSDLServiceFactory factory = new WSDLServiceFactory(bus, wsdlLocation, serviceName);
@@ -1238,6 +1256,11 @@ public abstract class AbstractSTSClient implements Configurable, InterceptorProv
     }
 
     protected X509Certificate getCert(Crypto crypto) throws Exception {
+        if (crypto == null) {
+            throw new Fault("No Crypto token properties are available to retrieve a certificate", 
+                            LOG);
+        }
+        
         String alias = (String)getProperty(SecurityConstants.STS_TOKEN_USERNAME);
         if (alias == null) {
             alias = crypto.getDefaultX509Identifier();
@@ -1411,7 +1434,7 @@ public abstract class AbstractSTSClient implements Configurable, InterceptorProv
                     try {
                         secret = psha1.createKey(requestorEntropy, serviceEntr, 0, length / 8);
                     } catch (ConversationException e) {
-                        throw new TrustException("DERIVED_KEY_ERROR", LOG, e);
+                        throw new TrustException("DERIVED_KEY_ERROR", e, LOG);
                     }
                 } else {
                     // Service entropy missing
@@ -1462,7 +1485,7 @@ public abstract class AbstractSTSClient implements Configurable, InterceptorProv
                         WSSecurityEngineResult.TAG_SECRET
                     );
             } catch (IOException e) {
-                throw new TrustException("ENCRYPTED_KEY_ERROR", LOG, e);
+                throw new TrustException("ENCRYPTED_KEY_ERROR", e, LOG);
             }
         }
     }
@@ -1545,18 +1568,27 @@ public abstract class AbstractSTSClient implements Configurable, InterceptorProv
                 && rst.hasAttributeNS(null, "ID")) {
                 id = rst.getAttributeNS(null, "ID");
             }
-            if (id == null) {
+            if (id == null || "".equals(id)) {
                 id = this.getIDFromSTR(rst);
             }
         }
-        if (id == null && rar != null) {
+        if ((id == null || "".equals(id)) && rar != null) {
             id = this.getIDFromSTR(rar);
         }
-        if (id == null && rur != null) {
+        if ((id == null || "".equals(id)) && rur != null) {
             id = this.getIDFromSTR(rur);
         }
-        if (id == null && rst != null) {
+        if ((id == null || "".equals(id)) && rst != null) {
             id = rst.getAttributeNS(WSConstants.WSU_NS, "Id");
+            if (id == null || "".equals(id)) {
+                QName elName = DOMUtils.getElementQName(rst);
+                if (elName.equals(new QName(WSConstants.SAML2_NS, "EncryptedAssertion"))) {
+                    Element child = DOMUtils.getFirstElement(rst);
+                    if (child != null) {
+                        id = child.getAttributeNS(WSConstants.WSU_NS, "Id");
+                    }
+                }
+            }
         }
         return id;
     }

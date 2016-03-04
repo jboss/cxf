@@ -57,6 +57,7 @@ public class JMSConfiguration implements InitializingBean {
     private TaskExecutor taskExecutor;
     private boolean useJms11 = DEFAULT_USEJMS11;
     private boolean reconnectOnException = true;
+    private boolean createSecurityContext = true;
     private boolean messageIdEnabled = true;
     private boolean messageTimestampEnabled = true;
     private boolean pubSubNoLocal;
@@ -67,6 +68,7 @@ public class JMSConfiguration implements InitializingBean {
     private int priority = Message.DEFAULT_PRIORITY;
     private long timeToLive = Message.DEFAULT_TIME_TO_LIVE;
     private boolean sessionTransacted;
+    private boolean propogateExceptions = true;
 
     private int concurrentConsumers = 1;
     private int maxConcurrentConsumers = 1;
@@ -116,6 +118,26 @@ public class JMSConfiguration implements InitializingBean {
         }
     }
 
+    /**
+     * if any exceptions encountered executing the service impl should be propagated
+     * to initiate a transaction roll back.
+     */
+    public boolean isPropogateExceptions() {
+        return propogateExceptions;
+    }
+
+    public void setPropogateExceptions(boolean propogateExceptions) {
+        this.propogateExceptions = propogateExceptions;
+    }
+    
+    public boolean isCreateSecurityContext() {
+        return createSecurityContext;
+    }
+    
+    public void setCreateSecurityContext(boolean b) {
+        this.createSecurityContext = b;
+    }
+    
     public String getCacheLevelName() {
         return cacheLevelName;
     }

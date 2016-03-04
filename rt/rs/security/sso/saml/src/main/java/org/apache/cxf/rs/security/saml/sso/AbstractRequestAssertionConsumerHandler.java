@@ -65,6 +65,7 @@ public class AbstractRequestAssertionConsumerHandler extends AbstractSSOSpHandle
     private boolean supportBase64Encoding = true;
     private boolean enforceAssertionsSigned = true;
     private boolean enforceKnownIssuer = true;
+    private boolean enforceResponseSigned;
     private TokenReplayCache<String> replayCache;
 
     private MessageContext messageContext;
@@ -318,6 +319,7 @@ public class AbstractRequestAssertionConsumerHandler extends AbstractSSOSpHandle
             ssoResponseValidator.setRequestId(requestState.getSamlRequestId());
             ssoResponseValidator.setSpIdentifier(requestState.getIssuerId());
             ssoResponseValidator.setEnforceAssertionsSigned(enforceAssertionsSigned);
+            ssoResponseValidator.setEnforceResponseSigned(enforceResponseSigned);
             ssoResponseValidator.setEnforceKnownIssuer(enforceKnownIssuer);
             ssoResponseValidator.setReplayCache(getReplayCache());
 
@@ -334,4 +336,14 @@ public class AbstractRequestAssertionConsumerHandler extends AbstractSSOSpHandle
         LOG.warning(errorMsg.toString());
     }
     
+    public boolean isEnforceResponseSigned() {
+        return enforceResponseSigned;
+    }
+
+    /**
+     * Enforce that a SAML Response must be signed.
+     */
+    public void setEnforceResponseSigned(boolean enforceResponseSigned) {
+        this.enforceResponseSigned = enforceResponseSigned;
+    }
 }

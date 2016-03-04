@@ -99,6 +99,11 @@ import org.apache.cxf.ws.addressing.ObjectFactory;
 public class JAXBDataBinding extends AbstractDataBinding
     implements WrapperCapableDatabinding, InterceptorProvider {
 
+    public static final String READER_VALIDATION_EVENT_HANDLER = "jaxb-reader-validation-event-handler";
+    public static final String VALIDATION_EVENT_HANDLER = "jaxb-validation-event-handler";
+    public static final String SET_VALIDATION_EVENT_HANDLER = "set-jaxb-validation-event-handler";
+    public static final String WRITER_VALIDATION_EVENT_HANDLER = "jaxb-writer-validation-event-handler";
+    
     public static final String SCHEMA_RESOURCE = "SCHEMRESOURCE";
     public static final String MTOM_THRESHOLD = "org.apache.cxf.jaxb.mtomThreshold";
 
@@ -195,9 +200,9 @@ public class JAXBDataBinding extends AbstractDataBinding
 
     Class<?> cls;
 
-    private Map<String, Object> contextProperties = Collections.emptyMap();
-    private Map<String, Object> marshallerProperties = Collections.emptyMap();
-    private Map<String, Object> unmarshallerProperties = Collections.emptyMap();
+    private Map<String, Object> contextProperties = new HashMap<String, Object>();
+    private Map<String, Object> marshallerProperties = new HashMap<String, Object>();
+    private Map<String, Object> unmarshallerProperties = new HashMap<String, Object>();
     private Unmarshaller.Listener unmarshallerListener;
     private Marshaller.Listener marshallerListener;
     private ValidationEventHandler validationEventHandler;
@@ -318,8 +323,12 @@ public class JAXBDataBinding extends AbstractDataBinding
 
 
         contextClasses = new LinkedHashSet<Class<?>>();
-        Map<String, Object> unmarshallerProps = new HashMap<String, Object>();
-        this.setUnmarshallerProperties(unmarshallerProps);
+        
+        if (this.getUnmarshallerProperties() == null || this.getUnmarshallerProperties().isEmpty()) {
+            Map<String, Object> unmarshallerProps = new HashMap<String, Object>();
+            this.setUnmarshallerProperties(unmarshallerProps);
+        }
+        
         for (ServiceInfo serviceInfo : service.getServiceInfos()) {
             
             JAXBContextInitializer initializer

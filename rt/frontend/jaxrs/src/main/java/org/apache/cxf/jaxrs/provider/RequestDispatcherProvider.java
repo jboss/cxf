@@ -91,6 +91,7 @@ public class RequestDispatcherProvider extends AbstractConfigurableProvider
     private boolean strictPathCheck;
     private String locationPrefix;
     private String resourceExtension;
+    private boolean includeResource; 
     
     private MessageContext mc; 
 
@@ -191,7 +192,9 @@ public class RequestDispatcherProvider extends AbstractConfigurableProvider
         RequestDispatcher rd = getRequestDispatcher(sc, clazz, theServletPath + path);
         
         try {
-            mc.put(AbstractHTTPDestination.REQUEST_REDIRECTED, Boolean.TRUE);
+            if (!includeResource) {
+                mc.put(AbstractHTTPDestination.REQUEST_REDIRECTED, Boolean.TRUE);
+            }
             
             HttpServletRequestFilter requestFilter = new HttpServletRequestFilter(
                 servletRequest, path, theServletPath, saveParametersAsAttributes);
@@ -203,10 +206,14 @@ public class RequestDispatcherProvider extends AbstractConfigurableProvider
             } 
             setRequestParameters(requestFilter);
             logRedirection(path, attributeName, o);
-            rd.forward(requestFilter, mc.getHttpServletResponse());
+            if (includeResource) {
+                rd.include(requestFilter, mc.getHttpServletResponse());
+            } else {
+                rd.forward(requestFilter, mc.getHttpServletResponse());
+            }
         } catch (Throwable ex) {
             mc.put(AbstractHTTPDestination.REQUEST_REDIRECTED, Boolean.FALSE);
-            ex.printStackTrace();
+            LOG.warning(ExceptionUtils.getStackTrace(ex));
             throw ExceptionUtils.toInternalServerErrorException(ex, null); 
         }
     }
@@ -393,6 +400,18 @@ public class RequestDispatcherProvider extends AbstractConfigurableProvider
 
     public void setUseCurrentServlet(boolean useCurrentServlet) {
         this.useCurrentServlet = useCurrentServlet;
+    }
+
+    public void setIncludeResource(boolean includeResource) {
+        this.includeResource = includeResource;
+    }
+
+    public void setLocationPrefix(String locationPrefix) {
+        this.locationPrefix = locationPrefix;
+    }
+
+    public void setResourceExtension(String resourceExtension) {
+        this.resourceExtension = resourceExtension;
     }
 
     protected static class HttpServletRequestFilter extends HttpServletRequestWrapper {

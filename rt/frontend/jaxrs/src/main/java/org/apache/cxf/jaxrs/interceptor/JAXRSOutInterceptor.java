@@ -34,7 +34,6 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
-import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.HttpHeaders;
@@ -49,6 +48,7 @@ import javax.xml.stream.events.XMLEvent;
 import org.apache.cxf.common.i18n.BundleUtils;
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.interceptor.AbstractOutDatabindingInterceptor;
+import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.io.CachedOutputStream;
 import org.apache.cxf.jaxrs.ext.ResponseHandler;
 import org.apache.cxf.jaxrs.impl.AsyncResponseImpl;
@@ -60,6 +60,7 @@ import org.apache.cxf.jaxrs.model.OperationResourceInfo;
 import org.apache.cxf.jaxrs.model.ProviderInfo;
 import org.apache.cxf.jaxrs.provider.AbstractConfigurableProvider;
 import org.apache.cxf.jaxrs.provider.ProviderFactory;
+import org.apache.cxf.jaxrs.utils.ExceptionUtils;
 import org.apache.cxf.jaxrs.utils.HttpUtils;
 import org.apache.cxf.jaxrs.utils.InjectionUtils;
 import org.apache.cxf.jaxrs.utils.JAXRSUtils;
@@ -85,7 +86,8 @@ public class JAXRSOutInterceptor extends AbstractOutDatabindingInterceptor {
         try {
             processResponse(providerFactory, message);
         } catch (Exception ex) {
-            message.put("jaxrs.out.fault", Boolean.TRUE);    
+            message.put("jaxrs.out.fault", Boolean.TRUE);
+            throw new Fault(ex);
         } finally {
             Object rootInstance = message.getExchange().remove(JAXRSUtils.ROOT_INSTANCE);
             Object rootProvider = message.getExchange().remove(JAXRSUtils.ROOT_PROVIDER);
@@ -134,7 +136,7 @@ public class JAXRSOutInterceptor extends AbstractOutDatabindingInterceptor {
             }
         } else {
             int status = getStatus(message, responseObj != null ? 200 : 204);
-            response = Response.status(status).entity(responseObj).build();
+            response = JAXRSUtils.toResponseBuilder(status).entity(responseObj).build();
         }
         
         Exchange exchange = message.getExchange();
@@ -395,7 +397,7 @@ public class JAXRSOutInterceptor extends AbstractOutDatabindingInterceptor {
         }
         if (excResponse == null) {
             setResponseStatus(message, 500);
-            throw new InternalServerErrorException(ex);
+            throw ExceptionUtils.toInternalServerErrorException(ex,  null);
         } else {
             serializeMessage(pf, message, excResponse, null, false);
         } 
@@ -455,8 +457,8 @@ public class JAXRSOutInterceptor extends AbstractOutDatabindingInterceptor {
         return Boolean.TRUE.equals(m.getExchange().get(AbstractHTTPDestination.RESPONSE_COMMITED));
     }
 
-    private boolean isResponseRedirected(Message outMessage) {
-        return Boolean.TRUE.equals(outMessage.get(AbstractHTTPDestination.REQUEST_REDIRECTED));
+    private boolean isResponseRedirected(Message m) {
+        return Boolean.TRUE.equals(m.getExchange().get(AbstractHTTPDestination.REQUEST_REDIRECTED));
     }
     
     private void writeResponseToStream(OutputStream os, Object responseObj) {

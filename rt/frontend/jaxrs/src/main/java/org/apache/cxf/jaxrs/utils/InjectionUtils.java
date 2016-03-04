@@ -990,12 +990,15 @@ public final class InjectionUtils {
         } else if (SERVLET_CONFIG_CLASS_NAME.equals(name)) {
             proxyClassName = "org.apache.cxf.jaxrs.impl.tl.ThreadLocalServletConfig";
         }
-        try {
-            return (ThreadLocalProxy<?>)ClassLoaderUtils.loadClass(proxyClassName, InjectionUtils.class)
-                .newInstance();
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
+        if (proxyClassName != null) {
+            try {
+                return (ThreadLocalProxy<?>)ClassLoaderUtils.loadClass(proxyClassName, InjectionUtils.class)
+                    .newInstance();
+            } catch (Throwable t) {
+                throw new RuntimeException(t);
+            }
         }
+        return null;
     }
     
     public static Method getGetterFromSetter(Method setter) throws Exception {
@@ -1152,14 +1155,14 @@ public final class InjectionUtils {
                 if (value == null) {
                     continue;
                 }
-                if (isPrimitive(value.getClass())) {
+                if (isPrimitive(value.getClass()) || Date.class.isAssignableFrom(value.getClass())) {
                     values.putSingle(propertyName, value);
                 } else if (value.getClass().isEnum()) {
                     values.putSingle(propertyName, value.toString());
                 } else if (isSupportedCollectionOrArray(value.getClass())) {
                     List<Object> theValues = null;
                     if (value.getClass().isArray()) {
-                        theValues = Arrays.asList(value);
+                        theValues = Arrays.asList((Object[])value);
                     } else if (value instanceof Set) {
                         theValues = new ArrayList<Object>((Set<?>)value);
                     } else {
@@ -1268,10 +1271,21 @@ public final class InjectionUtils {
         } else if (cls.isPrimitive()) {
             return PrimitiveUtils.read(value, cls);
         } else if (cls.isEnum()) {
-            if (m == null || !MessageUtils.getContextualBoolean(m, ENUM_CONVERSION_CASE_SENSITIVE, false)) {
-                value = value.toUpperCase();
+            if (m != null && !MessageUtils.getContextualBoolean(m, ENUM_CONVERSION_CASE_SENSITIVE, false)) {
+                obj = invokeValueOf(value.toUpperCase(), cls);
             }
-            return invokeValueOf(value, cls);
+            if (obj == null) {
+                try {
+                    obj = invokeValueOf(value, cls);
+                } catch (RuntimeException ex) {
+                    if (m == null) {
+                        obj = invokeValueOf(value.toUpperCase(), cls);
+                    } else {
+                        throw ex;
+                    }
+                }
+            }
+            return obj;
         } else {
             try {
                 Constructor<?> c = cls.getConstructor(new Class<?>[]{String.class});

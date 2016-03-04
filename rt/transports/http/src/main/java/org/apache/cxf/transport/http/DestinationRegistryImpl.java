@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.cxf.service.model.InterfaceInfo;
 import org.apache.cxf.transport.AbstractDestination;
 
 public class DestinationRegistryImpl implements DestinationRegistry {
@@ -85,9 +86,19 @@ public class DestinationRegistryImpl implements DestinationRegistry {
     }
     
     public AbstractHTTPDestination checkRestfulRequest(String address) {
+        AbstractHTTPDestination ret = getRestfulDestination(getDestinationsPaths(), address);
+        if (ret == null) {
+            ret = getRestfulDestination(decodedDestinations.keySet(), address);
+        }
+        if (ret != null && ret.getMessageObserver() == null) {
+            return null;
+        }
+        return ret; 
+    }
+    private AbstractHTTPDestination getRestfulDestination(Set<String> destPaths, String address) {
         int len = -1;
         AbstractHTTPDestination ret = null;
-        for (String path : getDestinationsPaths()) {
+        for (String path : destPaths) {
             String thePath = path.length() > 1 && path.endsWith(SLASH) 
                 ? path.substring(0, path.length() - 1) : path;
             if ((address.equals(thePath) 
@@ -99,10 +110,7 @@ public class DestinationRegistryImpl implements DestinationRegistry {
                 len = path.length();
             }
         }
-        if (ret != null && ret.getMessageObserver() == null) {
-            return null;
-        }
-        return ret; 
+        return ret;
     }
 
     public Collection<AbstractHTTPDestination> getDestinations() {
@@ -115,16 +123,19 @@ public class DestinationRegistryImpl implements DestinationRegistry {
                 getDestinations());
         Collections.sort(dest2, new Comparator<AbstractHTTPDestination>() {
             public int compare(AbstractHTTPDestination o1, AbstractHTTPDestination o2) {
-                if (o1.getEndpointInfo().getInterface() == null) {
+                InterfaceInfo i1 = o1.getEndpointInfo().getInterface();
+                InterfaceInfo i2 = o2.getEndpointInfo().getInterface();
+                if (i1 == null && i2 == null) {
+                    return 0;
+                } else if (i1 == null) {
                     return -1;
-                }
-                if (o2.getEndpointInfo().getInterface() == null) {
+                } else if (i2 == null) {
                     return 1;
+                } else {
+                    return i1.getName().getLocalPart()
+                               .compareTo(
+                                   i2.getName().getLocalPart());
                 }
-                return o1.getEndpointInfo().getInterface().getName()
-                        .getLocalPart().compareTo(
-                                o2.getEndpointInfo().getInterface().getName()
-                                        .getLocalPart());
             }
         });
 

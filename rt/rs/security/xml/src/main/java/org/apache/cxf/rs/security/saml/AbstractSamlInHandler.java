@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -116,6 +117,10 @@ public abstract class AbstractSamlInHandler implements RequestHandler {
     protected void validateToken(Message message, AssertionWrapper assertion) {
         try {
             RequestData data = new RequestData();
+            
+            // Add Audience Restrictions for SAML
+            configureAudienceRestriction(message, data);
+            
             if (assertion.isSigned()) {
                 WSSConfig cfg = WSSConfig.getNewInstance(); 
                 data.setWssConfig(cfg);
@@ -149,6 +154,21 @@ public abstract class AbstractSamlInHandler implements RequestHandler {
         }
     }
     
+    protected void configureAudienceRestriction(Message msg, RequestData reqData) {
+        // Add Audience Restrictions for SAML
+        boolean enableAudienceRestriction = 
+            MessageUtils.getContextualBoolean(msg, 
+                                              SecurityConstants.AUDIENCE_RESTRICTION_VALIDATION, 
+                                              false);
+        if (enableAudienceRestriction) {
+            List<String> audiences = new ArrayList<String>();
+            if (msg.getContextualProperty(org.apache.cxf.message.Message.REQUEST_URL) != null) {
+                audiences.add((String)msg.getContextualProperty(org.apache.cxf.message.Message.REQUEST_URL));
+            }
+            reqData.setAudienceRestrictions(audiences);
+        }
+    }
+    
     protected void checkSubjectConfirmationData(Message message, AssertionWrapper assertion) {
         Certificate[] tlsCerts = getTLSCertificates(message);
         if (!checkHolderOfKey(message, assertion, tlsCerts)) {
@@ -177,7 +197,11 @@ public abstract class AbstractSamlInHandler implements RequestHandler {
     protected void throwFault(String error, Exception ex) {
         // TODO: get bundle resource message once this filter is moved 
         // to rt/rs/security
-        LOG.warning(error);
+        String errorMsg = error;
+        if (ex != null) {
+            errorMsg += ": " + ExceptionUtils.getStackTrace(ex);
+        }
+        LOG.warning(errorMsg);
         Response response = JAXRSUtils.toResponseBuilder(401).entity(error).build();
         throw ExceptionUtils.toNotAuthorizedException(null, response);
     }
