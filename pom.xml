@@ -474,6 +474,7 @@
                         <goals>deploy</goals>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                         <releaseProfiles>release,deploy,distribution,jaxws22</releaseProfiles>
+                        <tagNameFormat>jboss-@{project.version}</tagNameFormat>
                     </configuration>
                 </plugin>
                 <plugin>
