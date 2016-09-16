@@ -14,3 +14,5 @@
 target/
 velocity.log
 bin/
+pom.xml.releaseBackup
+/release.properties
