@@ -27,6 +27,7 @@ import javax.xml.namespace.QName;
 
 import org.apache.cxf.headers.Header;
 import org.apache.cxf.helpers.CastUtils;
+import org.apache.cxf.interceptor.OneWayProcessorInterceptor;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
 
@@ -89,6 +90,20 @@ public class SoapMessage extends MessageImpl {
     public boolean hasAdditionalEnvNs() {
         Map<String, String> ns = getEnvelopeNs();
         return ns != null && !ns.isEmpty();
-    } 
+    }
+
+    @Override
+    public Object getContextualProperty(String key) {
+        Object property = super.getContextualProperty(key);
+
+        // BZ-1403939 Picketbox uses thread local variables for authorization. By running in another thread,
+        // these will be lost.
+        if (OneWayProcessorInterceptor.USE_ORIGINAL_THREAD.equals(key)) {
+            setContextualProperty(OneWayProcessorInterceptor.USE_ORIGINAL_THREAD, true);
+            return true;
+        }
+
+        return property;
+    }
     
 }
