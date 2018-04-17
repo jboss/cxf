@@ -21,6 +21,7 @@ package org.apache.cxf.common.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.cxf.helpers.IOUtils;
 
@@ -39,15 +40,15 @@ public class Base64UtilityTest extends Assert {
             assertEquals(b1[x], b2[x]);
         }
     }
-    
+
     @Test
     public void testEncodeMultipleChunks() throws Exception {
         final String text = "The true sign of intelligence is not knowledge but imagination.";
-        byte[] bytes = text.getBytes("UTF-8");
+        byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
         // multiple of 3 octets
         assertEquals(63, bytes.length);
         String s1 = new String(Base64Utility.encodeChunk(bytes, 0, bytes.length));
-        
+
         StringBuilder sb = new StringBuilder();
         int off = 0;
         for (; off + 21 < bytes.length; off += 21) {
@@ -59,24 +60,24 @@ public class Base64UtilityTest extends Assert {
         String s2 = sb.toString();
         assertEquals(s1, s2);
     }
-    
+
     @Test
     public void testEncodeAndStream() throws Exception {
         final String text = "The true sign of intelligence is not knowledge but imagination.";
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        byte[] bytes = text.getBytes("UTF-8");
+        byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
         Base64Utility.encodeAndStream(bytes, 0, bytes.length, bos);
         String decodedText = new String(Base64Utility.decode(bos.toString()));
         assertEquals(decodedText, text);
     }
-    
+
     @Test
     public void testEncodeDecodeChunk() throws Exception {
         byte bytes[] = new byte[100];
         for (int x = 0; x < bytes.length; x++) {
             bytes[x] = (byte)x;
         }
-        
+
         char encodedChars[] = Base64Utility.encodeChunk(bytes, 0, -2);
         assertNull(encodedChars);
         encodedChars = Base64Utility.encodeChunk(bytes, 0, bytes.length);
@@ -93,7 +94,7 @@ public class Base64UtilityTest extends Assert {
         assertNotNull(encodedChars);
         bytesDecoded = Base64Utility.decodeChunk(encodedChars, 0, encodedChars.length);
         assertEquals(bytes, bytesDecoded);
-        
+
         //require padding
         bytes = new byte[98];
         for (int x = 0; x < bytes.length; x++) {
@@ -103,7 +104,7 @@ public class Base64UtilityTest extends Assert {
         assertNotNull(encodedChars);
         bytesDecoded = Base64Utility.decodeChunk(encodedChars, 0, encodedChars.length);
         assertEquals(bytes, bytesDecoded);
-        
+
         //require padding
         bytes = new byte[97];
         for (int x = 0; x < bytes.length; x++) {
@@ -113,8 +114,8 @@ public class Base64UtilityTest extends Assert {
         assertNotNull(encodedChars);
         bytesDecoded = Base64Utility.decodeChunk(encodedChars, 0, encodedChars.length);
         assertEquals(bytes, bytesDecoded);
-        
-        
+
+
         bytesDecoded = Base64Utility.decodeChunk(new char[3], 0, 3);
         assertNull(bytesDecoded);
     }
@@ -154,8 +155,8 @@ public class Base64UtilityTest extends Assert {
                              encodedString.length(),
                              bout2);
         assertEquals(bytes, bout2.toByteArray());
-        
-        
+
+
         String in = "QWxhZGRpbjpvcGVuIHNlc2FtZQ==";
         bout.reset();
         bout2.reset();
@@ -165,7 +166,7 @@ public class Base64UtilityTest extends Assert {
         StringWriter writer = new StringWriter();
         Base64Utility.encode(bytes, 0, bytes.length, writer);
         assertEquals(in, writer.toString());
-        
+
     }
 
 

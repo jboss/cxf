@@ -21,6 +21,7 @@ package org.apache.cxf.jaxrs.provider.jsonp;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -30,7 +31,7 @@ import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.AbstractPhaseInterceptor;
 
 public abstract class AbstractJsonpOutInterceptor extends AbstractPhaseInterceptor<Message> {
-    
+
     protected AbstractJsonpOutInterceptor(String phase) {
         super(phase);
     }
@@ -39,15 +40,15 @@ public abstract class AbstractJsonpOutInterceptor extends AbstractPhaseIntercept
         Exchange exchange = message.getExchange();
         return (String) exchange.get(JsonpInInterceptor.CALLBACK_KEY);
     }
-    
+
     protected void writeValue(Message message, String value) throws Fault {
         try {
-            getOutputStream(message).write(value.getBytes("UTF-8"));
+            getOutputStream(message).write(value.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new Fault(e);
         }
     }
-    
+
     private OutputStream getOutputStream(Message message) throws IOException {
         OutputStream os = message.getContent(OutputStream.class);
         if (os == null) {

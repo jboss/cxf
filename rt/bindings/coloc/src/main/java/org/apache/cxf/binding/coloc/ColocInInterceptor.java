@@ -20,12 +20,10 @@ package org.apache.cxf.binding.coloc;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
-//import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.cxf.Bus;
-//import org.apache.cxf.common.i18n.BundleUtils;
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.interceptor.InterceptorChain;
@@ -39,10 +37,10 @@ import org.apache.cxf.service.model.BindingOperationInfo;
 import org.apache.cxf.service.model.MessageInfo;
 
 public class ColocInInterceptor extends AbstractPhaseInterceptor<Message> {
-    
+
     private static final Logger LOG = LogUtils.getL7dLogger(ColocInInterceptor.class);
 
-    
+
     public ColocInInterceptor() {
         super(Phase.INVOKE);
         addAfter(ServiceInvokerInterceptor.class.getName());
@@ -69,7 +67,7 @@ public class ColocInInterceptor extends AbstractPhaseInterceptor<Message> {
         BindingOperationInfo boi = ex.getBindingOperationInfo();
         Message outBound = ex.getOutMessage();
         if (boi != null) {
-            outBound.put(MessageInfo.class, 
+            outBound.put(MessageInfo.class,
                          boi.getOperationInfo().getOutput());
         }
 

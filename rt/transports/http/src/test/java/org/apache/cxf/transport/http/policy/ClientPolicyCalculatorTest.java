@@ -20,6 +20,7 @@ package org.apache.cxf.transport.http.policy;
 
 import org.apache.cxf.transport.http.policy.impl.ClientPolicyCalculator;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -37,6 +38,7 @@ public class ClientPolicyCalculatorTest extends Assert {
         p1.setConnectionTimeout(10000);
         assertTrue("Policies are not compatible.", calc.compatible(p1, p2));
         p1.setAllowChunking(false);
+        p2.setAllowChunking(true);
         assertTrue("Policies are compatible.", !calc.compatible(p1, p2));
         p2.setAllowChunking(false);
         assertTrue("Policies are compatible.", calc.compatible(p1, p2));
@@ -61,13 +63,13 @@ public class ClientPolicyCalculatorTest extends Assert {
         p = calc.intersect(p1, p2);
         assertTrue(!p.isAllowChunking());
     }
-    
+
     @Test
     public void testEqualClientPolicies() {
         ClientPolicyCalculator calc = new ClientPolicyCalculator();
         HTTPClientPolicy p1 = new HTTPClientPolicy();
         assertTrue(calc.equals(p1, p1));
-        HTTPClientPolicy p2 = new HTTPClientPolicy();        
+        HTTPClientPolicy p2 = new HTTPClientPolicy();
         assertTrue(calc.equals(p1, p2));
         p1.setDecoupledEndpoint("http://localhost:8080/decoupled");
         assertTrue(!calc.equals(p1, p2));
@@ -76,7 +78,7 @@ public class ClientPolicyCalculatorTest extends Assert {
         p1.setReceiveTimeout(10000L);
         assertTrue(!calc.equals(p1, p2));
     }
-    
+
     @Test
     public void testLongTimeouts() {
         ClientPolicyCalculator calc = new ClientPolicyCalculator();
@@ -87,7 +89,7 @@ public class ClientPolicyCalculatorTest extends Assert {
         HTTPClientPolicy p = calc.intersect(p1, p2);
         assertEquals(120000, p.getReceiveTimeout());
         assertEquals(60000, p.getConnectionTimeout());
-        
+
         p1 = new HTTPClientPolicy();
         p2 = new HTTPClientPolicy();
         p1.setReceiveTimeout(120000);

@@ -29,6 +29,7 @@ import org.apache.hello_world_mixedstyle.Greeter;
 import org.apache.hello_world_mixedstyle.SOAPService;
 import org.apache.hello_world_mixedstyle.types.GreetMe1;
 import org.apache.hello_world_mixedstyle.types.GreetMeResponse;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -40,7 +41,7 @@ public class ClientServerVersioningTest extends AbstractClientServerTestBase {
     public static void startServers() throws Exception {
         assertTrue("server did not launch correctly", launchServer(Server.class));
     }
-    
+
     @Test
     public void testVersionBasedRouting() throws Exception {
 

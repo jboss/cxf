@@ -126,11 +126,12 @@ public class SchemaValidator extends AbstractDefinitionValidator {
 
         SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         sf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, Boolean.TRUE);
+        sf.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "file");
         SchemaResourceResolver resourceResolver = new SchemaResourceResolver();
 
         sf.setResourceResolver(resourceResolver);
 
-        List<Source> sources = new ArrayList<Source>();
+        List<Source> sources = new ArrayList<>();
 
         for (InputSource is : xsdsInJar) {
             Message msg = new Message("CREATE_SCHEMA_LOADED_FROM_JAR", LOG, is.getSystemId());
@@ -251,7 +252,7 @@ public class SchemaValidator extends AbstractDefinitionValidator {
             File[] files = f.listFiles(filter);
 
             if (files != null) {
-                List<String> xsdUrls = new ArrayList<String>(files.length);
+                List<String> xsdUrls = new ArrayList<>(files.length);
                 for (File file : files) {
                     try {
                         String s = file.toURI().toURL().toString();
@@ -283,7 +284,7 @@ class NewStackTraceErrorHandler implements ErrorHandler {
         valid = true;
         numErrors = 0;
         buffer = new StringBuilder();
-        errors = new ArrayList<SAXParseException>();
+        errors = new ArrayList<>();
     }
 
     public void error(SAXParseException ex) throws SAXParseException {
@@ -344,7 +345,7 @@ class NewStackTraceErrorHandler implements ErrorHandler {
 
 class SchemaResourceResolver implements LSResourceResolver {
     private static final Logger LOG = LogUtils.getL7dLogger(SchemaValidator.class);
-    private static final Map<String, String> NSFILEMAP = new HashMap<String, String>();
+    private static final Map<String, String> NSFILEMAP = new HashMap<>();
     static {
         NSFILEMAP.put(ToolConstants.XML_NAMESPACE_URI, "xml.xsd");
         NSFILEMAP.put(ToolConstants.WSDL_NAMESPACE_URI, "wsdl.xsd");

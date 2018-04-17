@@ -20,16 +20,44 @@ package org.apache.cxf.rs.security.saml;
 
 import java.io.InputStream;
 import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
 
 import org.apache.cxf.common.util.CompressionUtils;
+import org.apache.cxf.common.util.PropertyUtils;
+import org.apache.cxf.message.Message;
+import org.apache.cxf.phase.PhaseInterceptorChain;
 
 public class DeflateEncoderDecoder {
-    public InputStream inflateToken(byte[] deflatedToken) 
+    public InputStream inflateToken(byte[] deflatedToken)
         throws DataFormatException {
         return CompressionUtils.inflate(deflatedToken);
     }
-    
+
     public byte[] deflateToken(byte[] tokenBytes) {
-        return CompressionUtils.deflate(tokenBytes);
+
+        return deflateToken(tokenBytes, true);
+    }
+
+    public byte[] deflateToken(byte[] tokenBytes, boolean nowrap) {
+
+        return deflateToken(tokenBytes, getDeflateLevel(), nowrap);
+    }
+
+    public byte[] deflateToken(byte[] tokenBytes, int level, boolean nowrap) {
+
+        return CompressionUtils.deflate(tokenBytes, level, nowrap);
+    }
+
+    private static int getDeflateLevel() {
+        Integer level = null;
+
+        Message m = PhaseInterceptorChain.getCurrentMessage();
+        if (m != null) {
+            level = PropertyUtils.getInteger(m, "deflate.level");
+        }
+        if (level == null) {
+            level = Deflater.DEFLATED;
+        }
+        return level;
     }
 }

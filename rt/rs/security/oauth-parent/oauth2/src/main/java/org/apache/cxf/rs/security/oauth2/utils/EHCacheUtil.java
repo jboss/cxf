@@ -19,12 +19,20 @@
 
 package org.apache.cxf.rs.security.oauth2.utils;
 
+import java.io.File;
 import java.lang.reflect.Method;
+import java.net.URL;
 
 import net.sf.ehcache.CacheException;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.config.CacheConfiguration;
 import net.sf.ehcache.config.Configuration;
+import net.sf.ehcache.config.ConfigurationFactory;
+import net.sf.ehcache.config.DiskStoreConfiguration;
+import org.apache.cxf.Bus;
+import org.apache.cxf.BusFactory;
+import org.apache.cxf.jaxrs.utils.ResourceUtils;
+import org.apache.cxf.rs.security.oauth2.provider.DefaultEHCacheOAuthDataProvider;
 
 /**
  */
@@ -47,11 +55,11 @@ public final class EHCacheUtil {
             }
         }
     }
-    
+
     private EHCacheUtil() {
-        // 
+        //
     }
-    
+
     public static CacheConfiguration getCacheConfiguration(String key, CacheManager cacheManager) {
         CacheConfiguration cc = cacheManager.getConfiguration().getCacheConfigurations().get(key);
         if (cc == null && key.contains("-")) {
@@ -64,12 +72,12 @@ public final class EHCacheUtil {
         if (cc == null) {
             cc = new CacheConfiguration();
         } else {
-            cc = (CacheConfiguration)cc.clone();
+            cc = cc.clone();
         }
         cc.setName(key);
         return cc;
     }
-    
+
     public static CacheManager createCacheManager() throws CacheException {
         try {
             return (CacheManager)cacheManagerCreateMethodNoArg.invoke(null, (Object[])null);
@@ -84,5 +92,38 @@ public final class EHCacheUtil {
         } catch (Exception e) {
             throw new CacheException(e);
         }
+    }
+    
+    public static CacheManager createCacheManager(String configFile, Bus bus) {
+        if (bus == null) {
+            bus = BusFactory.getThreadDefaultBus(true);
+        }
+
+        URL configFileURL = null;
+        try {
+            configFileURL =
+                ResourceUtils.getClasspathResourceURL(configFile, DefaultEHCacheOAuthDataProvider.class, bus);
+        } catch (Exception ex) {
+            // ignore
+        }
+        CacheManager cacheManager = null;
+        if (configFileURL == null) {
+            cacheManager = createCacheManager();
+        } else {
+            Configuration conf = ConfigurationFactory.parseConfiguration(configFileURL);
+
+            if (bus != null) {
+                conf.setName(bus.getId());
+                DiskStoreConfiguration dsc = conf.getDiskStoreConfiguration();
+                if (dsc != null && "java.io.tmpdir".equals(dsc.getOriginalPath())) {
+                    String path = conf.getDiskStoreConfiguration().getPath() + File.separator
+                        + bus.getId();
+                    conf.getDiskStoreConfiguration().setPath(path);
+                }
+            }
+
+            cacheManager = EHCacheUtil.createCacheManager(conf);
+        }
+        return cacheManager;
     }
 }

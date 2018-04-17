@@ -20,8 +20,8 @@
 package org.apache.cxf.tools.java2wsdl.processor.internal.jaxws;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.Collection;
 
 import javax.xml.namespace.QName;
@@ -29,7 +29,6 @@ import javax.xml.namespace.QName;
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.common.jaxb.JAXBContextCache;
-import org.apache.cxf.helpers.IOUtils;
 import org.apache.cxf.jaxws.JaxwsServiceBuilder;
 import org.apache.cxf.service.model.BindingInfo;
 import org.apache.cxf.service.model.ServiceInfo;
@@ -39,9 +38,9 @@ import org.apache.cxf.tools.java2wsdl.generator.wsdl11.WSDL11Generator;
 import org.apache.cxf.tools.util.AnnotationUtil;
 import org.apache.cxf.transport.DestinationFactoryManager;
 import org.apache.hello_world_rpclit.javato.GreeterRPCLit;
+
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class JaxwsServiceBuilderTest extends ProcessorTestBase {
@@ -55,7 +54,7 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         builder.setBus(BusFactory.getDefaultBus());
         generator.setBus(builder.getBus());
         generator.setToolContext(new ToolContext());
-        
+
         Bus b = builder.getBus();
         assertNotNull(b.getExtension(DestinationFactoryManager.class)
             .getDestinationFactory("http://schemas.xmlsoap.org/soap/http"));
@@ -103,7 +102,7 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
             .getResource("expected/expected_doc_lit_wrapped_no_wrapperclass.wsdl").toURI();
         assertWsdlEquals(new File(expectedFile), output);
     }
-    
+
 
     // REVISIT two fault elements in schema
     @Test
@@ -121,7 +120,7 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         assertWsdlEquals(new File(expectedFile), output);
         //assertFileEquals(expectedFile, output.getAbsolutePath());
     }
- 
+
     @Test
     public void testDocWrappedWithLocalName() throws Exception {
         builder.setServiceClass(org.apache.cxf.tools.fortest.withannotation.doc.Stock.class);
@@ -153,7 +152,7 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
             .getResource("expected/expected_doc_lit_wrapped_no_webparam.wsdl").toURI();
         assertWsdlEquals(new File(expectedFile), output);
     }
-    
+
     @Test
     public void testHolder() throws Exception {
         builder.setServiceClass(org.apache.cxf.tools.fortest.holder.HolderService.class);
@@ -168,7 +167,7 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         URI expectedFile = this.getClass().getResource("expected/expected_holder.wsdl").toURI();
         assertWsdlEquals(new File(expectedFile), output);
     }
-    
+
     @Test
     public void testAsync() throws Exception {
         builder.setServiceClass(org.apache.hello_world_async_soap_http.GreeterAsync.class);
@@ -201,8 +200,6 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         assertWsdlEquals(new File(expectedFile), file);
     }
 
-
-    // TODO assertFileEquals
     @Test
     public void testDocWrapparBare() throws Exception {
         builder.setServiceClass(org.apache.hello_world_doc_wrapped_bare.Greeter.class);
@@ -214,9 +211,11 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         assertNotNull(output);
         generator.generate(file);
         assertTrue(output.exists());
+
+        URI expectedFile = this.getClass().getResource("expected/doc_wrapped_bare.wsdl").toURI();
+        assertWsdlEquals(new File(expectedFile), file);
     }
 
-    // TODO assertFileEquals
     @Test
     public void testRPCWithoutParentBindingAnnotation() throws Exception {
         builder.setServiceClass(org.apache.cxf.tools.fortest.withannotation.rpc.Hello.class);
@@ -227,11 +226,12 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         assertNotNull(output);
         generator.generate(file);
         assertTrue(output.exists());
+        
+        URI expectedFile = this.getClass().getResource("expected/rpc_lit_service_no_anno.wsdl").toURI();
+        assertWsdlEquals(new File(expectedFile), file);
     }
 
-    // TODO: SOAPBinding can not on method with RPC style
     @Test
-    @Ignore("RuntimeException: org.apache.cxf.interceptor.Fault: Method [sayHi] pro")
     public void testSOAPBindingRPCOnMethod() throws Exception {
         builder.setServiceClass(org.apache.cxf.tools.fortest.withannotation.rpc.HelloWrongAnnotation.class);
         ServiceInfo service = builder.createService();
@@ -241,6 +241,9 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         assertNotNull(output);
         generator.generate(file);
         assertTrue(output.exists());
+        
+        URI expectedFile = this.getClass().getResource("expected/rpc_on_method.wsdl").toURI();
+        assertWsdlEquals(new File(expectedFile), file);
     }
 
     @Test
@@ -259,7 +262,21 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         assertWsdlEquals(new File(expectedFile), file);
     }
 
-    // TODO: assertFileEquals
+    @Test
+    public void testMultipleHeaders() throws Exception {
+        builder.setServiceClass(org.apache.cxf.tools.fortest.headers.SomeHeaders.class);
+        ServiceInfo service = builder.createService();
+
+        generator.setServiceModel(service);
+        File output = getOutputFile("someheaders.wsdl");
+        assertNotNull(output);
+        generator.generate(output);
+        assertTrue(output.exists());
+
+        URI expectedFile = this.getClass().getResource("expected/expected_someheaders.wsdl").toURI();
+        assertWsdlEquals(new File(expectedFile), output);
+    }
+
     @Test
     public void testCXF188() throws Exception {
         Class<?> clz = AnnotationUtil.loadClass("org.apache.cxf.tools.fortest.cxf188.Demo", getClass()
@@ -268,10 +285,13 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         ServiceInfo service = builder.createService();
 
         generator.setServiceModel(service);
-        File file = getOutputFile("cxf188.wsdl");
+        File output = getOutputFile("cxf188.wsdl");
         assertNotNull(output);
-        generator.generate(file);
-        assertTrue(output.exists());
+        generator.generate(output);
+        assertTrue(output.exists()); 
+
+        URI expectedFile = this.getClass().getResource("expected/cxf188.wsdl").toURI();
+        assertWsdlEquals(new File(expectedFile), output);
     }
 
     @Test
@@ -284,15 +304,15 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
                      service.getName());
         assertEquals(new QName("http://cxf.apache.org/echotest", "Echo"),
                      service.getInterface().getName());
-        
+
         generator.setServiceModel(service);
-        
+
         File output = getOutputFile("rpclist_no_sei.wsdl");
         assertNotNull(output);
         generator.generate(output);
         assertTrue(output.exists());
 
-        String s = IOUtils.toString(new FileInputStream(output));
+        String s = new String(Files.readAllBytes(output.toPath()));
         assertTrue(s.indexOf("EchoPort") != -1);
         URI expectedFile = this.getClass()
             .getResource("expected/expected_rpclist_no_sei.wsdl").toURI();
@@ -303,7 +323,7 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
     public void testCXF669() throws Exception {
         boolean oldSetting = generator.allowImports();
         generator.setAllowImports(true);
-        
+
         builder.setServiceClass(org.apache.cxf.tools.fortest.cxf669.HelloImpl.class);
         ServiceInfo service = builder.createService();
         assertNotNull(service);
@@ -313,7 +333,7 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         assertEquals(1, service.getSchemas().size());
         assertEquals("http://foo.com/HelloWorld",
                      service.getSchemas().iterator().next().getNamespaceURI());
-        
+
         Collection<BindingInfo> bindings = service.getBindings();
         assertEquals(1, bindings.size());
         assertEquals(new QName("http://foo.com/HelloWorldService", "HelloServiceSoapBinding"),
@@ -329,23 +349,23 @@ public class JaxwsServiceBuilderTest extends ProcessorTestBase {
         File schema = new File(output, "HelloService_schema1.xsd");
         assertTrue(schema.exists());
 
-        String s = IOUtils.toString(new FileInputStream(wsdl));
+        String s = new String(Files.readAllBytes(wsdl.toPath()));
         assertTrue(s.indexOf("<wsdl:import namespace=\"http://foo.com/HelloWorld\" "
                              + "location=\"HelloWorld.wsdl\">") != -1);
         assertTrue(s.indexOf("targetNamespace=\"http://foo.com/HelloWorldService\"") != -1);
 
-        s = IOUtils.toString(new FileInputStream(logical));
+        s = new String(Files.readAllBytes(logical.toPath()));
 
         assertTrue(s.indexOf("<import namespace=\"http://foo.com/HelloWorld\"") != -1);
         assertTrue(s.indexOf("schemaLocation=\"HelloService_schema1.xsd\"/>") != -1);
         assertTrue(s.indexOf("targetNamespace=\"http://foo.com/HelloWorld\"") != -1);
 
-        s = IOUtils.toString(new FileInputStream(schema));
+        s = new String(Files.readAllBytes(schema.toPath()));
         assertTrue(s.indexOf("targetNamespace=\"http://foo.com/HelloWorld\"") != -1);
 
         generator.setAllowImports(oldSetting);
     }
-    
+
     private File getOutputFile(String fileName) {
         return new File(output, fileName);
     }

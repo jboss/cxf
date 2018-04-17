@@ -20,11 +20,11 @@
 package org.apache.cxf.common.util;
 
 import java.io.File;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -89,8 +89,8 @@ public final class URIParserUtil {
         }
 
         List<String> tokens = tokenize(nameSpaceURI, "/: ");
-        if (tokens.size() == 0) {
-            return "cxf"; 
+        if (tokens.isEmpty()) {
+            return "cxf";
         }
 
         if (tokens.size() > 1) {
@@ -165,7 +165,7 @@ public final class URIParserUtil {
 
     private static List<String> tokenize(String str, String sep) {
         StringTokenizer tokens = new StringTokenizer(str, sep);
-        List<String> r = new ArrayList<String>();
+        List<String> r = new ArrayList<>();
 
         while (tokens.hasMoreTokens()) {
             r.add(tokens.nextToken());
@@ -204,7 +204,7 @@ public final class URIParserUtil {
     }
 
     private static <T> List<T> reverse(List<T> a) {
-        List<T> r = new ArrayList<T>();
+        List<T> r = new ArrayList<>();
 
         for (int i = a.size() - 1; i >= 0; i--) {
             r.add(a.get(i));
@@ -218,19 +218,15 @@ public final class URIParserUtil {
 
     public static String escapeChars(String s) {
         StringBuilder b = new StringBuilder(s.length());
-        
+
         for (int x = 0; x < s.length(); x++) {
             char ch = s.charAt(x);
             if (isExcluded(ch)) {
-                try {
-                    byte[] bytes = Character.toString(ch).getBytes("UTF-8");
-                    for (int y = 0; y < bytes.length; y++) {
-                        b.append("%");
-                        b.append(HEX_DIGITS.charAt((bytes[y] & 0xFF) >> 4));
-                        b.append(HEX_DIGITS.charAt(bytes[y] & 0x0F));
-                    }
-                } catch (UnsupportedEncodingException e) {
-                    //should not happen
+                byte[] bytes = Character.toString(ch).getBytes(StandardCharsets.UTF_8);
+                for (int y = 0; y < bytes.length; y++) {
+                    b.append("%");
+                    b.append(HEX_DIGITS.charAt((bytes[y] & 0xFF) >> 4));
+                    b.append(HEX_DIGITS.charAt(bytes[y] & 0x0F));
                 }
             } else {
                 b.append(ch);
@@ -246,7 +242,7 @@ public final class URIParserUtil {
             result = escapeChars(url.toURI().normalize().toString().replace("\\", "/"));
         } catch (MalformedURLException e1) {
             try {
-                if (uri.startsWith("classpath:")) {                  
+                if (uri.startsWith("classpath:")) {
                     url = ClassLoaderUtils.getResource(uri.substring(10), URIParserUtil.class);
                     return url != null ? url.toExternalForm() : uri;
                 }
@@ -283,14 +279,13 @@ public final class URIParserUtil {
                     return uri.normalize().toString();
                 }
                 return new File("").toURI().resolve(uri.getPath()).toString();
-            } else {
-                return normalize(arg);
             }
+            return normalize(arg);
         } catch (Exception e2) {
             return normalize(arg);
         }
     }
-    
+
     public static String relativize(String base, String toBeRelativized) throws URISyntaxException {
         if (base == null || toBeRelativized == null) {
             return null;
@@ -302,7 +297,7 @@ public final class URIParserUtil {
      * This is a custom implementation for doing what URI.relativize(URI uri) should be
      * doing but is not actually doing when URI roots do not fully match.
      * See http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6226081
-     * 
+     *
      * @param base              The base URI
      * @param toBeRelativized   The URI to be realivized
      * @return                  The string value of the URI you'd expect to get as result

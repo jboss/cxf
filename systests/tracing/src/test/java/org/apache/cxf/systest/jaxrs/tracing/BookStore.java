@@ -18,11 +18,15 @@
  */
 package org.apache.cxf.systest.jaxrs.tracing;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -35,51 +39,102 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.cxf.systest.Book;
 import org.apache.cxf.tracing.Traceable;
 import org.apache.cxf.tracing.TracerContext;
-import org.apache.htrace.TraceScope;
 
 @Path("/bookstore/")
-public class BookStore {
+public class BookStore<T extends Closeable> {
     @Context private TracerContext tracer;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
-        
+
     @GET
     @Path("/books")
     @Produces(MediaType.APPLICATION_JSON)
-    public Collection< Book > getBooks() {
-        try (final TraceScope span =  tracer.startSpan("Get Books")) {
+    public Collection< Book > getBooks() throws IOException {
+        try (T span = tracer.startSpan("Get Books")) {
             return Arrays.asList(
                 new Book("Apache CXF in Action", UUID.randomUUID().toString()),
                 new Book("Mastering Apache CXF", UUID.randomUUID().toString())
             );
         }
     }
-    
+
     @GET
     @Path("/books/async")
     @Produces(MediaType.APPLICATION_JSON)
-    public void getBooksAsync(@Suspended final AsyncResponse response) {
+    public void getBooksAsync(@Suspended final AsyncResponse response) throws Exception {
+        tracer.continueSpan(new Traceable<Void>() {
+            @Override
+            public Void call(final TracerContext context) throws Exception {
+                executor.submit(
+                    tracer.wrap("Processing books", new Traceable<Void>() {
+                        @Override
+                        public Void call(final TracerContext context) throws Exception {
+                            // Simulate some running job
+                            Thread.sleep(200);
+
+                            response.resume(
+                                Arrays.asList(
+                                    new Book("Apache CXF in Action", UUID.randomUUID().toString()),
+                                    new Book("Mastering Apache CXF", UUID.randomUUID().toString())
+                                )
+                            );
+
+                            return null;
+                        }
+                    }
+                ));
+
+                return null;
+            }
+        });
+    }
+
+    @GET
+    @Path("/books/async/notrace")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void getBooksAsyncNoTrace(@Suspended final AsyncResponse response) throws Exception {
         executor.submit(
-            tracer.wrap("Processing books", new Traceable<Void>() {
+            new Callable<Void>() {
                 @Override
-                public Void call(final TracerContext context) throws Exception {
-                    // Simulate some running job 
-                    Thread.sleep(100);
-                    
+                public Void call() throws Exception {
+                    // Simulate some running job
+                    Thread.sleep(200);
+
                     response.resume(
                         Arrays.asList(
                             new Book("Apache CXF in Action", UUID.randomUUID().toString()),
                             new Book("Mastering Apache CXF", UUID.randomUUID().toString())
                         )
                     );
-                    
+
                     return null;
                 }
-            })
+            }
         );
     }
-    
+
+    @GET
+    @Path("/books/pseudo-async")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Collection<Book> getBooksPseudoAsync() throws Exception {
+        return tracer.continueSpan(new Traceable<Collection<Book>>() {
+            @Override
+            public Collection<Book> call(final TracerContext context) throws Exception {
+                return tracer.wrap("Processing books", new Traceable<Collection<Book>>() {
+                    @Override
+                    public Collection<Book> call(final TracerContext context) throws Exception {
+                        return Arrays.asList(
+                            new Book("Apache CXF in Action", UUID.randomUUID().toString()),
+                            new Book("Mastering Apache CXF", UUID.randomUUID().toString())
+                        );
+                    }
+                }).call();
+            }
+        });
+    }
+
     @GET
     @Path("/book/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -87,12 +142,12 @@ public class BookStore {
         tracer.annotate("book-id", id);
         return new Book("Apache CXF in Action", id);
     }
-    
+
     @PUT
     @Path("/process")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response processBooks() {
-        executor.submit(
+    public Response processBooks() throws InterruptedException {
+        final Future<Void> future = executor.submit(
             tracer.wrap("Processing books", new Traceable<Void>() {
                 @Override
                 public Void call(final TracerContext context) throws Exception {
@@ -102,6 +157,11 @@ public class BookStore {
             })
         );
         
+        if (!future.isDone()) {
+            // Just give it some time to have trace finished 
+            Thread.sleep(20);
+        }
+
         return Response.ok().build();
     }
 }

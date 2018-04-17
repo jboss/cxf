@@ -24,15 +24,13 @@ import java.util.Map;
 
 import org.w3c.dom.Document;
 
-import junit.framework.AssertionFailedError;
-
 import org.apache.cxf.staxutils.StaxUtils;
 
 import org.junit.Assert;
 import org.junit.Test;
 
 public class XPathAssertTest extends Assert {
-    
+
     @Test
     public void testAssert() throws Exception {
         Document document = StaxUtils.read(getClass().getResourceAsStream("test.xml"));
@@ -40,18 +38,25 @@ public class XPathAssertTest extends Assert {
         XPathAssert.assertValid("//a", document, null);
         XPathAssert.assertInvalid("//aasd", document, null);
 
+        boolean f = false;
         try {
             XPathAssert.assertInvalid("//a", document, null);
-            fail("Expression is valid!");
-        } catch (AssertionFailedError e) {
+            f = true;
+        } catch (AssertionError e) {
             // this is correct
+        }
+        if (f) {
+            fail("Expression is valid!");
         }
 
         try {
             XPathAssert.assertValid("//aa", document, null);
-            fail("Expression is invalid!");
-        } catch (AssertionFailedError e) {
+            f = true;
+        } catch (AssertionError e) {
             // this is correct
+        }
+        if (f) {
+            fail("Expression is valid!");
         }
 
         XPathAssert.assertXPathEquals("//b", "foo", document, null);
@@ -61,7 +66,7 @@ public class XPathAssertTest extends Assert {
     public void testAssertNamespace() throws Exception {
         Document document = StaxUtils.read(getClass().getResourceAsStream("test2.xml"));
 
-        Map<String, String> namespaces = new HashMap<String, String>();
+        Map<String, String> namespaces = new HashMap<>();
         namespaces.put("a", "urn:foo");
         namespaces.put("z", "urn:z");
 

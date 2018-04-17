@@ -28,6 +28,7 @@ import org.apache.cxf.jaxws.JaxwsServiceBuilder;
 import org.apache.cxf.service.model.ServiceInfo;
 import org.apache.cxf.tools.common.ProcessorTestBase;
 import org.apache.cxf.tools.java2wsdl.generator.wsdl11.WSDL11Generator;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,7 +50,7 @@ public class JaxwsServiceBuilderNoAnnoTest extends ProcessorTestBase {
     public void testGeneratedWithElementryClass() throws Exception {
         builder.setServiceClass(org.apache.cxf.tools.fortest.classnoanno.docbare.Stock.class);
         builder.setAddress("http://localhost");
-        ServiceInfo service =  builder.createService();
+        ServiceInfo service = builder.createService();
         generator.setServiceModel(service);
         File output = getOutputFile("stock_noanno_bare.wsdl");
         generator.generate(output);
@@ -64,7 +65,7 @@ public class JaxwsServiceBuilderNoAnnoTest extends ProcessorTestBase {
     public void testGeneratedWithDocWrappedClass() throws Exception {
         builder.setServiceClass(org.apache.cxf.tools.fortest.classnoanno.docwrapped.Stock.class);
         builder.setAddress("http://localhost");
-        ServiceInfo service =  builder.createService();
+        ServiceInfo service = builder.createService();
         generator.setServiceModel(service);
         File output = getOutputFile("stock_noanno_wrapped.wsdl");
         generator.generate(output);
@@ -83,7 +84,7 @@ public class JaxwsServiceBuilderNoAnnoTest extends ProcessorTestBase {
     public void testGeneratedWithRPCClass() throws Exception {
         builder.setServiceClass(org.apache.cxf.tools.fortest.classnoanno.rpc.Stock.class);
         builder.setAddress("http://localhost");
-        ServiceInfo service =  builder.createService();
+        ServiceInfo service = builder.createService();
         generator.setServiceModel(service);
         File output = getOutputFile("stock_noanno_rpc.wsdl");
         generator.generate(output);

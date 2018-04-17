@@ -21,6 +21,7 @@ package org.apache.cxf.ws.rm;
 
 import org.apache.cxf.endpoint.Endpoint;
 import org.apache.cxf.ws.rm.v200702.Identifier;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.After;
@@ -29,24 +30,24 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class AbstractEndpointTest extends Assert {
 
-    private IMocksControl control;    
+    private IMocksControl control;
     private RMEndpoint rme;
-    
+
     @Before
     public void setUp() {
         control = EasyMock.createNiceControl();
         rme = control.createMock(RMEndpoint.class);
     }
-    
+
     @After
     public void tearDown() {
         control.verify();
     }
-    
+
     @Test
     public void testAccessors() {
         Endpoint ae = control.createMock(Endpoint.class);
@@ -59,10 +60,10 @@ public class AbstractEndpointTest extends Assert {
         assertSame(ae, tested.getEndpoint());
         assertSame(mgr, tested.getManager());
     }
-    
+
     @Test
     public void testGenerateSequenceIdentifier() {
-        RMManager mgr = control.createMock(RMManager.class); 
+        RMManager mgr = control.createMock(RMManager.class);
         EasyMock.expect(rme.getManager()).andReturn(mgr);
         SequenceIdentifierGenerator generator = control.createMock(SequenceIdentifierGenerator.class);
         EasyMock.expect(mgr.getIdGenerator()).andReturn(generator);

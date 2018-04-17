@@ -38,12 +38,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 /**
- * The ResourceProvider implementation which delegates to 
+ * The ResourceProvider implementation which delegates to
  * ApplicationContext to manage the life-cycle of the resource
  */
 public class SpringResourceFactory implements ResourceProvider, ApplicationContextAware {
 
     private Constructor<?> c;
+    private Class<?> type;
     private ApplicationContext ac;
     private String beanId;
     private Method postConstructMethod;
@@ -54,57 +55,60 @@ public class SpringResourceFactory implements ResourceProvider, ApplicationConte
     private boolean callPreDestroy = true;
     private String postConstructMethodName;
     private String preDestroyMethodName;
-    private Object singletonInstance; 
-    
+    private Object singletonInstance;
+
     public SpringResourceFactory() {
-        
+
     }
-    
+
     public SpringResourceFactory(String name) {
         beanId = name;
     }
-    
+
     private void init() {
-        Class<?> type = ClassHelper.getRealClassFromClass(ac.getType(beanId));
+        type = ClassHelper.getRealClassFromClass(ac.getType(beanId));
         if (Proxy.isProxyClass(type)) {
             type = ClassHelper.getRealClass(ac.getBean(beanId));
+        }
+        isSingleton = ac.isSingleton(beanId);
+        postConstructMethod = ResourceUtils.findPostConstructMethod(type, postConstructMethodName);
+        preDestroyMethod = ResourceUtils.findPreDestroyMethod(type, preDestroyMethodName);
+
+        if (isSingleton()) {
+            try {
+                singletonInstance = ac.getBean(beanId);
+            } catch (BeansException ex) {
+                // ignore for now, try resolving resource constructor later
+            }
+            if (singletonInstance != null) {
+                return;
+            }
+        } else {
+            isPrototype = ac.isPrototype(beanId);
         }
         c = ResourceUtils.findResourceConstructor(type, !isSingleton());
         if (c == null) {
             throw new RuntimeException("Resource class " + type
                                        + " has no valid constructor");
         }
-        postConstructMethod = ResourceUtils.findPostConstructMethod(type, postConstructMethodName);
-        preDestroyMethod = ResourceUtils.findPreDestroyMethod(type, preDestroyMethodName);
-        isSingleton = ac.isSingleton(beanId);
-        if (!isSingleton) {
-            isPrototype = ac.isPrototype(beanId);
-        } else {
-            try {
-                singletonInstance = ac.getBean(beanId);
-            } catch (BeansException ex) {
-                // ignore for now, can be to do with no default constructor available
-            }
-        }
-        
+
     }
-    
+
     /**
      * {@inheritDoc}
      */
     public Object getInstance(Message m) {
         if (singletonInstance != null) {
             return singletonInstance;
-        } else {
-            ProviderInfo<?> application = m == null ? null
-                : (ProviderInfo<?>)m.getExchange().getEndpoint().get(Application.class.getName());
-            Map<Class<?>, Object> mapValues = CastUtils.cast(application == null ? null 
-                : Collections.singletonMap(Application.class, application.getProvider()));
-            Object[] values = ResourceUtils.createConstructorArguments(c, m, !isSingleton(), mapValues);
-            Object instance = values.length > 0 ? ac.getBean(beanId, values) : ac.getBean(beanId);
-            initInstance(m, instance);
-            return instance;
         }
+        ProviderInfo<?> application = m == null ? null
+            : (ProviderInfo<?>)m.getExchange().getEndpoint().get(Application.class.getName());
+        Map<Class<?>, Object> mapValues = CastUtils.cast(application == null ? null
+            : Collections.singletonMap(Application.class, application.getProvider()));
+        Object[] values = ResourceUtils.createConstructorArguments(c, m, !isSingleton(), mapValues);
+        Object instance = values.length > 0 ? ac.getBean(beanId, values) : ac.getBean(beanId);
+        initInstance(m, instance);
+        return instance;
     }
 
     protected void initInstance(Message m, Object instance) {
@@ -113,13 +117,13 @@ public class SpringResourceFactory implements ResourceProvider, ApplicationConte
         }
     }
 
-    
-    
+
+
     /**
      * {@inheritDoc}
      */
     public boolean isSingleton() {
-        return isSingleton; 
+        return isSingleton;
     }
 
     /**
@@ -130,7 +134,7 @@ public class SpringResourceFactory implements ResourceProvider, ApplicationConte
             InjectionUtils.invokeLifeCycleMethod(o, preDestroyMethod);
         }
     }
-    
+
     protected boolean doCallPreDestroy() {
         return isCallPreDestroy() && isPrototype;
     }
@@ -145,9 +149,9 @@ public class SpringResourceFactory implements ResourceProvider, ApplicationConte
     }
 
     public ApplicationContext getApplicationContext() {
-        return ac;    
+        return ac;
     }
-    
+
     Constructor<?> getBeanConstructor() {
         return c;
     }
@@ -156,13 +160,13 @@ public class SpringResourceFactory implements ResourceProvider, ApplicationConte
      * {@inheritDoc}
      */
     public Class<?> getResourceClass() {
-        return c.getDeclaringClass();
+        return type;
     }
 
     public void setCallPostConstruct(boolean callPostConstruct) {
         this.callPostConstruct = callPostConstruct;
     }
-    
+
     public boolean isCallPostConstruct() {
         return this.callPostConstruct;
     }
@@ -174,7 +178,7 @@ public class SpringResourceFactory implements ResourceProvider, ApplicationConte
     public boolean isCallPreDestroy() {
         return this.callPreDestroy;
     }
-    
+
     public void setPreDestroyMethodName(String preDestroyMethodName) {
         this.preDestroyMethodName = preDestroyMethodName;
     }

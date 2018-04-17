@@ -32,31 +32,31 @@ import org.apache.cxf.interceptor.InterceptorProvider;
  * of the Bus it may also be responsible for wiring up the CXF internals.
  */
 public interface Bus extends InterceptorProvider {
-    public enum BusState {
+    enum BusState {
         INITIAL, INITIALIZING, RUNNING, SHUTTING_DOWN, SHUTDOWN;
     }
-    
+
     String DEFAULT_BUS_ID = "cxf";
-    
+
     <T> T getExtension(Class<T> extensionType);
-    
+
     <T> void setExtension(T extension, Class<T> extensionType);
-    
+
     boolean hasExtensionByName(String name);
-    
+
     String getId();
     void setId(String i);
-    
+
     void shutdown(boolean wait);
-    
+
     void setProperty(String s, Object o);
     Object getProperty(String s);
     void setProperties(Map<String, Object> properties);
-    Map<String, Object> getProperties();    
-    
+    Map<String, Object> getProperties();
+
     Collection<Feature> getFeatures();
     void setFeatures(Collection<? extends Feature> features);
-    
+
     BusState getState();
 
 }

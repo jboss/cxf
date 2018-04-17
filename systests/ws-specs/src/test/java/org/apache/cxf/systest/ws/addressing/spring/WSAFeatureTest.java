@@ -35,6 +35,7 @@ import org.apache.cxf.ws.addressing.WSAddressingFeature;
 import org.apache.cxf.ws.addressing.soap.MAPCodec;
 import org.apache.hello_world_soap_http.Greeter;
 import org.apache.hello_world_soap_http.GreeterImpl;
+
 import org.junit.Test;
 
 public class WSAFeatureTest extends AbstractCXFTest {
@@ -47,17 +48,17 @@ public class WSAFeatureTest extends AbstractCXFTest {
         sf.setAddress("http://localhost:" + PORT + "/test");
         sf.setStart(false);
         sf.setBus(getBus());
-        
+
         Server server = sf.create();
-        
+
         Endpoint endpoint = server.getEndpoint();
-        checkAddressInterceptors(endpoint.getInInterceptors());        
-        
+        checkAddressInterceptors(endpoint.getInInterceptors());
+
     }
-    
+
     @Test
     public void testClientProxyFactory() {
-        JaxWsProxyFactoryBean cf = new JaxWsProxyFactoryBean(); 
+        JaxWsProxyFactoryBean cf = new JaxWsProxyFactoryBean();
         cf.setAddress("http://localhost:" + PORT + "/test");
         cf.getFeatures().add(new WSAddressingFeature());
         cf.setServiceClass(Greeter.class);
@@ -65,11 +66,11 @@ public class WSAFeatureTest extends AbstractCXFTest {
         Client client = ClientProxy.getClient(greeter);
         checkAddressInterceptors(client.getInInterceptors());
     }
-    
+
     private void checkAddressInterceptors(List<Interceptor<? extends Message>> interceptors) {
         boolean hasAg = false;
         boolean hasCodec = false;
-        
+
         for (Interceptor<? extends Message> i : interceptors) {
             if (i instanceof MAPAggregator) {
                 hasAg = true;
@@ -80,5 +81,5 @@ public class WSAFeatureTest extends AbstractCXFTest {
         assertTrue(hasAg);
         assertTrue(hasCodec);
     }
-    
+
 }

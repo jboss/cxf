@@ -26,7 +26,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class AutomaticWorkQueueTest extends Assert {
@@ -44,7 +43,7 @@ public class AutomaticWorkQueueTest extends Assert {
     public static final int TIMEOUT = 100;
 
     AutomaticWorkQueueImpl workqueue;
-    
+
     @After
     public void tearDown() throws Exception {
         if (workqueue != null) {
@@ -52,7 +51,7 @@ public class AutomaticWorkQueueTest extends Assert {
             workqueue = null;
         }
     }
-    
+
     @Test
     public void testUnboundedConstructor() {
         workqueue = new AutomaticWorkQueueImpl(UNBOUNDED_MAX_QUEUE_SIZE, INITIAL_SIZE,
@@ -77,14 +76,14 @@ public class AutomaticWorkQueueTest extends Assert {
         assertEquals(DEFAULT_LOW_WATER_MARK, workqueue.getLowWaterMark());
     }
 
-    
+
     @Test
     public void testEnqueueWithTimeout() throws Exception {
         workqueue = new AutomaticWorkQueueImpl(2, 2,
                                                2,
                                                2,
                                                DEFAULT_DEQUEUE_TIMEOUT);
-        
+
         final Object lock = new Object();
         int x = 0;
         try {
@@ -105,8 +104,8 @@ public class AutomaticWorkQueueTest extends Assert {
             assertTrue("Expect RejectedExecutionException when the work queue is full.", x <= 4);
         }
     }
-    
-    
+
+
     @Test
     public void testEnqueue() {
         workqueue = new AutomaticWorkQueueImpl(DEFAULT_MAX_QUEUE_SIZE, INITIAL_SIZE,
@@ -144,8 +143,16 @@ public class AutomaticWorkQueueTest extends Assert {
         assertEquals(0, workqueue.getSize());
     }
 
+    int numRunning(BlockingWorkItem[] workItems) {
+        int count = 0;
+        for (BlockingWorkItem item : workItems) {
+            if (item.isRunning()) {
+                count++;
+            }
+        }
+        return count;
+    }
     @Test
-    @Ignore("The test is failed on openjdk")
     public void testEnqueueImmediate() {
         workqueue = new AutomaticWorkQueueImpl(DEFAULT_MAX_QUEUE_SIZE, INITIAL_SIZE,
                                                DEFAULT_HIGH_WATER_MARK,
@@ -181,14 +188,24 @@ public class AutomaticWorkQueueTest extends Assert {
                 }
             }
 
-            while (workqueue.getActiveCount() < DEFAULT_HIGH_WATER_MARK) {
+            int max = 0;
+            int numRun = numRunning(workItems);
+            while ((workqueue.getActiveCount() < DEFAULT_HIGH_WATER_MARK 
+                    || numRun < DEFAULT_HIGH_WATER_MARK 
+                    || workqueue.getSize() > 0)
+                && max < 10) {
                 try {
-                    Thread.sleep(250);
+                    //wait up to a second for all the threads to start and grab items
+                    Thread.sleep(100);
+                    max++;
                 } catch (InterruptedException ex) {
                     // ignore
                 }
+                numRun = numRunning(workItems);
             }
-            
+            numRun = numRunning(workItems);
+            assertEquals(DEFAULT_HIGH_WATER_MARK, numRun);
+
             for (int i = 0; i < DEFAULT_MAX_QUEUE_SIZE; i++) {
                 fillers[i] = new BlockingWorkItem();
                 try {
@@ -196,13 +213,6 @@ public class AutomaticWorkQueueTest extends Assert {
                 } catch (RejectedExecutionException ex) {
                     fail("failed on filler[" + i + "] with: " + ex);
                 }
-            }
-
-            // give threads a chance to start executing the work items
-            try {
-                Thread.sleep(250);
-            } catch (InterruptedException ex) {
-                // ignore
             }
 
             assertTrue(workqueue.toString(), workqueue.isFull());
@@ -271,7 +281,7 @@ public class AutomaticWorkQueueTest extends Assert {
 
         checkDeadLock(dead);
     }
-    
+
     @Test
     public void testSchedule() throws Exception {
         workqueue = new AutomaticWorkQueueImpl(UNBOUNDED_MAX_QUEUE_SIZE, INITIAL_SIZE,
@@ -291,16 +301,16 @@ public class AutomaticWorkQueueTest extends Assert {
                 }
             }
         };
-        
+
         workqueue.schedule(doNothing, 5000);
-        
+
         runLock.lock();
         try {
             runCondition.await();
         } finally {
             runLock.unlock();
         }
-        
+
         assertTrue("expected delay",
                    System.currentTimeMillis() - start >= 4950);
     }
@@ -322,14 +332,14 @@ public class AutomaticWorkQueueTest extends Assert {
                 // ignore
             }
         }
-//        if (System.getProperty("java.version").startsWith("1.6") 
+//        if (System.getProperty("java.version").startsWith("1.6")
 //            || System.getProperty("java.vendor").startsWith("IBM")) {
 //            // ThreadPoolExecutor in 1.6 is broken.  The size can get below
 //            // the low watermark.  Oddly, this also appears to happen with
 //            // the ibm jdk.
         assertTrue(workqueue.getLowWaterMark() >= workqueue.getPoolSize());
 //        } else {
-//            assertEquals(workqueue.getLowWaterMark(), workqueue.getPoolSize());            
+//            assertEquals(workqueue.getLowWaterMark(), workqueue.getPoolSize());
 //        }
     }
 
@@ -356,7 +366,7 @@ public class AutomaticWorkQueueTest extends Assert {
         assertTrue("threads_total(): " + sz, workqueue.getPoolSize() <= DEFAULT_LOW_WATER_MARK);
     }
 
-    @Test    
+    @Test
     public void testShutdown() {
         workqueue = new AutomaticWorkQueueImpl(DEFAULT_MAX_QUEUE_SIZE, INITIAL_SIZE,
                                                INITIAL_SIZE, INITIAL_SIZE, 500);
@@ -378,7 +388,7 @@ public class AutomaticWorkQueueTest extends Assert {
         }
         assertEquals(0, workqueue.getSize());
         assertEquals(0, workqueue.getPoolSize());
-        
+
         //already shutdown
         workqueue = null;
     }
@@ -396,13 +406,13 @@ public class AutomaticWorkQueueTest extends Assert {
                 // No reduction in the completion count so it may be deadlocked,
                 // allow thread to make no progress for 5 time-slices before
                 // assuming a deadlock has occurred
-                //  
+                //
                 if (oldCompleted != 0
                     && ++noProgressCount > 5) {
-                    
-                    fail("No reduction in threads in 1.25 secs: \n" 
-                         + "oldCompleted: " + oldCompleted 
-                         + "\nof " + dead.getWorkItemCount()); 
+
+                    fail("No reduction in threads in 1.25 secs: \n"
+                         + "oldCompleted: " + oldCompleted
+                         + "\nof " + dead.getWorkItemCount());
                 }
             }
             try {
@@ -462,9 +472,12 @@ public class AutomaticWorkQueueTest extends Assert {
     }
 
     public class BlockingWorkItem implements Runnable {
+        volatile boolean running;
+        
         private boolean unblocked;
 
         public void run() {
+            running = true;
             synchronized (this) {
                 while (!unblocked) {
                     try {
@@ -476,6 +489,9 @@ public class AutomaticWorkQueueTest extends Assert {
             }
         }
 
+        boolean isRunning() {
+            return running;
+        }
         void unblock() {
             synchronized (this) {
                 unblocked = true;

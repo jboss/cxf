@@ -27,23 +27,20 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.osgi.itests.CXFOSGiTestSupport;
 import org.apache.cxf.transport.jms.ConnectionFactoryFeature;
+import org.osgi.framework.Constants;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
-import org.ops4j.pax.exam.karaf.options.KarafDistributionOption;
-import org.ops4j.pax.exam.karaf.options.LogLevelOption.LogLevel;
-import org.ops4j.pax.exam.options.MavenUrlReference;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.tinybundles.core.TinyBundles;
-import org.osgi.framework.Constants;
-import static org.ops4j.pax.exam.CoreOptions.maven;
+
 import static org.ops4j.pax.exam.CoreOptions.provision;
 import static org.ops4j.pax.exam.karaf.options.KarafDistributionOption.features;
-import static org.ops4j.pax.exam.karaf.options.KarafDistributionOption.logLevel;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -66,7 +63,7 @@ public class JmsServiceTest extends CXFOSGiTestSupport {
     }
 
     private ActiveMQConnectionFactory createConnectionFactory() {
-        ActiveMQConnectionFactory connectionFactory 
+        ActiveMQConnectionFactory connectionFactory
             = new ActiveMQConnectionFactory("vm://JmsServiceTest");
         connectionFactory.setUserName("karaf");
         connectionFactory.setPassword("karaf");
@@ -75,15 +72,11 @@ public class JmsServiceTest extends CXFOSGiTestSupport {
 
     @Configuration
     public Option[] config() {
-        MavenUrlReference activeMQFeature = maven().groupId("org.apache.activemq")
-            .artifactId("activemq-karaf").type("xml").classifier("features").versionAsInProject();
         return new Option[] {
             cxfBaseConfig(),
             testUtils(),
             features(cxfUrl, "cxf-core", "cxf-jaxws", "cxf-transports-jms"),
-            KarafDistributionOption.keepRuntimeFolder(),
-            logLevel(LogLevel.INFO),
-            features(activeMQFeature, "activemq-broker-noweb"),
+            features(amqUrl, "aries-blueprint", "shell-compat", "activemq-broker-noweb"),
             provision(serviceBundle())
         };
     }

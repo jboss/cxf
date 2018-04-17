@@ -38,13 +38,14 @@ import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
 import org.apache.cxf.transport.http.HTTPConduit;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.apache.cxf.ws.security.SecurityConstants;
+import wssec.wssec10.IPingService;
+import wssec.wssec10.PingService;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
 
-import wssec.wssec10.IPingService;
-import wssec.wssec10.PingService;
 
 
 /**
@@ -58,23 +59,23 @@ public class WSSecurity10Test extends AbstractBusClientServerTestBase {
 
     private static final String INPUT = "foo";
     private static boolean unrestrictedPoliciesInstalled;
-    
+
     static {
         unrestrictedPoliciesInstalled = SecurityTestUtil.checkUnrestrictedPoliciesInstalled();
-    };    
-    
+    };
+
     final TestParam test;
-    
+
     public WSSecurity10Test(TestParam type) {
         this.test = type;
     }
-    
+
     static class TestParam {
         final String prefix;
         final boolean streaming;
         final String port;
-        
-        public TestParam(String p, String port, boolean b) {
+
+        TestParam(String p, String port, boolean b) {
             prefix = p;
             this.port = port;
             streaming = b;
@@ -83,10 +84,10 @@ public class WSSecurity10Test extends AbstractBusClientServerTestBase {
             return prefix + ":" + port + ":" + (streaming ? "streaming" : "dom");
         }
     }
-    
+
     @Parameters(name = "{0}")
     public static Collection<TestParam[]> data() {
-       
+
         return Arrays.asList(new TestParam[][] {
             {new TestParam("UserName", PORT, false)},
             {new TestParam("UserNameOverTransport", SSL_PORT, false)},
@@ -128,7 +129,7 @@ public class WSSecurity10Test extends AbstractBusClientServerTestBase {
             createStaticBus("org/apache/cxf/systest/ws/wssec10/client_restricted.xml");
         }
     }
-    
+
     @org.junit.AfterClass
     public static void cleanup() throws Exception {
         SecurityTestUtil.cleanup();
@@ -141,10 +142,10 @@ public class WSSecurity10Test extends AbstractBusClientServerTestBase {
         BusFactory.setThreadDefaultBus(getStaticBus());
         URL wsdlLocation = null;
 
-        PingService svc = null; 
-        wsdlLocation = getWsdlLocation(test.prefix, test.port); 
+        PingService svc = null;
+        wsdlLocation = getWsdlLocation(test.prefix, test.port);
         svc = new PingService(wsdlLocation);
-        final IPingService port = 
+        final IPingService port =
             svc.getPort(
                 new QName(
                     "http://WSSec/wssec10",
@@ -152,9 +153,9 @@ public class WSSecurity10Test extends AbstractBusClientServerTestBase {
                 ),
                 IPingService.class
             );
-     
+
         Client cl = ClientProxy.getClient(port);
-        
+
         if (test.streaming) {
             // Streaming
             ((BindingProvider)port).getRequestContext().put(
@@ -164,31 +165,30 @@ public class WSSecurity10Test extends AbstractBusClientServerTestBase {
                 SecurityConstants.ENABLE_STREAMING_SECURITY, "true"
             );
         }
-        
+
         HTTPConduit http = (HTTPConduit) cl.getConduit();
-         
+
         HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
         httpClientPolicy.setConnectionTimeout(0);
         httpClientPolicy.setReceiveTimeout(0);
-         
+
         http.setClient(httpClientPolicy);
         String output = port.echo(INPUT);
         assertEquals(INPUT, output);
-        
+
         cl.destroy();
     }
-        
+
     private static URL getWsdlLocation(String portPrefix, String port) {
         try {
             if ("UserNameOverTransport".equals(portPrefix)) {
                 return new URL("https://localhost:" + port + "/" + portPrefix + "?wsdl");
-            } else {
-                return new URL("http://localhost:" + port + "/" + portPrefix + "?wsdl");
             }
+            return new URL("http://localhost:" + port + "/" + portPrefix + "?wsdl");
         } catch (MalformedURLException mue) {
             return null;
         }
     }
 
-    
+
 }

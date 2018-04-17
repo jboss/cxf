@@ -29,6 +29,7 @@ import org.apache.cxf.service.model.BindingOperationInfo;
 import org.apache.cxf.service.model.EndpointInfo;
 import org.apache.cxf.service.model.ServiceInfo;
 import org.apache.neethi.Policy;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.Assert;
@@ -36,33 +37,33 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class PolicyAttachmentTest extends Assert {
 
     private IMocksControl control;
-    
-    
+
+
     @Before
     public void setUp() {
-        control = EasyMock.createNiceControl();        
-    } 
-    
+        control = EasyMock.createNiceControl();
+    }
+
     @Test
     public void testBasic() {
         PolicyAttachment pa = new PolicyAttachment();
         assertNull(pa.getDomainExpressions());
         assertNull(pa.getPolicy());
-        
+
         Policy p = control.createMock(Policy.class);
         Collection<DomainExpression> des = CastUtils.cast(Collections.emptyList(), DomainExpression.class);
-        
+
         pa.setPolicy(p);
         pa.setDomainExpressions(des);
         assertSame(p, pa.getPolicy());
         assertSame(des, pa.getDomainExpressions());
     }
-    
+
     @Test
     public void testAppliesToService() {
         ServiceInfo si1 = control.createMock(ServiceInfo.class);
@@ -71,15 +72,15 @@ public class PolicyAttachmentTest extends Assert {
         Collection<DomainExpression> des = Collections.singletonList(de);
         PolicyAttachment pa = new PolicyAttachment();
         pa.setDomainExpressions(des);
-       
+
         EasyMock.expect(de.appliesTo(si1)).andReturn(false);
         EasyMock.expect(de.appliesTo(si2)).andReturn(true);
         control.replay();
         assertTrue(!pa.appliesTo(si1));
         assertTrue(pa.appliesTo(si2));
-        control.verify();  
+        control.verify();
     }
-    
+
     @Test
     public void testAppliesToEndpoint() {
         EndpointInfo ei1 = control.createMock(EndpointInfo.class);
@@ -88,15 +89,15 @@ public class PolicyAttachmentTest extends Assert {
         Collection<DomainExpression> des = Collections.singletonList(de);
         PolicyAttachment pa = new PolicyAttachment();
         pa.setDomainExpressions(des);
-       
+
         EasyMock.expect(de.appliesTo(ei1)).andReturn(false);
         EasyMock.expect(de.appliesTo(ei2)).andReturn(true);
         control.replay();
         assertTrue(!pa.appliesTo(ei1));
         assertTrue(pa.appliesTo(ei2));
-        control.verify();  
+        control.verify();
     }
-    
+
     @Test
     public void testAppliesToOperation() {
         BindingOperationInfo boi1 = control.createMock(BindingOperationInfo.class);
@@ -105,15 +106,15 @@ public class PolicyAttachmentTest extends Assert {
         Collection<DomainExpression> des = Collections.singletonList(de);
         PolicyAttachment pa = new PolicyAttachment();
         pa.setDomainExpressions(des);
-       
+
         EasyMock.expect(de.appliesTo(boi1)).andReturn(false);
         EasyMock.expect(de.appliesTo(boi2)).andReturn(true);
         control.replay();
         assertTrue(!pa.appliesTo(boi1));
         assertTrue(pa.appliesTo(boi2));
-        control.verify();  
+        control.verify();
     }
-    
+
     @Test
     public void testAppliesToMessage() {
         BindingMessageInfo bmi1 = control.createMock(BindingMessageInfo.class);
@@ -122,15 +123,15 @@ public class PolicyAttachmentTest extends Assert {
         Collection<DomainExpression> des = Collections.singletonList(de);
         PolicyAttachment pa = new PolicyAttachment();
         pa.setDomainExpressions(des);
-       
+
         EasyMock.expect(de.appliesTo(bmi1)).andReturn(false);
         EasyMock.expect(de.appliesTo(bmi2)).andReturn(true);
         control.replay();
         assertTrue(!pa.appliesTo(bmi1));
         assertTrue(pa.appliesTo(bmi2));
-        control.verify();  
+        control.verify();
     }
-    
+
     @Test
     public void testAppliesToFault() {
         BindingFaultInfo bfi1 = control.createMock(BindingFaultInfo.class);
@@ -139,14 +140,14 @@ public class PolicyAttachmentTest extends Assert {
         Collection<DomainExpression> des = Collections.singletonList(de);
         PolicyAttachment pa = new PolicyAttachment();
         pa.setDomainExpressions(des);
-       
+
         EasyMock.expect(de.appliesTo(bfi1)).andReturn(false);
         EasyMock.expect(de.appliesTo(bfi2)).andReturn(true);
         control.replay();
         assertTrue(!pa.appliesTo(bfi1));
         assertTrue(pa.appliesTo(bfi2));
-        control.verify();  
+        control.verify();
     }
-    
-    
+
+
 }

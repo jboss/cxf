@@ -64,8 +64,8 @@ public abstract class AbstractTypeTestClient
         return !(System.getProperty("java.vendor").contains("IBM")
             && "GMonth".equals(name));
     }
-    
-    public static void initClient(Class<?> clz, QName serviceName, 
+
+    public static void initClient(Class<?> clz, QName serviceName,
                                   QName portName, String wsdlPath)
         throws Exception {
         URL wsdlLocation = clz.getResource(wsdlPath);
@@ -344,7 +344,7 @@ public abstract class AbstractTypeTestClient
         BigInteger valueSets[][] = {{new BigInteger("0"), new BigInteger("1")},
                                     {new BigInteger("1"), new BigInteger("0")},
                                     {new BigInteger("0"),
-                                     new BigInteger(String.valueOf(Long.MAX_VALUE * Long.MAX_VALUE))}};
+                                     new BigInteger(String.valueOf(Long.MAX_VALUE))}};
 
         for (int i = 0; i < valueSets.length; i++) {
             BigInteger x = valueSets[i][0];
@@ -816,7 +816,7 @@ public abstract class AbstractTypeTestClient
 
     @Test
     public void testGMonth() throws Exception {
-        if (!shouldRunTest("GMonth")) { 
+        if (!shouldRunTest("GMonth")) {
             return;
         }
         javax.xml.datatype.DatatypeFactory datatypeFactory = javax.xml.datatype.DatatypeFactory.newInstance();
@@ -1028,26 +1028,16 @@ public abstract class AbstractTypeTestClient
         if (!shouldRunTest("NMTOKENS")) {
             return;
         }
-        //
-        // XXX - The jaxb ri code generation produces different method
+
+        // The jaxb ri code generation produces different method
         // signatures for the NMTOKENS type between using rpc literal
         // and doc literal styles.
-        //
-        if (testDocLiteral) {
+        if (testDocLiteral || testXMLBinding) {
             List<String> x = Arrays.asList("123:abc");
             List<String> yOrig = Arrays.asList("abc.-_:", "a");
             Holder<List<String>> y = new Holder<List<String>>(yOrig);
             Holder<List<String>> z = new Holder<List<String>>();
-            List<String> ret = docClient.testNMTOKENS(x, y, z);
-            assertTrue("testNMTOKENS(): Incorrect value for inout param", x.equals(y.value));
-            assertTrue("testNMTOKENS(): Incorrect value for out param", yOrig.equals(z.value));
-            assertTrue("testNMTOKENS(): Incorrect return value", x.equals(ret));
-        } else if (testXMLBinding) {
-            List<String> x = Arrays.asList("123:abc");
-            List<String> yOrig = Arrays.asList("abc.-_:", "a");
-            Holder<List<String>> y = new Holder<List<String>>(yOrig);
-            Holder<List<String>> z = new Holder<List<String>>();
-            List<String> ret = xmlClient.testNMTOKENS(x, y, z);
+            List<String> ret = testXMLBinding ? xmlClient.testNMTOKENS(x, y, z) : docClient.testNMTOKENS(x, y, z);
             assertTrue("testNMTOKENS(): Incorrect value for inout param", x.equals(y.value));
             assertTrue("testNMTOKENS(): Incorrect value for out param", yOrig.equals(z.value));
             assertTrue("testNMTOKENS(): Incorrect return value", x.equals(ret));
@@ -1156,8 +1146,8 @@ public abstract class AbstractTypeTestClient
             return;
         }
         BigInteger valueSets[][] = {{new BigInteger("-1234567890"), new BigInteger("1234567890")},
-                                    {new BigInteger("-" + String.valueOf(Long.MAX_VALUE * Long.MAX_VALUE)),
-                                     new BigInteger(String.valueOf(Long.MAX_VALUE * Long.MAX_VALUE))}};
+                                    {new BigInteger("-" + String.valueOf(Long.MAX_VALUE)),
+                                     new BigInteger(String.valueOf(Long.MAX_VALUE))}};
 
         for (int i = 0; i < valueSets.length; i++) {
             BigInteger x = valueSets[i][0];
@@ -1187,8 +1177,8 @@ public abstract class AbstractTypeTestClient
             return;
         }
         BigInteger valueSets[][] = {{new BigInteger("1"), new BigInteger("1234567890")},
-                                    {new BigInteger(String.valueOf(Integer.MAX_VALUE * Integer.MAX_VALUE)),
-                                     new BigInteger(String.valueOf(Long.MAX_VALUE * Long.MAX_VALUE))}};
+                                    {new BigInteger(String.valueOf(Integer.MAX_VALUE)),
+                                     new BigInteger(String.valueOf(Long.MAX_VALUE))}};
 
         for (int i = 0; i < valueSets.length; i++) {
             BigInteger x = valueSets[i][0];
@@ -1283,10 +1273,8 @@ public abstract class AbstractTypeTestClient
         }
         BigInteger valueSets[][] = {{new BigInteger("0"),
                                         new BigInteger("1234567890")},
-                                    {new BigInteger(String.valueOf(Integer.MAX_VALUE
-                                                                   * Integer.MAX_VALUE)),
-                                     new BigInteger(String.valueOf(Long.MAX_VALUE
-                                                                   * Long.MAX_VALUE))}};
+                                    {new BigInteger(String.valueOf(Integer.MAX_VALUE)),
+                                     new BigInteger(String.valueOf(Long.MAX_VALUE))}};
 
         for (int i = 0; i < valueSets.length; i++) {
             BigInteger x = valueSets[i][0];
@@ -1999,7 +1987,7 @@ public abstract class AbstractTypeTestClient
                 assertTrue("testStringList(): Incorrect value for out param", yOrig.equals(z.value));
                 assertTrue("testStringList(): Incorrect return value", x.equals(ret));
             }
-            x = new ArrayList<String>();
+            x = new ArrayList<>();
             y = new Holder<List<String>>(yOrig);
             z = new Holder<List<String>>();
             try {
@@ -2121,7 +2109,7 @@ public abstract class AbstractTypeTestClient
         if (!shouldRunTest("QNameList")) {
             return;
         }
-        if (testDocLiteral || testXMLBinding) {            
+        if (testDocLiteral || testXMLBinding) {
             List<QName> x = Arrays.asList(new QName("http://schemas.iona.com/type_test", "testqname1"),
                                           new QName("http://schemas.iona.com/type_test", "testqname2"),
                                           new QName("http://schemas.iona.com/type_test", "testqname3"));

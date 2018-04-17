@@ -26,7 +26,7 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-parent</artifactId>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.5-SNAPSHOT</version>
         <relativePath>../../../parent/pom.xml</relativePath>
     </parent>
     <dependencies>
@@ -79,6 +79,11 @@
             <version>1</version>
         </dependency>
         <dependency>
+             <groupId>javax.xml.bind</groupId>
+             <artifactId>jaxb-api</artifactId>
+             <version>2.2.12</version>
+        </dependency>
+        <dependency>
             <groupId>org.ops4j.pax.exam</groupId>
             <artifactId>pax-exam-junit4</artifactId>
             <version>${cxf.pax.exam.version}</version>
@@ -114,6 +119,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-jdk14</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-testutils</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -140,6 +151,7 @@
                         <karaf.version>${cxf.karaf.version}</karaf.version>
                         <localRepository>${maven.repo.local}</localRepository>
                     </systemPropertyVariables>
+                    <reuseForks>false</reuseForks>
                 </configuration>
             </plugin>
         </plugins>
@@ -171,7 +183,7 @@
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore></ignore>
+                                        <ignore />
                                     </action>
                                 </pluginExecution>
                             </pluginExecutions>

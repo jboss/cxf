@@ -18,6 +18,7 @@
  */
 package org.apache.cxf.tracing.htrace;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageUtils;
-import org.apache.htrace.TraceScope;
+import org.apache.htrace.core.TraceScope;
 
 public class HTraceStopInterceptor extends AbstractHTraceInterceptor {
     public HTraceStopInterceptor(final String phase) {
@@ -35,16 +36,23 @@ public class HTraceStopInterceptor extends AbstractHTraceInterceptor {
     @Override
     public void handleMessage(Message message) throws Fault {
         Map<String, List<Object>> responseHeaders = CastUtils.cast((Map<?, ?>)message.get(Message.PROTOCOL_HEADERS));
-        
+
+        if (responseHeaders == null) {
+            responseHeaders = new HashMap<>();
+            message.put(Message.PROTOCOL_HEADERS, responseHeaders);
+        }
+
         boolean isRequestor = MessageUtils.isRequestor(message);
-        Message requestMessage = isRequestor ? message.getExchange().getOutMessage() 
+        Message requestMessage = isRequestor ? message.getExchange().getOutMessage()
             : message.getExchange().getInMessage();
-        Map<String, List<String>> requestHeaders =  
+        Map<String, List<String>> requestHeaders =
             CastUtils.cast((Map<?, ?>)requestMessage.get(Message.PROTOCOL_HEADERS));
-        
-        TraceScope span = (TraceScope)message.getExchange().get(TRACE_SPAN);
-        
-        super.stopTraceSpan(requestHeaders, responseHeaders, span);
+
+        @SuppressWarnings("unchecked")
+        final TraceScopeHolder<TraceScope> holder =
+            (TraceScopeHolder<TraceScope>)message.getExchange().get(TRACE_SPAN);
+
+        super.stopTraceSpan(requestHeaders, responseHeaders, holder);
     }
-    
+
 }

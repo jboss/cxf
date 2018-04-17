@@ -23,10 +23,11 @@ import java.lang.reflect.Proxy;
 
 import org.apache.cxf.jca.cxf.CXFInvocationHandler;
 import org.apache.cxf.jca.cxf.CXFInvocationHandlerData;
+
 import org.junit.Before;
 import org.junit.Test;
 
-public class InvokingInvocationHandlerTest 
+public class InvokingInvocationHandlerTest
     extends AbstractInvocationHandlerTest {
 
     TestInterface test;
@@ -82,5 +83,5 @@ public class InvokingInvocationHandlerTest
         return handler;
     }
 
-    
+
 }

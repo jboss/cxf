@@ -19,12 +19,15 @@
 
 package demo.jaxrs.tracing.conf;
 
-import org.apache.htrace.SpanReceiver;
-import org.apache.htrace.impl.StandardOutSpanReceiver;
+import org.apache.htrace.core.SpanReceiver;
+import org.apache.htrace.core.StandardOutSpanReceiver;
 
 public final class TracingConfiguration {
     public static final Class<? extends SpanReceiver> SPAN_RECEIVER = StandardOutSpanReceiver.class;
-    
+    // Apache HBase client still uses Apache HTrace 3.x release branch
+    public static final Class<? extends org.apache.htrace.SpanReceiver> HBASE_SPAN_RECEIVER =
+        org.apache.htrace.impl.StandardOutSpanReceiver.class;
+
     private TracingConfiguration() {
     }
 }

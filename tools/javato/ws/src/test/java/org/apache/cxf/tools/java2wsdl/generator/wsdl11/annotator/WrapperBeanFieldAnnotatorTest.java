@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.cxf.tools.common.model.JAnnotation;
 import org.apache.cxf.tools.common.model.JavaClass;
 import org.apache.cxf.tools.common.model.JavaField;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -42,7 +43,7 @@ public class WrapperBeanFieldAnnotatorTest extends Assert {
         reqField.setOwner(clz);
         List<JAnnotation> annotation = reqField.getAnnotations();
         assertEquals(0, annotation.size());
-        
+
         reqField.annotate(new WrapperBeanFieldAnnotator());
         annotation = reqField.getAnnotations();
 

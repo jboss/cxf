@@ -32,6 +32,7 @@ import org.apache.cxf.jaxws.MessageReplayObserver;
 import org.apache.cxf.service.model.EndpointInfo;
 import org.apache.cxf.transport.Destination;
 import org.apache.cxf.transport.local.LocalTransportFactory;
+
 import org.junit.Test;
 
 public class HolderTest extends AbstractJaxWsTest {
@@ -60,7 +61,7 @@ public class HolderTest extends AbstractJaxWsTest {
         assertEquals("one", h.echo("one", "two", holder));
         assertEquals("two", holder.value);
     }
-    
+
     @Test
     public void testServer() throws Exception {
         JaxWsServerFactoryBean svr = new JaxWsServerFactoryBean();
@@ -73,7 +74,7 @@ public class HolderTest extends AbstractJaxWsTest {
         Node response;
 
         response = invoke(address, LocalTransportFactory.TRANSPORT_ID, "echo.xml");
-        
+
         assertNotNull(response);
         assertValid("//h:echoResponse/return[text()='one']", response);
         assertValid("//h:echoResponse/return1[text()='two']", response);
@@ -85,10 +86,10 @@ public class HolderTest extends AbstractJaxWsTest {
         assertNoFault(response);
         assertValid("//h:echo2Response/return[text()='one']", response);
         assertValid("//h:echo2Response/return1[text()='two']", response);
-        
+
         // test holder with in/out header
         response = invoke(address, LocalTransportFactory.TRANSPORT_ID, "echo3.xml");
-        
+
         assertNotNull(response);
         assertNoFault(response);
         assertValid("//h:echo3Response/return[text()='one']", response);

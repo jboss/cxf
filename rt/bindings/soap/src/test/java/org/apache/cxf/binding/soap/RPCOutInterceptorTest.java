@@ -39,6 +39,7 @@ import org.apache.cxf.service.model.BindingOperationInfo;
 import org.apache.cxf.service.model.ServiceInfo;
 import org.apache.cxf.staxutils.DepthXMLStreamReader;
 import org.apache.cxf.staxutils.StaxUtils;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.After;
@@ -79,7 +80,7 @@ public class RPCOutInterceptorTest extends TestBase {
         soapMessage.getExchange().put(Service.class, service);
         soapMessage.getExchange().put(Message.SCHEMA_VALIDATION_ENABLED, Boolean.FALSE);
         control.replay();
-        
+
         MyComplexStruct mcs = new MyComplexStruct();
         mcs.setElem1("elem1");
         mcs.setElem2("elem2");
@@ -107,7 +108,7 @@ public class RPCOutInterceptorTest extends TestBase {
         assertNull(soapMessage.getContent(Exception.class));
         soapMessage.getContent(XMLStreamWriter.class).flush();
         baos.flush();
-        
+
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         XMLStreamReader xr = StaxUtils.createXMLStreamReader(bais);
         DepthXMLStreamReader reader = new DepthXMLStreamReader(xr);
@@ -132,7 +133,7 @@ public class RPCOutInterceptorTest extends TestBase {
         assertNull(soapMessage.getContent(Exception.class));
         soapMessage.getContent(XMLStreamWriter.class).flush();
         baos.flush();
-        
+
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         XMLStreamReader xr = StaxUtils.createXMLStreamReader(bais);
         DepthXMLStreamReader reader = new DepthXMLStreamReader(xr);
@@ -142,7 +143,7 @@ public class RPCOutInterceptorTest extends TestBase {
 
         StaxUtils.nextEvent(reader);
         StaxUtils.toNextElement(reader);
-                     
+
         assertEquals(new QName(null, "out"), reader.getName());
 
         StaxUtils.nextEvent(reader);

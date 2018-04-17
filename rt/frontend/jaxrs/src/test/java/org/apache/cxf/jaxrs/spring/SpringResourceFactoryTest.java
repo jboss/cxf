@@ -21,57 +21,62 @@ package org.apache.cxf.jaxrs.spring;
 import java.lang.reflect.Constructor;
 import java.util.List;
 
+
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
 import org.apache.cxf.jaxrs.model.ClassResourceInfo;
 import org.apache.cxf.jaxrs.resources.BookStore;
+import org.apache.cxf.jaxrs.resources.BookStoreConstructor;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 
 public class SpringResourceFactoryTest extends Assert {
-    
+
     @After
     public void tearDown() throws Exception {
         if (BusFactory.getDefaultBus(false) != null) {
             BusFactory.getDefaultBus(false).shutdown(true);
         }
     }
-    
+
     @Test
     public void testFactory() throws Exception {
         ClassPathXmlApplicationContext ctx =
             new ClassPathXmlApplicationContext(new String[] {"/org/apache/cxf/jaxrs/spring/servers2.xml"});
         verifyFactory(ctx, "sfactory1", true);
         verifyFactory(ctx, "sfactory2", false);
-        
+
         Object serverBean = ctx.getBean("server1");
         assertNotNull(serverBean);
         JAXRSServerFactoryBean factoryBean = (JAXRSServerFactoryBean)serverBean;
         List<ClassResourceInfo> list = factoryBean.getServiceFactory().getClassResourceInfo();
         assertNotNull(list);
         assertEquals(4, list.size());
-        assertSame(BookStore.class, list.get(0).getServiceClass());
-        assertSame(BookStore.class, list.get(0).getResourceClass());
+        assertSame(BookStoreConstructor.class, list.get(0).getServiceClass());
+        assertSame(BookStoreConstructor.class, list.get(0).getResourceClass());
         assertSame(BookStore.class, list.get(1).getServiceClass());
         assertSame(BookStore.class, list.get(1).getResourceClass());
     }
-    
-    private void verifyFactory(ApplicationContext ctx, String factoryName, boolean isSingleton) 
+
+    private void verifyFactory(ApplicationContext ctx, String factoryName, boolean isSingleton)
         throws Exception {
         Object bean = ctx.getBean(factoryName);
         assertNotNull(bean);
         SpringResourceFactory sf = (SpringResourceFactory)bean;
         assertNotNull(sf.getApplicationContext());
-        Constructor<?> c = sf.getBeanConstructor();
-        Constructor<BookStore> c2 = BookStore.class.getConstructor(new Class[]{});
-                
-        assertEquals(c.getParameterTypes().length, c2.getParameterTypes().length);
         assertEquals(isSingleton, sf.isSingleton());
+        if (!isSingleton) {
+            Constructor<?> c = sf.getBeanConstructor();
+            Constructor<BookStore> c2 = BookStore.class.getConstructor(new Class[]{});
+
+            assertEquals(c.getParameterTypes().length, c2.getParameterTypes().length);
+        }
+
     }
 }

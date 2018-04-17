@@ -31,16 +31,14 @@ import javax.xml.ws.handler.PortInfo;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.common.injection.ResourceInjector;
-import org.apache.cxf.resource.DefaultResourceManager;
 import org.apache.cxf.resource.ResourceManager;
-import org.apache.cxf.resource.ResourceResolver;
 
 @SuppressWarnings("rawtypes")
 public class HandlerResolverImpl implements HandlerResolver {
-    private final Map<PortInfo, List<Handler>> handlerMap 
-        = new HashMap<PortInfo, List<Handler>>();
-    
-    //private QName service;   
+    private final Map<PortInfo, List<Handler>> handlerMap
+        = new HashMap<>();
+
+    //private QName service;
     private Class<?> annotationClass;
     private Bus bus;
 
@@ -65,35 +63,34 @@ public class HandlerResolverImpl implements HandlerResolver {
     }
 
     private List<Handler> createHandlerChain(PortInfo portInfo) {
-        List<Handler> chain = new ArrayList<Handler>();
+        List<Handler> chain = new ArrayList<>();
 
         if (annotationClass != null) {
-            chain.addAll(getHandlersFromAnnotation(annotationClass, portInfo));         
+            chain.addAll(getHandlersFromAnnotation(annotationClass, portInfo));
         }
-        
+
         for (Handler<?> h : chain) {
             configHandler(h);
-        }       
-        
+        }
+
         return chain;
     }
 
     /**
      * Obtain handler chain from annotations.
-     * 
+     *
      * @param obj A endpoint implementation class or a SEI, or a generated
      *            service class.
      */
     private List<Handler> getHandlersFromAnnotation(Class<?> clazz, PortInfo portInfo) {
         AnnotationHandlerChainBuilder builder = new AnnotationHandlerChainBuilder();
 
-        List<Handler> chain = builder.buildHandlerChainFromClass(clazz, 
-            portInfo != null ? portInfo.getPortName() : null, 
+        return builder.buildHandlerChainFromClass(clazz,
+            portInfo != null ? portInfo.getPortName() : null,
             portInfo != null ? portInfo.getServiceName() : null,
             portInfo != null ? portInfo.getBindingID() : null);
-        return chain;
     }
-    
+
     /**
      * JAX-WS section 9.3.1: The runtime MUST then carry out any injections
      * requested by the handler, typically via the javax .annotation.Resource
@@ -104,9 +101,6 @@ public class HandlerResolverImpl implements HandlerResolver {
     private void configHandler(Handler<?> handler) {
         if (handler != null) {
             ResourceManager resourceManager = bus.getExtension(ResourceManager.class);
-            List<ResourceResolver> resolvers = resourceManager.getResourceResolvers();
-            resourceManager = new DefaultResourceManager(resolvers);
-//            resourceManager.addResourceResolver(new WebContextEntriesResourceResolver());
             ResourceInjector injector = new ResourceInjector(resourceManager);
             injector.inject(handler);
             injector.construct(handler);

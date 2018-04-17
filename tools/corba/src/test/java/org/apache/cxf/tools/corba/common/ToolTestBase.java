@@ -23,36 +23,40 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.net.URL;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 
-public abstract class ToolTestBase extends TestCase {
+public abstract class ToolTestBase extends Assert {
 
-    protected PrintStream oldStdErr; 
-    protected PrintStream oldStdOut; 
-    protected URL wsdlLocation; 
+    protected PrintStream oldStdErr;
+    protected PrintStream oldStdOut;
+    protected URL wsdlLocation;
     protected URL idlLocation;
-    
-    protected ByteArrayOutputStream errOut = new ByteArrayOutputStream(); 
-    protected ByteArrayOutputStream stdOut = new ByteArrayOutputStream(); 
 
-    public void setUp() { 
-        
-        oldStdErr = System.err; 
+    protected ByteArrayOutputStream errOut = new ByteArrayOutputStream();
+    protected ByteArrayOutputStream stdOut = new ByteArrayOutputStream();
+
+    @Before
+    public void setUp() {
+
+        oldStdErr = System.err;
         oldStdOut = System.out;
-        
+
         System.setErr(new PrintStream(errOut));
         System.setOut(new PrintStream(stdOut));
-        
+
         wsdlLocation = ToolTestBase.class.getResource("/wsdl/hello_world.wsdl");
         idlLocation = ToolTestBase.class.getResource("/idl/HelloWorld.idl");
     }
-    
-    public void tearDown() { 
-        
+
+    @After
+    public void tearDown() {
+
         System.setErr(oldStdErr);
         System.setOut(oldStdOut);
     }
-    
+
     protected String getStdOut() {
         return new String(stdOut.toByteArray());
     }

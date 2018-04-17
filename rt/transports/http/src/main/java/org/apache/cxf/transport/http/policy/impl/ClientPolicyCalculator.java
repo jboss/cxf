@@ -229,11 +229,15 @@ public class ClientPolicyCalculator implements PolicyCalculator<HTTPClientPolicy
         }
 
         if (compatible) {
-            compatible &= p1.isAllowChunking() == p2.isAllowChunking();
+            compatible &= !p1.isSetAllowChunking() 
+                || !p2.isSetAllowChunking() 
+                || p1.isAllowChunking() == p2.isAllowChunking();
         }
 
         if (compatible) {
-            compatible &= p1.isAutoRedirect() == p2.isAutoRedirect();
+            compatible &= !p1.isSetAutoRedirect() 
+                || !p2.isSetAutoRedirect() 
+                || p1.isAutoRedirect() == p2.isAutoRedirect();
         }
 
         return compatible;

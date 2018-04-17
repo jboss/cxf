@@ -66,8 +66,8 @@ public class CollectionTestsWithService extends AbstractAegisTest {
     @Test
     public void testNestedMap() throws Exception {
         Map<String, Map<String, BeanWithGregorianDate>> complexMap;
-        complexMap = new HashMap<String, Map<String, BeanWithGregorianDate>>();
-        Map<String, BeanWithGregorianDate> innerMap = new HashMap<String, BeanWithGregorianDate>();
+        complexMap = new HashMap<>();
+        Map<String, BeanWithGregorianDate> innerMap = new HashMap<>();
         BeanWithGregorianDate bean = new BeanWithGregorianDate();
         bean.setName("shem bean");
         bean.setId(42);
@@ -92,7 +92,7 @@ public class CollectionTestsWithService extends AbstractAegisTest {
         assertEquals("Able", first);
 
         //CHECKSTYLE:OFF
-        HashSet<String> hashedSet = new HashSet<String>();
+        HashSet<String> hashedSet = new HashSet<>();
         hashedSet.addAll(strings);
         String countString = csi.takeUnsortedSet(hashedSet);
         assertEquals("2", countString);

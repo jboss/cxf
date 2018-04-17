@@ -27,7 +27,7 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-parent</artifactId>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.5-SNAPSHOT</version>
         <relativePath>../../parent/pom.xml</relativePath>
     </parent>
     <dependencies>
@@ -85,6 +85,8 @@
                         <id>generate-sources</id>
                         <phase>generate-sources</phase>
                         <configuration>
+                            <fork>${cxf.xjcplugin.forkmode}</fork>
+                            <additionalJvmArgs>${cxf.xjc.jvmArgs}</additionalJvmArgs>
                             <sourceRoot>${basedir}/target/generated/src/main/java</sourceRoot>
                             <xsdOptions>
                                 <xsdOption>

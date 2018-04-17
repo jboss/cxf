@@ -17,7 +17,7 @@
  specific language governing permissions and limitations
  under the License.
 -->
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:cxf="http://cxf.apache.org/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sec="http://cxf.apache.org/configuration/security" xmlns:http="http://cxf.apache.org/transports/http/configuration" xmlns:httpj="http://cxf.apache.org/transports/http-jetty/configuration" xmlns:jaxws="http://cxf.apache.org/jaxws" xsi:schemaLocation="             http://cxf.apache.org/core             http://cxf.apache.org/schemas/core.xsd             http://cxf.apache.org/configuration/security             http://cxf.apache.org/schemas/configuration/security.xsd             http://cxf.apache.org/jaxws             http://cxf.apache.org/schemas/jaxws.xsd             http://cxf.apache.org/transports/http/configuration             http://cxf.apache.org/schemas/configuration/http-conf.xsd             http://cxf.apache.org/transports/http-jetty/configuration             http://cxf.apache.org/schemas/configuration/http-jetty.xsd             http://www.springframework.org/schema/beans             http://www.springframework.org/schema/beans/spring-beans.xsd">
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:cxf="http://cxf.apache.org/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sec="http://cxf.apache.org/configuration/security" xmlns:http="http://cxf.apache.org/transports/http/configuration" xmlns:httpj="http://cxf.apache.org/transports/http-jetty/configuration" xmlns:jaxws="http://cxf.apache.org/jaxws" xsi:schemaLocation="             http://cxf.apache.org/core             http://cxf.apache.org/schemas/core.xsd             http://cxf.apache.org/configuration/security             http://cxf.apache.org/schemas/configuration/security.xsd             http://cxf.apache.org/jaxws             http://cxf.apache.org/schemas/jaxws.xsd             http://cxf.apache.org/transports/http/configuration             http://cxf.apache.org/schemas/configuration/http-conf.xsd             http://cxf.apache.org/transports/http-jetty/configuration             http://cxf.apache.org/schemas/configuration/http-jetty.xsd             http://www.springframework.org/schema/beans             http://www.springframework.org/schema/beans/spring-beans-4.2.xsd">
     <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"/>
     <jaxws:endpoint xmlns:s="http://www.example.org/contract/DoubleIt" id="doubleittransportsaml2" implementor="org.apache.cxf.systest.sts.common.DoubleItPortTypeImpl" endpointName="s:DoubleItTransportSAML2Port" serviceName="s:DoubleItService" depends-on="ClientAuthHttpsSettings" address="https://localhost:${testutil.ports.soap12.Server}/doubleit/services/doubleittransportsaml2" wsdlLocation="org/apache/cxf/systest/sts/soap12/DoubleIt.wsdl">
         <jaxws:properties>
@@ -28,7 +28,7 @@
                     <constructor-arg value="true"/>
                 </bean>
             </entry>
-            <entry key="ws-security.sts.client">
+            <entry key="security.sts.client">
                 <bean class="org.apache.cxf.ws.security.trust.STSClient">
                     <constructor-arg ref="cxf"/>
                     <property name="wsdlLocation" value="https://localhost:${testutil.ports.deployment.STSServer}/SecurityTokenService/TransportSoap12?wsdl"/>
@@ -38,9 +38,9 @@
                         <map>
                             <entry key="security.username" value="alice"/>
                             <entry key="security.callback-handler" value="org.apache.cxf.systest.sts.common.CommonCallbackHandler"/>
-                            <entry key="ws-security.sts.token.username" value="myclientkey"/>
-                            <entry key="ws-security.sts.token.properties" value="clientKeystore.properties"/>
-                            <entry key="ws-security.sts.token.usecert" value="true"/>
+                            <entry key="security.sts.token.username" value="myclientkey"/>
+                            <entry key="security.sts.token.properties" value="clientKeystore.properties"/>
+                            <entry key="security.sts.token.usecert" value="true"/>
                         </map>
                     </property>
                 </bean>
@@ -51,10 +51,10 @@
         <httpj:engine port="${testutil.ports.soap12.Server}">
             <httpj:tlsServerParameters>
                 <sec:keyManagers keyPassword="skpass">
-                    <sec:keyStore type="jks" password="sspass" resource="servicestore.jks"/>
+                    <sec:keyStore type="jks" password="sspass" resource="keys/servicestore.jks"/>
                 </sec:keyManagers>
                 <sec:trustManagers>
-                    <sec:keyStore type="jks" password="stsspass" resource="stsstore.jks"/>
+                    <sec:keyStore type="jks" password="stsspass" resource="keys/stsstore.jks"/>
                 </sec:trustManagers>
                 <sec:clientAuthentication want="true" required="true"/>
             </httpj:tlsServerParameters>
@@ -63,10 +63,10 @@
     <http:conduit name="https://localhost:.*">
         <http:tlsClientParameters disableCNCheck="true">
             <sec:trustManagers>
-                <sec:keyStore type="jks" password="sspass" resource="servicestore.jks"/>
+                <sec:keyStore type="jks" password="sspass" resource="keys/servicestore.jks"/>
             </sec:trustManagers>
             <sec:keyManagers keyPassword="skpass">
-                <sec:keyStore type="jks" password="sspass" resource="servicestore.jks"/>
+                <sec:keyStore type="jks" password="sspass" resource="keys/servicestore.jks"/>
             </sec:keyManagers>
         </http:tlsClientParameters>
     </http:conduit>

@@ -29,13 +29,12 @@ public final class PreprocessingException extends RuntimeException {
 
     private final URL url;
 
-    public PreprocessingException(String message, URL link, int lineNo, Throwable cause)
-    {
+    public PreprocessingException(String message, URL link, int lineNo, Throwable cause) {
         super(message, cause);
         this.url = link;
         this.line = lineNo;
     }
-    
+
     public PreprocessingException(String message, URL link, int lineNo) {
         this(message, link, lineNo, null);
     }

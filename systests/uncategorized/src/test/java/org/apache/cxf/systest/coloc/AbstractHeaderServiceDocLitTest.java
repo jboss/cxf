@@ -32,7 +32,6 @@ import org.apache.headers.coloc.types.OutHeaderT;
 import org.apache.headers.doc_lit.HeaderTester;
 
 import org.junit.Before;
-//import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -117,7 +116,7 @@ public abstract class AbstractHeaderServiceDocLitTest extends AbstractColocTest 
         headerInfo.setMessage(HeaderTesterUtil.INOUT_MESSAGE_IN);
         headerInfo.setOriginator(HeaderTesterUtil.INOUT_ORIGINATOR_IN);
 
-        Holder<HeaderInfo> holder  = new Holder<HeaderInfo>();
+        Holder<HeaderInfo> holder = new Holder<HeaderInfo>();
         holder.value = headerInfo;
         InoutHeaderResponseT inoutHeaderResponse = ht.inoutHeader(inoutHeader, holder);
 
@@ -139,7 +138,7 @@ public abstract class AbstractHeaderServiceDocLitTest extends AbstractColocTest 
         Holder<OutHeaderResponseT> respHolder = new Holder<OutHeaderResponseT>();
         respHolder.value = theResponse;
 
-        Holder<HeaderInfo> holder  = new Holder<HeaderInfo>();
+        Holder<HeaderInfo> holder = new Holder<HeaderInfo>();
         HeaderInfo headerInfo = new HeaderInfo();
         headerInfo.setMessage(HeaderTesterUtil.OUT_MESSAGE_IN);
         headerInfo.setOriginator(HeaderTesterUtil.OUT_ORIGINATOR_IN);

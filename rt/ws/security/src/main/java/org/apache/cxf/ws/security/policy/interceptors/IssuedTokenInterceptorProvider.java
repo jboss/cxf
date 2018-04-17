@@ -32,12 +32,15 @@ import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.AbstractPhaseInterceptor;
 import org.apache.cxf.phase.Phase;
+import org.apache.cxf.rt.security.utils.SecurityUtils;
 import org.apache.cxf.ws.policy.AbstractPolicyInterceptorProvider;
 import org.apache.cxf.ws.policy.AssertionInfo;
 import org.apache.cxf.ws.policy.AssertionInfoMap;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.policy.PolicyUtils;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
+import org.apache.cxf.ws.security.trust.DefaultSTSTokenCacher;
+import org.apache.cxf.ws.security.trust.STSTokenCacher;
 import org.apache.cxf.ws.security.trust.STSTokenRetriever;
 import org.apache.cxf.ws.security.trust.STSTokenRetriever.TokenRequestParams;
 import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JInInterceptor;
@@ -47,8 +50,9 @@ import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JStaxOutInterceptor;
 import org.apache.cxf.ws.security.wss4j.WSS4JInInterceptor;
 import org.apache.cxf.ws.security.wss4j.policyvalidators.PolicyValidatorParameters;
 import org.apache.cxf.ws.security.wss4j.policyvalidators.SecurityPolicyValidator;
+import org.apache.cxf.ws.security.wss4j.policyvalidators.ValidatorUtils;
 import org.apache.wss4j.dom.WSConstants;
-import org.apache.wss4j.dom.WSSecurityEngineResult;
+import org.apache.wss4j.dom.engine.WSSecurityEngineResult;
 import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.apache.wss4j.dom.handler.WSHandlerResult;
 import org.apache.wss4j.policy.SP11Constants;
@@ -57,15 +61,15 @@ import org.apache.wss4j.policy.SPConstants;
 import org.apache.wss4j.policy.model.IssuedToken;
 
 /**
- * 
+ *
  */
 public class IssuedTokenInterceptorProvider extends AbstractPolicyInterceptorProvider {
-    
+
     private static final long serialVersionUID = -6936475570762840527L;
 
     public IssuedTokenInterceptorProvider() {
         super(Arrays.asList(SP11Constants.ISSUED_TOKEN, SP12Constants.ISSUED_TOKEN));
-        
+
         //issued tokens can be attached as a supporting token without
         //any type of binding.  Make sure we can support that.
         PolicyBasedWSS4JInInterceptor in = new PolicyBasedWSS4JInInterceptor();
@@ -73,12 +77,12 @@ public class IssuedTokenInterceptorProvider extends AbstractPolicyInterceptorPro
         this.getOutFaultInterceptors().add(PolicyBasedWSS4JOutInterceptor.INSTANCE);
         this.getInInterceptors().add(in);
         this.getInFaultInterceptors().add(in);
-        
+
         this.getOutInterceptors().add(new IssuedTokenOutInterceptor());
         this.getOutFaultInterceptors().add(new IssuedTokenOutInterceptor());
         this.getInInterceptors().add(new IssuedTokenInInterceptor());
         this.getInFaultInterceptors().add(new IssuedTokenInInterceptor());
-        
+
         PolicyBasedWSS4JStaxOutInterceptor so = new PolicyBasedWSS4JStaxOutInterceptor();
         PolicyBasedWSS4JStaxInInterceptor si = new PolicyBasedWSS4JStaxInInterceptor();
         this.getOutInterceptors().add(so);
@@ -86,39 +90,39 @@ public class IssuedTokenInterceptorProvider extends AbstractPolicyInterceptorPro
         this.getInInterceptors().add(si);
         this.getInFaultInterceptors().add(si);
     }
-    
+
     protected static void assertIssuedToken(IssuedToken issuedToken, AssertionInfoMap aim) {
         if (issuedToken == null) {
             return;
         }
         // Assert some policies
         if (issuedToken.isRequireExternalReference()) {
-            PolicyUtils.assertPolicy(aim, new QName(issuedToken.getName().getNamespaceURI(), 
+            PolicyUtils.assertPolicy(aim, new QName(issuedToken.getName().getNamespaceURI(),
                                                     SPConstants.REQUIRE_EXTERNAL_REFERENCE));
         }
         if (issuedToken.isRequireInternalReference()) {
-            PolicyUtils.assertPolicy(aim, new QName(issuedToken.getName().getNamespaceURI(), 
+            PolicyUtils.assertPolicy(aim, new QName(issuedToken.getName().getNamespaceURI(),
                                                     SPConstants.REQUIRE_INTERNAL_REFERENCE));
         }
     }
-    
+
     static class IssuedTokenOutInterceptor extends AbstractPhaseInterceptor<Message> {
-        public IssuedTokenOutInterceptor() {
+        IssuedTokenOutInterceptor() {
             super(Phase.PREPARE_SEND);
-        }    
+        }
         public void handleMessage(Message message) throws Fault {
             AssertionInfoMap aim = message.get(AssertionInfoMap.class);
             // extract Assertion information
-            
+
             if (aim != null) {
-                Collection<AssertionInfo> ais = 
+                Collection<AssertionInfo> ais =
                     PolicyUtils.getAllAssertionsByLocalname(aim, SPConstants.ISSUED_TOKEN);
                 if (ais.isEmpty()) {
                     return;
                 }
                 if (isRequestor(message)) {
                     IssuedToken itok = (IssuedToken)ais.iterator().next().getAssertion();
-                    
+
                     TokenRequestParams params = new TokenRequestParams();
                     params.setIssuer(itok.getIssuer());
                     params.setClaims(itok.getClaims());
@@ -129,8 +133,16 @@ public class IssuedTokenInterceptorProvider extends AbstractPolicyInterceptorPro
                     params.setTrust13(NegotiationUtils.getTrust13(aim));
                     params.setTokenTemplate(itok.getRequestSecurityTokenTemplate());
 
-                    SecurityToken tok = STSTokenRetriever.getToken(message, params);
-                    
+                    // Get a custom STSTokenCacher implementation if specified
+                    STSTokenCacher tokenCacher =
+                        (STSTokenCacher)SecurityUtils.getSecurityPropertyValue(
+                            SecurityConstants.STS_TOKEN_CACHER_IMPL, message
+                        );
+                    if (tokenCacher == null) {
+                        tokenCacher = new DefaultSTSTokenCacher();
+                    }
+                    SecurityToken tok = STSTokenRetriever.getToken(message, params, tokenCacher);
+
                     if (tok != null) {
                         assertIssuedToken(itok, aim);
                         for (AssertionInfo ai : ais) {
@@ -146,11 +158,11 @@ public class IssuedTokenInterceptorProvider extends AbstractPolicyInterceptorPro
                     assertIssuedToken(itok, aim);
                 }
             }
-        }        
+        }
     }
-    
+
     static class IssuedTokenInInterceptor extends AbstractPhaseInterceptor<Message> {
-        public IssuedTokenInInterceptor() {
+        IssuedTokenInInterceptor() {
             super(Phase.PRE_PROTOCOL);
             addAfter(WSS4JInInterceptor.class.getName());
             addAfter(PolicyBasedWSS4JInInterceptor.class.getName());
@@ -160,20 +172,20 @@ public class IssuedTokenInterceptorProvider extends AbstractPolicyInterceptorPro
             AssertionInfoMap aim = message.get(AssertionInfoMap.class);
             // extract Assertion information
             if (aim != null) {
-                Collection<AssertionInfo> ais = 
+                Collection<AssertionInfo> ais =
                     PolicyUtils.getAllAssertionsByLocalname(aim, SPConstants.ISSUED_TOKEN);
                 if (ais.isEmpty()) {
                     return;
                 }
-                
+
                 IssuedToken itok = (IssuedToken)ais.iterator().next().getAssertion();
                 assertIssuedToken(itok, aim);
-                
+
                 if (!isRequestor(message)) {
                     message.getExchange().remove(SecurityConstants.TOKEN);
-                    List<WSHandlerResult> results = 
+                    List<WSHandlerResult> results =
                         CastUtils.cast((List<?>)message.get(WSHandlerConstants.RECV_RESULTS));
-                    if (results != null && results.size() > 0) {
+                    if (results != null && !results.isEmpty()) {
                         parseHandlerResults(results.get(0), message, ais);
                     }
                 } else {
@@ -183,7 +195,7 @@ public class IssuedTokenInterceptorProvider extends AbstractPolicyInterceptorPro
                 }
             }
         }
-        
+
         private void parseHandlerResults(
             WSHandlerResult rResult,
             Message message,
@@ -193,9 +205,9 @@ public class IssuedTokenInterceptorProvider extends AbstractPolicyInterceptorPro
             parameters.setAssertionInfoMap(message.get(AssertionInfoMap.class));
             parameters.setMessage(message);
             parameters.setResults(rResult);
-            
+
             parameters.setSignedResults(rResult.getActionResults().get(WSConstants.SIGN));
-            
+
             List<WSSecurityEngineResult> samlResults = new ArrayList<>();
             if (rResult.getActionResults().containsKey(WSConstants.ST_SIGNED)) {
                 samlResults.addAll(rResult.getActionResults().get(WSConstants.ST_SIGNED));
@@ -204,15 +216,15 @@ public class IssuedTokenInterceptorProvider extends AbstractPolicyInterceptorPro
                 samlResults.addAll(rResult.getActionResults().get(WSConstants.ST_UNSIGNED));
             }
             parameters.setSamlResults(samlResults);
-            
+
             QName qName = issuedAis.iterator().next().getAssertion().getName();
-            Map<QName, SecurityPolicyValidator> validators = 
-                PolicyUtils.getSecurityPolicyValidators(message);
+            Map<QName, SecurityPolicyValidator> validators =
+                ValidatorUtils.getSecurityPolicyValidators(message);
             if (validators.containsKey(qName)) {
                 validators.get(qName).validatePolicies(parameters, issuedAis);
             }
         }
-        
+
     }
-        
+
 }

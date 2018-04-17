@@ -24,6 +24,7 @@ import org.apache.cxf.aegis.AbstractAegisTest;
 import org.apache.cxf.aegis.AegisContext;
 import org.apache.cxf.aegis.type.TypeMapping;
 import org.apache.cxf.aegis.xml.stax.ElementReader;
+
 import org.junit.Test;
 
 public class DynamicProxyTest extends AbstractAegisTest {
@@ -36,7 +37,7 @@ public class DynamicProxyTest extends AbstractAegisTest {
         context.initialize();
         mapping = context.getTypeMapping();
     }
-    
+
     @Test
     public void testDynamicProxy() throws Exception {
         BeanType type = new BeanType();

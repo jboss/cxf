@@ -25,13 +25,14 @@
     <parent>
         <groupId>org.apache.cxf.samples</groupId>
         <artifactId>cxf-samples</artifactId>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.5-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
     <properties>
         <cxf.version>${project.version}</cxf.version>
         <!-- TODO remove these local entries after making the referenced dependency managed in parent/pom.xml -->
         <cxf.ahc.version>1.8.5</cxf.ahc.version>
+        <cxf.atmosphere.version>2.4.3</cxf.atmosphere.version>
         <cxf.jetty8.version>8.1.15.v20140411</cxf.jetty8.version>
         <cxf.jetty9.version>9.2.2.v20140723</cxf.jetty9.version>
         <cxf.jetty.version>${cxf.jetty8.version}</cxf.jetty.version>
@@ -40,11 +41,6 @@
     <profiles>
         <profile>
             <id>jetty8</id>
-            <activation>
-                <property>
-                    <name>!jetty9</name>
-                </property>
-            </activation>
             <properties>
                 <cxf.jetty.version>${cxf.jetty8.version}</cxf.jetty.version>
             </properties>
@@ -59,6 +55,12 @@
         </profile>
         <profile>
             <id>jetty9</id>
+            <!-- activate it by default -->
+            <activation>
+                <property>
+                    <name>!jetty8</name>
+                </property>
+            </activation>
             <properties>
                 <cxf.jetty.version>${cxf.jetty9.version}</cxf.jetty.version>
             </properties>
@@ -128,7 +130,7 @@
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-transports-http</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>
         <!-- This dependency is needed if you're using the Jetty container -->
         <dependency>
@@ -170,17 +172,17 @@
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-transports-websocket</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-transports-http-jetty</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxrs</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.ws.rs</groupId>
@@ -207,6 +209,13 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
         </dependency>
-        
+
+        <!-- add atmosphere -->
+        <dependency>
+            <groupId>org.atmosphere</groupId>
+            <artifactId>atmosphere-runtime</artifactId>
+            <version>${cxf.atmosphere.version}</version>
+        </dependency>
+                
     </dependencies>
 </project>

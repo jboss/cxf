@@ -26,7 +26,7 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-parent</artifactId>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.5-SNAPSHOT</version>
         <relativePath>../../../parent/pom.xml</relativePath>
     </parent>
     <build>
@@ -52,6 +52,8 @@
                         <id>process-classes</id>
                         <phase>process-classes</phase>
                         <configuration>
+                            <fork>${cxf.codegenplugin.forkmode}</fork>
+                            <additionalJvmArgs>${cxf.codegen.jvmArgs}</additionalJvmArgs>
                             <className>org.apache.cxf.systests.java2ws.HelloWorld</className>
                             <genWsdl>true</genWsdl>
                             <verbose>true</verbose>

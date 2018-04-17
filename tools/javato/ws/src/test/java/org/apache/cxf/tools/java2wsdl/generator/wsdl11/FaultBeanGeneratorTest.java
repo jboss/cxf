@@ -29,18 +29,22 @@ import org.apache.cxf.service.model.ServiceInfo;
 import org.apache.cxf.tools.common.ProcessorTestBase;
 import org.apache.cxf.tools.common.ToolConstants;
 import org.apache.cxf.tools.java2wsdl.processor.JavaToWSDLProcessor;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class FaultBeanGeneratorTest extends ProcessorTestBase {
     JavaToWSDLProcessor processor = new JavaToWSDLProcessor();
-    
+
     String classPath = "";
     @Before
     public void setUp() throws Exception {
         classPath = System.getProperty("java.class.path");
         System.setProperty("java.class.path", getClassPath());
+        if (System.getProperty("java.version").startsWith("9")) {
+            System.setProperty("org.apache.cxf.common.util.Compiler-fork", "true");
+        }
         processor.setEnvironment(env);
     }
 

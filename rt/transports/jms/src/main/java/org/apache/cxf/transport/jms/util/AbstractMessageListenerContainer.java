@@ -18,14 +18,20 @@
  */
 package org.apache.cxf.transport.jms.util;
 
+import java.util.Properties;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.MessageListener;
 import javax.jms.Session;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.transaction.TransactionManager;
 
 import org.apache.cxf.common.logging.LogUtils;
@@ -40,10 +46,14 @@ public abstract class AbstractMessageListenerContainer implements JMSListenerCon
     protected int acknowledgeMode = Session.AUTO_ACKNOWLEDGE;
     protected String messageSelector;
     protected boolean running;
-    protected Executor executor;
     protected String durableSubscriptionName;
     protected boolean pubSubNoLocal;
     protected TransactionManager transactionManager;
+    protected Properties jndiEnvironment;
+
+    private Executor executor;
+    private int concurrentConsumers = 1;
+    private boolean internalExecutor;
 
     public AbstractMessageListenerContainer() {
         super();
@@ -70,13 +80,57 @@ public abstract class AbstractMessageListenerContainer implements JMSListenerCon
 
     protected Executor getExecutor() {
         if (executor == null) {
-            executor = Executors.newFixedThreadPool(10);
+            executor = Executors.newFixedThreadPool(concurrentConsumers);
+            internalExecutor = true;
         }
         return executor;
     }
 
     public void setExecutor(Executor executor) {
         this.executor = executor;
+    }
+
+    public void setJndiEnvironment(Properties jndiEnvironment) {
+        this.jndiEnvironment = jndiEnvironment;
+    }
+
+    /**
+     * Creates a InitialContext if a JNDI environment has been provided.
+     * This is usefull in e.g. weblogic, where interaction with JNDI JMS resources is secured.
+     *
+     * Be careful not to cache the return value in a non thread local scope.
+     *
+     * @return an initial context, with the endpoint's JNDI properties,
+     * or null if none is provided or if an errur occurs
+     **/
+    public InitialContext createInitialContext() {
+        if (jndiEnvironment != null) {
+            try {
+                return new InitialContext(this.jndiEnvironment);
+            } catch (NamingException e) {
+                LOG.log(Level.SEVERE, "Could not expose JNDI environment to JMS thread context", e);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public void stop() {
+        // In case of using external executor, don't shutdown it
+        if ((executor == null) || !internalExecutor) {
+            return;
+        }
+
+        ExecutorService executorService = (ExecutorService)executor;
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+        executorService.shutdownNow();
+        executor = null;
+        internalExecutor = false;
     }
 
     public void setDurableSubscriptionName(String durableSubscriptionName) {
@@ -91,9 +145,17 @@ public abstract class AbstractMessageListenerContainer implements JMSListenerCon
     public boolean isRunning() {
         return running;
     }
-    
+
     public void setTransactionManager(TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
+    }
+
+    public void setConcurrentConsumers(int concurrentConsumers) {
+        this.concurrentConsumers = concurrentConsumers;
+    }
+
+    public int getConcurrentConsumers() {
+        return concurrentConsumers;
     }
 
 }

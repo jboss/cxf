@@ -246,6 +246,9 @@
         <wsdl:port name="DoubleItPortSignThenEncrypt" binding="tns:DoubleItBindingSignThenEncrypt">
             <soap:address location="http://localhost:9010/SecPolTestSignThenEncrypt"/>
         </wsdl:port>
+        <wsdl:port name="DoubleItFaultPortSignThenEncrypt" binding="tns:DoubleItBindingSignThenEncrypt">
+            <soap:address location="http://localhost:9010/SecPolTestFaultSignThenEncryptProvider"/>
+        </wsdl:port>
         <wsdl:port name="DoubleItPortSign" binding="tns:DoubleItBindingSign">
             <soap:address location="http://localhost:9010/SecPolTestSign"/>
         </wsdl:port>
@@ -330,7 +333,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -339,7 +342,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/Never">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -384,7 +387,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -393,7 +396,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/Never">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -438,7 +441,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -447,7 +450,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/Always">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -485,7 +488,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702/IncludeToken/AlwaysToRecipient">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -527,7 +530,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                         <sp:RequireThumbprintReference/>
                                         <!-- needed for V1 certs -->
                                     </wsp:Policy>
@@ -538,7 +541,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/Always">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                         <sp:RequireThumbprintReference/>
                                     </wsp:Policy>
                                 </sp:X509Token>
@@ -759,7 +762,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -768,7 +771,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/Never">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -812,7 +815,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -821,7 +824,7 @@
                             <wsp:Policy>
                                 <sp:X509Token sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/Never">
                                     <wsp:Policy>
-                                        <sp:WssX509V1Token11/>
+                                        <sp:WssX509V3Token11/>
                                     </wsp:Policy>
                                 </sp:X509Token>
                             </wsp:Policy>
@@ -861,7 +864,7 @@
             <wsp:All>
                 <wsaw:UsingAddressing xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" wsp:Optional="true"/>
                 <wsp:All>
-                    <sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702" xmlns:sapsp="http://www.sap.com/webas/630/soap/features/security/policy" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wst="http://docs.oasis-open.org/ws-sx/ws-trust/200512" xmlns:wsu="http://schemas.xmlsoap.org/ws/2002/07/utility" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex">
+                    <sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wst="http://docs.oasis-open.org/ws-sx/ws-trust/200512" xmlns:wsu="http://schemas.xmlsoap.org/ws/2002/07/utility" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex">
                         <wsp:Policy>
                             <sp:TransportToken>
                                 <wsp:Policy>
@@ -889,7 +892,7 @@
             <wsp:All>
                 <wsaw:UsingAddressing xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" wsp:Optional="true"/>
                 <wsp:All>
-                    <sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702" xmlns:sapsp="http://www.sap.com/webas/630/soap/features/security/policy" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wst="http://docs.oasis-open.org/ws-sx/ws-trust/200512" xmlns:wsu="http://schemas.xmlsoap.org/ws/2002/07/utility" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex">
+                    <sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wst="http://docs.oasis-open.org/ws-sx/ws-trust/200512" xmlns:wsu="http://schemas.xmlsoap.org/ws/2002/07/utility" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex">
                         <wsp:Policy>
                             <sp:TransportToken>
                                 <wsp:Policy>

@@ -32,6 +32,7 @@ import org.apache.cxf.greeter_control.GreeterService;
 import org.apache.cxf.helpers.XPathUtils;
 import org.apache.cxf.staxutils.StaxUtils;
 import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -43,18 +44,18 @@ public class ClientServerGreeterNoWsdlTest extends AbstractBusClientServerTestBa
         assertTrue("server did not launch correctly",
                    launchServer(ServerGreeterNoWsdl.class, true));
     }
-    @Test    
+    @Test
     public void testWSDLImports() throws Exception {
         URL url = new URL("http://localhost:" + PORT + "/SoapContext/GreeterPort?wsdl");
         Document doc = StaxUtils.read(url.openStream());
-        Map<String, String> ns = new HashMap<String, String>();
+        Map<String, String> ns = new HashMap<>();
         ns.put("xsd", "http://www.w3.org/2001/XMLSchema");
         Node nd = new XPathUtils(ns)
             .getValueNode("//xsd:import[@namespace='http://cxf.apache.org/greeter_control/types']",
                           doc.getDocumentElement());
         assertNotNull(nd);
-    }   
-    @Test    
+    }
+    @Test
     public void testInvocation() throws Exception {
 
         GreeterService service = new GreeterService();
@@ -63,7 +64,7 @@ public class ClientServerGreeterNoWsdlTest extends AbstractBusClientServerTestBa
         try {
             Greeter greeter = service.getGreeterPort();
             updateAddressPort(greeter, PORT);
-            
+
             String greeting = greeter.greetMe("Bonjour");
             assertNotNull("no response received from service", greeting);
             assertEquals("Hello Bonjour", greeting);

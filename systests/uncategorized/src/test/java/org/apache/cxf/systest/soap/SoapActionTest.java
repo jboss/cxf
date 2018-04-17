@@ -30,6 +30,7 @@ import org.apache.cxf.jaxws.JaxWsServerFactoryBean;
 import org.apache.cxf.testutil.common.TestUtil;
 import org.apache.hello_world_soap_action.Greeter;
 import org.apache.hello_world_soap_action.WrappedGreeter;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -43,7 +44,7 @@ public class SoapActionTest extends Assert {
     static final String PORT5 = TestUtil.getPortNumber(SoapActionTest.class, 5);
     static final String PORT6 = TestUtil.getPortNumber(SoapActionTest.class, 6);
     static final String PORT7 = TestUtil.getPortNumber(SoapActionTest.class, 7);
-    
+
     static Bus bus;
     static String add11 = "http://localhost:" + PORT1 + "/test11";
     static String add12 = "http://localhost:" + PORT2 + "/test12";
@@ -61,7 +62,7 @@ public class SoapActionTest extends Assert {
         sf.setAddress(add11);
         sf.setBus(bus);
         sf.create();
-        
+
         sf = new JaxWsServerFactoryBean();
         sf.setServiceBean(new SoapActionGreeterImpl());
         sf.setAddress(add12);
@@ -70,13 +71,13 @@ public class SoapActionTest extends Assert {
         config.setVersion(Soap12.getInstance());
         sf.setBindingConfig(config);
         sf.create();
-        
+
         sf = new JaxWsServerFactoryBean();
         sf.setServiceBean(new WrappedSoapActionGreeterImpl());
         sf.setAddress(add13);
         sf.setBus(bus);
         sf.create();
-        
+
         sf = new JaxWsServerFactoryBean();
         sf.setServiceBean(new WrappedSoapActionGreeterImpl());
         sf.setAddress(add14);
@@ -84,31 +85,31 @@ public class SoapActionTest extends Assert {
         config.setVersion(Soap12.getInstance());
         sf.setBindingConfig(config);
         sf.create();
-        
+
         sf = new JaxWsServerFactoryBean();
         sf.setServiceBean(new RPCLitSoapActionGreeterImpl());
         sf.setAddress(add15);
         sf.setBus(bus);
         sf.create();
-        
+
         sf = new JaxWsServerFactoryBean();
         sf.setServiceBean(new RPCEncodedSoapActionGreeterImpl());
         sf.setAddress(add16);
         sf.setBus(bus);
         sf.create();
-        
+
         sf = new JaxWsServerFactoryBean();
         sf.setServiceBean(new WrappedEncodedSoapActionGreeterImpl());
         sf.setAddress(add17);
         sf.setBus(bus);
         sf.create();
     }
-    
+
     @AfterClass
     public static void shutdown() throws Exception {
         bus.shutdown(true);
     }
-    
+
 
     @Test
     public void testEndpoint() throws Exception {
@@ -117,11 +118,11 @@ public class SoapActionTest extends Assert {
         pf.setAddress(add11);
         pf.setBus(bus);
         Greeter greeter = (Greeter) pf.create();
-        
+
         assertEquals("sayHi", greeter.sayHi("test"));
-        assertEquals("sayHi2", greeter.sayHi2("test"));        
+        assertEquals("sayHi2", greeter.sayHi2("test"));
     }
-    
+
     @Test
     public void testSoap12Endpoint() throws Exception {
 
@@ -132,14 +133,14 @@ public class SoapActionTest extends Assert {
         config.setVersion(Soap12.getInstance());
         pf.setBindingConfig(config);
         pf.setBus(bus);
-        
+
         Greeter greeter = (Greeter) pf.create();
-        
+
         assertEquals("sayHi", greeter.sayHi("test"));
         assertEquals("sayHi2", greeter.sayHi2("test"));
     }
-    
-    
+
+
     @Test
     public void testBareSoapActionSpoofing() throws Exception {
         JaxWsProxyFactoryBean pf = new JaxWsProxyFactoryBean();
@@ -147,10 +148,10 @@ public class SoapActionTest extends Assert {
         pf.setAddress(add11);
         pf.setBus(bus);
         Greeter greeter = (Greeter) pf.create();
-        
+
         assertEquals("sayHi", greeter.sayHi("test"));
-        assertEquals("sayHi2", greeter.sayHi2("test"));        
-        
+        assertEquals("sayHi2", greeter.sayHi2("test"));
+
         // Now test spoofing attack
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -162,7 +163,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test the other operation
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -174,7 +175,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test a SOAP Action that does not exist in the binding
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -187,7 +188,7 @@ public class SoapActionTest extends Assert {
             // expected
         }
     }
-    
+
     @Test
     public void testBareSoap12ActionSpoofing() throws Exception {
         JaxWsProxyFactoryBean pf = new JaxWsProxyFactoryBean();
@@ -198,10 +199,10 @@ public class SoapActionTest extends Assert {
         pf.setBindingConfig(config);
         pf.setBus(bus);
         Greeter greeter = (Greeter) pf.create();
-        
+
         assertEquals("sayHi", greeter.sayHi("test"));
-        assertEquals("sayHi2", greeter.sayHi2("test"));        
-        
+        assertEquals("sayHi2", greeter.sayHi2("test"));
+
         // Now test spoofing attack
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -213,7 +214,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test the other operation
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -225,7 +226,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test a SOAP Action that does not exist in the binding
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -238,7 +239,7 @@ public class SoapActionTest extends Assert {
             // expected
         }
     }
-    
+
     @Test
     public void testWrappedSoapActionSpoofing() throws Exception {
         JaxWsProxyFactoryBean pf = new JaxWsProxyFactoryBean();
@@ -246,10 +247,10 @@ public class SoapActionTest extends Assert {
         pf.setAddress(add13);
         pf.setBus(bus);
         WrappedGreeter greeter = (WrappedGreeter) pf.create();
-        
+
         assertEquals("sayHi", greeter.sayHiRequestWrapped("test"));
-        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));        
-        
+        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));
+
         // Now test spoofing attack
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -261,7 +262,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test the other operation
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -273,7 +274,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test a SOAP Action that does not exist in the binding
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -286,7 +287,7 @@ public class SoapActionTest extends Assert {
             // expected
         }
     }
-    
+
     @Test
     public void testWrappedSoap12ActionSpoofing() throws Exception {
         JaxWsProxyFactoryBean pf = new JaxWsProxyFactoryBean();
@@ -297,10 +298,10 @@ public class SoapActionTest extends Assert {
         pf.setBindingConfig(config);
         pf.setBus(bus);
         WrappedGreeter greeter = (WrappedGreeter) pf.create();
-        
+
         assertEquals("sayHi", greeter.sayHiRequestWrapped("test"));
-        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));        
-        
+        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));
+
         // Now test spoofing attack
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -312,7 +313,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test the other operation
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -324,7 +325,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test a SOAP Action that does not exist in the binding
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -337,7 +338,7 @@ public class SoapActionTest extends Assert {
             // expected
         }
     }
-    
+
     @Test
     public void testRPCLitSoapActionSpoofing() throws Exception {
         JaxWsProxyFactoryBean pf = new JaxWsProxyFactoryBean();
@@ -345,10 +346,10 @@ public class SoapActionTest extends Assert {
         pf.setAddress(add15);
         pf.setBus(bus);
         WrappedGreeter greeter = (WrappedGreeter) pf.create();
-        
+
         assertEquals("sayHi", greeter.sayHiRequestWrapped("test"));
-        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));        
-        
+        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));
+
         // Now test spoofing attack
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -360,7 +361,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test the other operation
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -372,7 +373,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test a SOAP Action that does not exist in the binding
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -385,7 +386,7 @@ public class SoapActionTest extends Assert {
             // expected
         }
     }
-    
+
     @Test
     public void testRPCEncodedSoapActionSpoofing() throws Exception {
         JaxWsProxyFactoryBean pf = new JaxWsProxyFactoryBean();
@@ -393,10 +394,10 @@ public class SoapActionTest extends Assert {
         pf.setAddress(add16);
         pf.setBus(bus);
         WrappedGreeter greeter = (WrappedGreeter) pf.create();
-        
+
         assertEquals("sayHi", greeter.sayHiRequestWrapped("test"));
-        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));        
-        
+        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));
+
         // Now test spoofing attack
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -408,7 +409,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test the other operation
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -420,7 +421,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test a SOAP Action that does not exist in the binding
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -433,7 +434,7 @@ public class SoapActionTest extends Assert {
             // expected
         }
     }
-    
+
     @Test
     public void testWrappedEncodedSoapActionSpoofing() throws Exception {
         JaxWsProxyFactoryBean pf = new JaxWsProxyFactoryBean();
@@ -441,10 +442,10 @@ public class SoapActionTest extends Assert {
         pf.setAddress(add17);
         pf.setBus(bus);
         WrappedGreeter greeter = (WrappedGreeter) pf.create();
-        
+
         assertEquals("sayHi", greeter.sayHiRequestWrapped("test"));
-        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));        
-        
+        assertEquals("sayHi2", greeter.sayHiRequest2Wrapped("test"));
+
         // Now test spoofing attack
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -456,7 +457,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test the other operation
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -468,7 +469,7 @@ public class SoapActionTest extends Assert {
         } catch (Exception ex) {
             // expected
         }
-        
+
         // Test a SOAP Action that does not exist in the binding
         ((BindingProvider)greeter).getRequestContext().put(BindingProvider.SOAPACTION_USE_PROPERTY, "true");
         ((BindingProvider)greeter).getRequestContext().put(
@@ -481,5 +482,5 @@ public class SoapActionTest extends Assert {
             // expected
         }
     }
-    
+
 }

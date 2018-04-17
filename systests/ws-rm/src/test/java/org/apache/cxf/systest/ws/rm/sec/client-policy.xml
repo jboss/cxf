@@ -24,7 +24,7 @@ under the License.
        xmlns:cxf="http://cxf.apache.org/core"
        xmlns:p="http://cxf.apache.org/policy"
        xsi:schemaLocation="
-           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
            http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd
            http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
            http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd
@@ -59,6 +59,18 @@ under the License.
 
   <jaxws:client id="GreeterPlainClient" address="http://localhost:${testutil.ports.Server}/RMGreeterNoSecurity" serviceClass="org.apache.cxf.greeter_control.Greeter">  
   </jaxws:client>
+
+  <jaxws:client id="GreeterCombinedClientNoProperty"
+         address="http://localhost:${testutil.ports.Server}/RMGreeterAsymmetric"
+         serviceClass="org.apache.cxf.greeter_control.Greeter">
+         <jaxws:features>
+             <p:policies>
+                 <wsp:PolicyReference xmlns:wsp="http://www.w3.org/ns/ws-policy"
+                     URI="#Combined" />
+                 </p:policies>
+            </jaxws:features>
+  </jaxws:client>
+
 
   <wsp:Policy xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsp="http://www.w3.org/ns/ws-policy" wsu:Id="Combined">
     <wsp:All>

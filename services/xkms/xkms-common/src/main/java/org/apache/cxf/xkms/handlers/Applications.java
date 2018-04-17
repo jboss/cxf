@@ -50,14 +50,14 @@ public enum Applications {
 
     private String uri;
 
-    private Applications(String uri) {
+    Applications(String uri) {
         this.uri = uri;
     }
 
     public String getUri() {
         return this.uri;
     }
-    
+
     public static Applications fromUri(String uri) {
         for (Applications app : Applications.values()) {
             if (app.getUri().equals(uri)) {
@@ -66,5 +66,5 @@ public enum Applications {
         }
         return null;
     }
-    
+
 }

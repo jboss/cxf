@@ -18,9 +18,17 @@
  */
 package org.apache.cxf.systest.jaxrs.tracing.htrace;
 
+import java.net.MalformedURLException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -32,43 +40,53 @@ import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.cxf.jaxrs.lifecycle.SingletonResourceProvider;
 import org.apache.cxf.jaxrs.model.AbstractResourceInfo;
+import org.apache.cxf.systest.htrace.TestSpanReceiver;
 import org.apache.cxf.systest.jaxrs.tracing.BookStore;
 import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
 import org.apache.cxf.testutil.common.AbstractBusTestServerBase;
 import org.apache.cxf.tracing.TracerHeaders;
 import org.apache.cxf.tracing.htrace.jaxrs.HTraceClientProvider;
 import org.apache.cxf.tracing.htrace.jaxrs.HTraceFeature;
-import org.apache.htrace.HTraceConfiguration;
-import org.apache.htrace.impl.AlwaysSampler;
+import org.apache.htrace.core.AlwaysSampler;
+import org.apache.htrace.core.HTraceConfiguration;
+import org.apache.htrace.core.SpanId;
+import org.apache.htrace.core.StandardOutSpanReceiver;
+import org.apache.htrace.core.TraceScope;
+import org.apache.htrace.core.Tracer;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.apache.cxf.systest.jaxrs.tracing.htrace.HasSpan.hasSpan;
+import static org.apache.cxf.systest.jaxrs.tracing.htrace.IsTimelineContaining.hasItem;
+import static org.apache.cxf.systest.jaxrs.tracing.htrace.IsTimelineEmpty.empty;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 public class HTraceTracingTest extends AbstractBusClientServerTestBase {
     public static final String PORT = allocatePort(HTraceTracingTest.class);
-    
+
+    private Tracer tracer;
     private HTraceClientProvider htraceClientProvider;
 
     @Ignore
     public static class Server extends AbstractBusTestServerBase {
         protected void run() {
-            final Map<String, String> properties = new HashMap<String, String>();
-            properties.put("span.receiver", TestSpanReceiver.class.getName());
-            properties.put("sampler", AlwaysSampler.class.getName());
-            
+            final Map<String, String> properties = new HashMap<>();
+            properties.put(Tracer.SPAN_RECEIVER_CLASSES_KEY, TestSpanReceiver.class.getName());
+            properties.put(Tracer.SAMPLER_CLASSES_KEY, AlwaysSampler.class.getName());
+
             final JAXRSServerFactoryBean sf = new JAXRSServerFactoryBean();
             sf.setResourceClasses(BookStore.class);
-            sf.setResourceProvider(BookStore.class, new SingletonResourceProvider(new BookStore()));
+            sf.setResourceProvider(BookStore.class, new SingletonResourceProvider(new BookStore<TraceScope>()));
             sf.setAddress("http://localhost:" + PORT);
             sf.setProvider(new JacksonJsonProvider());
-            sf.setFeatures(Arrays.asList(new HTraceFeature(HTraceConfiguration.fromMap(properties))));
+            sf.setFeatures(Arrays.asList(new HTraceFeature(HTraceConfiguration.fromMap(properties), "tracer")));
             sf.create();
         }
     }
-    
+
     @BeforeClass
     public static void startServers() throws Exception {
         AbstractResourceInfo.clearAllMaps();
@@ -76,114 +94,277 @@ public class HTraceTracingTest extends AbstractBusClientServerTestBase {
         assertTrue("server did not launch correctly", launchServer(Server.class, true));
         createStaticBus();
     }
-    
+
     @Before
     public void setUp() {
         TestSpanReceiver.clear();
-        
-        htraceClientProvider = new HTraceClientProvider(
-            new AlwaysSampler(HTraceConfiguration.EMPTY));
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(Tracer.SPAN_RECEIVER_CLASSES_KEY, StandardOutSpanReceiver.class.getName());
+        properties.put(Tracer.SAMPLER_CLASSES_KEY, AlwaysSampler.class.getName());
+
+        tracer = new Tracer.Builder("tracer")
+            .conf(HTraceConfiguration.fromMap(properties))
+            .build();
+
+        htraceClientProvider = new HTraceClientProvider(tracer);
     }
-    
+
     @Test
     public void testThatNewSpanIsCreatedWhenNotProvided() {
         final Response r = createWebClient("/bookstore/books").get();
         assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        
+
         assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(2));
         assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("Get Books"));
-        
-        assertFalse(r.getHeaders().containsKey(TracerHeaders.DEFAULT_HEADER_TRACE_ID));
+        assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("GET bookstore/books"));
+
         assertFalse(r.getHeaders().containsKey(TracerHeaders.DEFAULT_HEADER_SPAN_ID));
     }
-    
+
     @Test
     public void testThatNewInnerSpanIsCreated() {
+        final SpanId spanId = SpanId.fromRandom();
+
         final Response r = createWebClient("/bookstore/books")
-            .header(TracerHeaders.DEFAULT_HEADER_TRACE_ID, 10L)
-            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, 20L)
+            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, spanId.toString())
             .get();
         assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        
+
         assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(2));
         assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("Get Books"));
-        assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("bookstore/books"));
-        
-        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_TRACE_ID), equalTo("10"));
-        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo("20"));
+        assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("GET bookstore/books"));
+
+        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo(spanId.toString()));
     }
-    
+
     @Test
     public void testThatCurrentSpanIsAnnotatedWithKeyValue() {
+        final SpanId spanId = SpanId.fromRandom();
+
         final Response r = createWebClient("/bookstore/book/1")
-            .header(TracerHeaders.DEFAULT_HEADER_TRACE_ID, 10L)
-            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, 20L)
+            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, spanId.toString())
             .get();
         assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        
+
         assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(1));
-        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("bookstore/book/1"));
+        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("GET bookstore/book/1"));
         assertThat(TestSpanReceiver.getAllSpans().get(0).getKVAnnotations().size(), equalTo(1));
-        
-        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_TRACE_ID), equalTo("10"));
-        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo("20"));
+
+        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo(spanId.toString()));
     }
-    
+
     @Test
     public void testThatParallelSpanIsAnnotatedWithTimeline() {
+        final SpanId spanId = SpanId.fromRandom();
+
         final Response r = createWebClient("/bookstore/process")
-            .header(TracerHeaders.DEFAULT_HEADER_TRACE_ID, 10L)
-            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, 20L)
+            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, spanId.toString())
             .put("");
         assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        
+
         assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(2));
-        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("bookstore/process"));
-        assertThat(TestSpanReceiver.getAllSpans().get(0).getTimelineAnnotations().size(), equalTo(0));
-        assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("Processing books"));
-        assertThat(TestSpanReceiver.getAllSpans().get(1).getTimelineAnnotations().size(), equalTo(1));
-        
-        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_TRACE_ID), equalTo("10"));
-        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo("20"));
+        assertThat(TestSpanReceiver.getAllSpans(), hasSpan("Processing books", hasItem("Processing started")));
+        assertThat(TestSpanReceiver.getAllSpans(), hasSpan("PUT bookstore/process", empty()));
+
+        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo(spanId.toString()));
     }
-    
+
     @Test
     public void testThatNewChildSpanIsCreatedWhenParentIsProvided() {
         final Response r = createWebClient("/bookstore/books", htraceClientProvider).get();
         assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        
+
         assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(3));
         assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("Get Books"));
         assertThat(TestSpanReceiver.getAllSpans().get(0).getParents().length, equalTo(1));
-        
-        assertTrue(r.getHeaders().containsKey(TracerHeaders.DEFAULT_HEADER_TRACE_ID));
+
         assertTrue(r.getHeaders().containsKey(TracerHeaders.DEFAULT_HEADER_SPAN_ID));
     }
-    
+
     @Test
     public void testThatNewInnerSpanIsCreatedUsingAsyncInvocation() {
+        final SpanId spanId = SpanId.fromRandom();
+
         final Response r = createWebClient("/bookstore/books/async")
-            .header(TracerHeaders.DEFAULT_HEADER_TRACE_ID, 10L)
-            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, 20L)
+            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, spanId.toString())
             .get();
         assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        
-        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(1));
-        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("bookstore/books/async"));
-        
-        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_TRACE_ID), equalTo("10"));
-        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo("20"));
+
+        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(2));
+        assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("GET bookstore/books/async"));
+        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("Processing books"));
+
+        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo(spanId.toString()));
     }
-    
+
+    @Test
+    public void testThatOuterSpanIsCreatedUsingAsyncInvocation() {
+        final SpanId spanId = SpanId.fromRandom();
+
+        final Response r = createWebClient("/bookstore/books/async/notrace")
+            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, spanId.toString())
+            .get();
+        assertEquals(Status.OK.getStatusCode(), r.getStatus());
+
+        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(1));
+        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(),
+            equalTo("GET bookstore/books/async/notrace"));
+
+        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo(spanId.toString()));
+    }
+
     @Test
     public void testThatNewSpanIsCreatedUsingAsyncInvocation() {
         final Response r = createWebClient("/bookstore/books/async").get();
         assertEquals(Status.OK.getStatusCode(), r.getStatus());
+
+        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(2));
+        assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("GET bookstore/books/async"));
+        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("Processing books"));
+    }
+
+    @Test
+    public void testThatNewSpanIsCreatedWhenNotProvidedUsingAsyncClient() throws Exception {
+        final WebClient client = createWebClient("/bookstore/books", htraceClientProvider);
+        final Future<Response> f = client.async().get();
+
+        final Response r = f.get(1, TimeUnit.SECONDS);
+        assertEquals(Status.OK.getStatusCode(), r.getStatus());
+
+        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(3));
+        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("Get Books"));
+        assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("GET bookstore/books"));
+        assertThat(TestSpanReceiver.getAllSpans().get(2).getDescription(), equalTo("GET " + client.getCurrentURI()));
+
+        assertTrue(r.getHeaders().containsKey(TracerHeaders.DEFAULT_HEADER_SPAN_ID));
+    }
+
+    @Test
+    public void testThatProvidedSpanIsNotClosedWhenActive() throws MalformedURLException {
+        try (TraceScope scope = tracer.newScope("test span")) {
+            final Response r = createWebClient("/bookstore/books", htraceClientProvider).get();
+            assertEquals(Status.OK.getStatusCode(), r.getStatus());
+
+            assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(2));
+            assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("Get Books"));
+            assertThat(TestSpanReceiver.getAllSpans().get(0).getParents().length, equalTo(1));
+            assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("GET bookstore/books"));
+
+            assertTrue(r.getHeaders().containsKey(TracerHeaders.DEFAULT_HEADER_SPAN_ID));
+        }
+
+        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(3));
+        assertThat(TestSpanReceiver.getAllSpans().get(2).getDescription(), equalTo("test span"));
+    }
+
+    @Test
+    public void testThatProvidedSpanIsNotDetachedWhenActiveUsingAsyncClient() throws Exception {
+        final WebClient client = createWebClient("/bookstore/books", htraceClientProvider);
+        try (TraceScope scope = tracer.newScope("test span")) {
+            final Future<Response> f = client.async().get();
+
+            final Response r = f.get(1, TimeUnit.SECONDS);
+            assertEquals(Status.OK.getStatusCode(), r.getStatus());
+            assertThat(Tracer.getCurrentSpan(), equalTo(scope.getSpan()));
+
+            assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(2));
+            assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("Get Books"));
+            assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("GET bookstore/books"));
+
+            assertTrue(r.getHeaders().containsKey(TracerHeaders.DEFAULT_HEADER_SPAN_ID));
+        }
+
+        assertThat(TestSpanReceiver.getAllSpans().get(2).getDescription(), equalTo("test span"));
+    }
+
+    @Test
+    public void testThatInnerSpanIsCreatedUsingPseudoAsyncInvocation() {
+        final SpanId spanId = SpanId.fromRandom();
+
+        final Response r = createWebClient("/bookstore/books/pseudo-async")
+            .header(TracerHeaders.DEFAULT_HEADER_SPAN_ID, spanId.toString())
+            .get();
+        assertEquals(Status.OK.getStatusCode(), r.getStatus());
+
+        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(2));
+        assertThat(TestSpanReceiver.getAllSpans().get(1).getDescription(), equalTo("GET bookstore/books/pseudo-async"));
+        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("Processing books"));
+
+        assertThat((String)r.getHeaders().getFirst(TracerHeaders.DEFAULT_HEADER_SPAN_ID), equalTo(spanId.toString()));
+    }
+
+    @Test
+    public void testThatNewSpansAreCreatedWhenNotProvidedUsingMultipleAsyncClients() throws Exception {
+        final WebClient client = createWebClient("/bookstore/books", htraceClientProvider);
         
-        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(1));
-        assertThat(TestSpanReceiver.getAllSpans().get(0).getDescription(), equalTo("bookstore/books/async"));
+        // The intention is to make a calls one after another, not in parallel, to ensure the
+        // thread have trace contexts cleared out.
+        final Collection<Response> responses = IntStream
+            .range(0, 4)
+            .mapToObj(index -> client.async().get())
+            .map(this::get)
+            .collect(Collectors.toList());
+
+        for (final Response r: responses) {
+            assertEquals(Status.OK.getStatusCode(), r.getStatus());
+            assertTrue(r.getHeaders().containsKey(TracerHeaders.DEFAULT_HEADER_SPAN_ID));
+        }
+
+        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(12));
+        
+        IntStream
+            .range(0, 4)
+            .map(index -> index * 3)
+            .forEach(index -> {
+                assertThat(TestSpanReceiver.getAllSpans().get(index).getDescription(), 
+                    equalTo("Get Books"));
+                assertThat(TestSpanReceiver.getAllSpans().get(index + 1).getDescription(), 
+                    equalTo("GET bookstore/books"));
+                assertThat(TestSpanReceiver.getAllSpans().get(index + 2).getDescription(), 
+                    equalTo("GET " + client.getCurrentURI()));
+            });
     }
     
+    @Test
+    public void testThatNewSpansAreCreatedWhenNotProvidedUsingMultipleClients() throws Exception {
+        final WebClient client = createWebClient("/bookstore/books", htraceClientProvider);
+        
+        // The intention is to make a calls one after another, not in parallel, to ensure the
+        // thread have trace contexts cleared out.
+        final Collection<Response> responses = IntStream
+            .range(0, 4)
+            .mapToObj(index -> client.get())
+            .collect(Collectors.toList());
+
+        for (final Response r: responses) {
+            assertEquals(Status.OK.getStatusCode(), r.getStatus());
+            assertTrue(r.getHeaders().containsKey(TracerHeaders.DEFAULT_HEADER_SPAN_ID));
+        }
+
+        assertThat(TestSpanReceiver.getAllSpans().size(), equalTo(12));
+        
+        IntStream
+            .range(0, 4)
+            .map(index -> index * 3)
+            .forEach(index -> {
+                assertThat(TestSpanReceiver.getAllSpans().get(index).getDescription(), 
+                    equalTo("Get Books"));
+                assertThat(TestSpanReceiver.getAllSpans().get(index + 1).getDescription(), 
+                    equalTo("GET bookstore/books"));
+                assertThat(TestSpanReceiver.getAllSpans().get(index + 2).getDescription(), 
+                    equalTo("GET " + client.getCurrentURI()));
+            });
+    }
+
+    private<T> T get(final Future<T> future) {
+        try {
+            return future.get(1, TimeUnit.HOURS);
+        } catch (InterruptedException | TimeoutException | ExecutionException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     protected WebClient createWebClient(final String url, final Object ... providers) {
         return WebClient
             .create("http://localhost:" + PORT + url, Arrays.asList(providers))

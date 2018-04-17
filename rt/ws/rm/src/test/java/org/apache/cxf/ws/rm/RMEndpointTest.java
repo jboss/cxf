@@ -47,9 +47,9 @@ import org.apache.cxf.ws.addressing.Names;
 import org.apache.cxf.ws.policy.PolicyEngine;
 import org.apache.cxf.ws.policy.PolicyEngineImpl;
 import org.apache.cxf.ws.rm.v200702.Identifier;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
-
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -139,7 +139,7 @@ public class RMEndpointTest extends Assert {
         Method m3 = RMEndpoint.class.getDeclaredMethod("setPolicies", new Class[] {Message.class});
 
         rme = EasyMock.createMockBuilder(RMEndpoint.class)
-            .addMockedMethods(m1, m2 , m3).createMock(control);
+            .addMockedMethods(m1, m2, m3).createMock(control);
         rme.createServices();
         EasyMock.expectLastCall();
         rme.createEndpoints(null);
@@ -210,8 +210,8 @@ public class RMEndpointTest extends Assert {
         control.reset();
         ExtensibilityElement ua = control.createMock(ExtensibilityElement.class);
         ei = control.createMock(EndpointInfo.class);
-        List<ExtensibilityElement> noExts = new ArrayList<ExtensibilityElement>();
-        List<ExtensibilityElement> exts = new ArrayList<ExtensibilityElement>();
+        List<ExtensibilityElement> noExts = new ArrayList<>();
+        List<ExtensibilityElement> exts = new ArrayList<>();
         exts.add(ua);
         EasyMock.expect(ei.getExtensors(ExtensibilityElement.class)).andReturn(noExts);
         BindingInfo bi = control.createMock(BindingInfo.class);
@@ -227,7 +227,7 @@ public class RMEndpointTest extends Assert {
 
     @Test
     public void testGetUsingAddressingFromExtensions() {
-        List<ExtensibilityElement> exts = new ArrayList<ExtensibilityElement>();
+        List<ExtensibilityElement> exts = new ArrayList<>();
         ExtensibilityElement ua = control.createMock(ExtensibilityElement.class);
         exts.add(ua);
         EasyMock.expect(ua.getElementType()).andReturn(Names.WSAW_USING_ADDRESSING_QNAME);
@@ -277,13 +277,13 @@ public class RMEndpointTest extends Assert {
         EasyMock.expect(ds.getIdentifier()).andReturn(did).anyTimes();
         EasyMock.expect(ds.getProtocol()).andReturn(ProtocolVariation.RM10WSA200408).anyTimes();
         String d = "d";
-        EasyMock.expect(did.getValue()).andReturn(d).anyTimes();        
+        EasyMock.expect(did.getValue()).andReturn(d).anyTimes();
         SourceSequence ss = control.createMock(SourceSequence.class);
         Identifier sid = control.createMock(Identifier.class);
         EasyMock.expect(ss.getIdentifier()).andReturn(sid).anyTimes();
         EasyMock.expect(ss.getProtocol()).andReturn(ProtocolVariation.RM10WSA200408).anyTimes();
         String s = "s";
-        EasyMock.expect(sid.getValue()).andReturn(s).anyTimes();        
+        EasyMock.expect(sid.getValue()).andReturn(s).anyTimes();
         ds.cancelDeferredAcknowledgments();
         EasyMock.expectLastCall().anyTimes();
         ds.cancelTermination();
@@ -291,6 +291,10 @@ public class RMEndpointTest extends Assert {
         RetransmissionQueue queue = control.createMock(RetransmissionQueue.class);
         EasyMock.expect(manager.getRetransmissionQueue()).andReturn(queue).anyTimes();
         queue.stop(ss);
+        EasyMock.expectLastCall().anyTimes();
+        RedeliveryQueue dqueue = control.createMock(RedeliveryQueue.class);
+        EasyMock.expect(manager.getRedeliveryQueue()).andReturn(dqueue).anyTimes();
+        dqueue.stop(ds);
         EasyMock.expectLastCall().anyTimes();
         control.replay();
         rme.getDestination().addSequence(ds, false);
@@ -326,11 +330,11 @@ public class RMEndpointTest extends Assert {
         oi = intf.getOperation(new QName(ns, "SequenceAcknowledgement"));
         assertNotNull("No operation info.", oi);
         assertTrue("Operation is toway.", oi.isOneWay());
-        
+
         oi = intf.getOperation(new QName(ns, "CloseSequence"));
         assertNotNull("No operation info.", oi);
         assertTrue("Operation is toway.", oi.isOneWay());
-        
+
         oi = intf.getOperation(new QName(ns, "AckRequested"));
         assertNotNull("No operation info.", oi);
         assertTrue("Operation is toway.", oi.isOneWay());

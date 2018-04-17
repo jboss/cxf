@@ -19,10 +19,14 @@
 
 package org.apache.cxf.ws.security.trust;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.xml.bind.JAXBException;
 import javax.xml.namespace.QName;
 
 import org.w3c.dom.Element;
+
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusException;
 import org.apache.cxf.binding.BindingFactory;
@@ -35,7 +39,7 @@ import org.apache.cxf.endpoint.EndpointException;
 import org.apache.cxf.endpoint.EndpointImpl;
 import org.apache.cxf.helpers.DOMUtils;
 import org.apache.cxf.message.Message;
-import org.apache.cxf.message.MessageUtils;
+import org.apache.cxf.rt.security.utils.SecurityUtils;
 import org.apache.cxf.service.Service;
 import org.apache.cxf.service.ServiceImpl;
 import org.apache.cxf.service.model.BindingInfo;
@@ -55,7 +59,7 @@ import org.apache.neethi.Policy;
 import org.apache.wss4j.policy.model.IssuedToken;
 
 /**
- * 
+ *
  */
 public final class STSUtils {
     /**
@@ -71,72 +75,77 @@ public final class STSUtils {
      */
     public static final String WST_NS_08_02 = "http://docs.oasis-open.org/ws-sx/ws-trust/200802";
     public static final String SCT_NS_05_02 = "http://schemas.xmlsoap.org/ws/2005/02/sc";
-    public static final String SCT_NS_05_12 
+    public static final String SCT_NS_05_12
         = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512";
-    
+
     public static final String TOKEN_TYPE_SCT_05_02 = SCT_NS_05_02 + "/sct";
     public static final String TOKEN_TYPE_SCT_05_12 = SCT_NS_05_12 + "/sct";
+
+    private static final String TOKEN_TYPE_SAML_2_0 =
+            "http://docs.oasis-open.org/wss/oasis-wss-saml-token-profile-1.1#SAMLV2.0";
+    private static final QName STS_SERVICE_NAME = new QName(WST_NS_05_12 + "/", "SecurityTokenService");
 
     private STSUtils() {
         //utility class
     }
-    
+
     public static String getTokenTypeSCT(String trustNs) {
         if (WST_NS_05_02.equals(trustNs)) {
             return TOKEN_TYPE_SCT_05_02;
         }
         return TOKEN_TYPE_SCT_05_12;
     }
-    
+
     public static STSClient getClient(Message message, String type) {
         return getClientWithIssuer(message, type, null);
     }
-    
+
     public static STSClient getClient(Message message, String type, IssuedToken itok) {
         if (itok != null) {
             return getClientWithIssuer(message, type, itok.getIssuer());
-        } else {
-            return getClientWithIssuer(message, type, null);
         }
+        return getClientWithIssuer(message, type, null);
     }
-    
+
     public static STSClient getClientWithIssuer(Message message, String type, Element issuer) {
-        
+
         // Retrieve or create the STSClient
-        STSClient client = (STSClient)message
-            .getContextualProperty(SecurityConstants.STS_CLIENT);
+        STSClient client =
+            (STSClient)SecurityUtils.getSecurityPropertyValue(SecurityConstants.STS_CLIENT, message);
         if (client == null) {
             client = createSTSClient(message, type);
             Bus bus = message.getExchange().getBus();
-            
+
             // Check for the "default" case first
             bus.getExtension(Configurer.class).configureBean("default.sts-client", client);
-            
+
             // Check for Endpoint specific case next
             if (client.getBeanName() != null) {
                 bus.getExtension(Configurer.class).configureBean(client.getBeanName(), client);
             }
         }
-        
-        
+
+        boolean preferWSMex =
+            SecurityUtils.getSecurityPropertyBoolean(SecurityConstants.PREFER_WSMEX_OVER_STS_CLIENT_CONFIG,
+                                                     message,
+                                                     false);
+
         // Find out if we have an EPR to get the STS Address (possibly via WS-MEX)
-        if (issuer != null) {
+        // Only parse the EPR if we really have to
+        if (issuer != null
+            && (preferWSMex || client.getLocation() == null && client.getWsdlLocation() == null)) {
             EndpointReferenceType epr = null;
             try {
                 epr = VersionTransformer.parseEndpointReference(issuer);
             } catch (JAXBException e) {
                 throw new IllegalArgumentException(e);
             }
-            
-            String mexLocation = findMEXLocation(epr);
-            // Configure via WS-MEX
-            if (mexLocation != null
-                && MessageUtils.getContextualBoolean(message, 
-                                                     SecurityConstants.PREFER_WSMEX_OVER_STS_CLIENT_CONFIG,
-                                                     false)) {
+
+            if (preferWSMex && findMEXLocation(epr) != null) {
                 // WS-MEX call. So now either get the WS-MEX specific STSClient or else create one
-                STSClient wsMexClient = (STSClient)message
-                    .getContextualProperty(SecurityConstants.STS_CLIENT + ".wsmex");
+                STSClient wsMexClient =
+                    (STSClient)SecurityUtils.getSecurityPropertyValue(SecurityConstants.STS_CLIENT + ".wsmex",
+                                                                      message);
                 if (wsMexClient == null) {
                     wsMexClient = createSTSClient(message, type);
                 }
@@ -144,22 +153,22 @@ public final class STSUtils {
                 return wsMexClient;
             } else if (configureViaEPR(client, epr)) {
                 // Only use WS-MEX here if the pre-configured STSClient has no location/wsdllocation
-                boolean useEPRWSAAddrAsMEXLocation = 
-                    !Boolean.valueOf((String)message.getContextualProperty(
-                        SecurityConstants.DISABLE_STS_CLIENT_WSMEX_CALL_USING_EPR_ADDRESS));
-                
+                boolean useEPRWSAAddrAsMEXLocation =
+                    !Boolean.valueOf((String)SecurityUtils.getSecurityPropertyValue(
+                        SecurityConstants.DISABLE_STS_CLIENT_WSMEX_CALL_USING_EPR_ADDRESS, message));
+
                 client.configureViaEPR(epr, useEPRWSAAddrAsMEXLocation);
                 return client;
             }
         }
-        
+
         return client;
     }
 
     public static boolean configureViaEPR(STSClient client, EndpointReferenceType epr) {
         return epr != null && client.getLocation() == null && client.getWsdlLocation() == null;
     }
-    
+
     private static STSClient createSTSClient(Message message, String type) {
         if (type == null) {
             type = "";
@@ -170,13 +179,47 @@ public final class STSUtils {
         Endpoint ep = message.getExchange().getEndpoint();
         client.setEndpointName(ep.getEndpointInfo().getName().toString() + type);
         client.setBeanName(ep.getEndpointInfo().getName().toString() + type);
-        if (MessageUtils.getContextualBoolean(message, SecurityConstants.STS_CLIENT_SOAP12_BINDING, false)) {
+        if (SecurityUtils.getSecurityPropertyBoolean(SecurityConstants.STS_CLIENT_SOAP12_BINDING,
+                                                     message,
+                                                     false)) {
             client.setSoap12();
         }
-        
+
         return client;
     }
-    
+
+    public static STSClient createSTSClient(STSAuthParams authParams, String stsWsdlLocation, Bus bus) {
+        STSClient basicStsClient = new STSClient(bus);
+        basicStsClient.setWsdlLocation(stsWsdlLocation);
+        basicStsClient.setServiceName(STS_SERVICE_NAME.toString());
+        basicStsClient.setEndpointName(authParams.getAuthMode().getEndpointName().toString());
+        if (authParams.getAuthMode().getKeyType() != null) {
+            basicStsClient.setKeyType(authParams.getAuthMode().getKeyType());
+        } else {
+            basicStsClient.setSendKeyType(false);
+        }
+        basicStsClient.setTokenType(TOKEN_TYPE_SAML_2_0);
+        basicStsClient.setAllowRenewingAfterExpiry(true);
+        basicStsClient.setEnableLifetime(true);
+
+        Map<String, Object> props = new HashMap<>();
+        if (authParams.getUserName() != null) {
+            props.put(SecurityConstants.USERNAME, authParams.getUserName());
+        }
+        props.put(SecurityConstants.CALLBACK_HANDLER, authParams.getCallbackHandler());
+        if (authParams.getKeystoreProperties() != null) {
+            props.put(SecurityConstants.ENCRYPT_USERNAME, authParams.getAlias());
+            props.put(SecurityConstants.ENCRYPT_PROPERTIES, authParams.getKeystoreProperties());
+            props.put(SecurityConstants.SIGNATURE_PROPERTIES, authParams.getKeystoreProperties());
+            props.put(SecurityConstants.STS_TOKEN_USERNAME, authParams.getAlias());
+            props.put(SecurityConstants.STS_TOKEN_PROPERTIES, authParams.getKeystoreProperties());
+            props.put(SecurityConstants.STS_TOKEN_USE_CERT_FOR_KEYINFO, "true");
+        }
+        basicStsClient.setProperties(props);
+
+        return basicStsClient;
+    }
+
     public static String findMEXLocation(EndpointReferenceType ref) {
         if (ref.getMetadata() != null && ref.getMetadata().getAny() != null) {
             for (Object any : ref.getMetadata().getAny()) {
@@ -190,7 +233,7 @@ public final class STSUtils {
         }
         return null;
     }
-    
+
     public static String findMEXLocation(Element ref) {
         Element el = DOMUtils.getFirstElement(ref);
         while (el != null) {
@@ -198,18 +241,17 @@ public final class STSUtils {
                 && VersionTransformer.isSupported(el.getNamespaceURI())
                 && "MetadataReference".equals(ref.getLocalName())) {
                 return DOMUtils.getContent(el);
-            } else {
-                String ad = findMEXLocation(el);
-                if (ad != null) {
-                    return ad;
-                }
+            }
+            String ad = findMEXLocation(el);
+            if (ad != null) {
+                return ad;
             }
             el = DOMUtils.getNextElement(el);
         }
         return null;
     }
-    
-    public static Endpoint createSTSEndpoint(Bus bus, 
+
+    public static Endpoint createSTSEndpoint(Bus bus,
                                              String namespace,
                                              String transportId,
                                              String location,
@@ -217,19 +259,18 @@ public final class STSUtils {
                                              Policy policy,
                                              QName epName) throws BusException, EndpointException {
         return createSTSEndpoint(bus, namespace, transportId, location, soapVersion, policy, epName, false);
-    }     
-    public static Endpoint createSCEndpoint(Bus bus, 
+    }
+    public static Endpoint createSCEndpoint(Bus bus,
                                              String namespace,
                                              String transportId,
                                              String location,
                                              String soapVersion,
                                              Policy policy) throws BusException, EndpointException {
         return createSTSEndpoint(bus, namespace, transportId, location, soapVersion, policy, null, true);
-    }     
-    
-    
+    }
+
     //CHECKSTYLE:OFF
-    private static Endpoint createSTSEndpoint(Bus bus, 
+    private static Endpoint createSTSEndpoint(Bus bus,
                                              String namespace,
                                              String transportId,
                                              String location,
@@ -242,18 +283,18 @@ public final class STSUtils {
         Service service = null;
         String ns = namespace + "/wsdl";
         ServiceInfo si = new ServiceInfo();
-        
+
         QName iName = new QName(ns, sc ? "SecureConversationTokenService" : "SecurityTokenService");
         si.setName(iName);
         InterfaceInfo ii = new InterfaceInfo(si, iName);
-        
+
         OperationInfo ioi = addIssueOperation(ii, namespace, ns);
         OperationInfo coi = addCancelOperation(ii, namespace, ns);
         OperationInfo roi = addRenewOperation(ii, namespace, ns);
 
         si.setInterface(ii);
         service = new ServiceImpl(si);
-        
+
         BindingFactoryManager bfm = bus.getExtension(BindingFactoryManager.class);
         BindingFactory bindingFactory = bfm.getBindingFactory(soapVersion);
         BindingInfo bi = bindingFactory.createBindingInfo(service,
@@ -263,7 +304,7 @@ public final class STSUtils {
             ConduitInitiatorManager cim = bus.getExtension(ConduitInitiatorManager.class);
             ConduitInitiator ci = cim.getConduitInitiatorForUri(location);
             transportId = ci.getTransportIds().get(0);
-        } 
+        }
         EndpointInfo ei = new EndpointInfo(si, transportId);
         ei.setBinding(bi);
         ei.setName(epName == null ? iName : epName);
@@ -272,7 +313,7 @@ public final class STSUtils {
         if (policy != null) {
             ei.addExtensor(policy);
         }
-        
+
         BindingOperationInfo boi = bi.getOperation(ioi);
         SoapOperationInfo soi = boi.getExtensor(SoapOperationInfo.class);
         if (soi == null) {
@@ -300,23 +341,23 @@ public final class STSUtils {
         service.setDataBinding(new SourceDataBinding());
         return new EndpointImpl(bus, service, ei);
     }
-    
-    private static OperationInfo addIssueOperation(InterfaceInfo ii, 
+
+    private static OperationInfo addIssueOperation(InterfaceInfo ii,
                                                    String namespace,
                                                    String servNamespace) {
         OperationInfo oi = ii.addOperation(new QName(servNamespace, "RequestSecurityToken"));
-        MessageInfo mii = oi.createMessage(new QName(servNamespace, "RequestSecurityTokenMsg"), 
+        MessageInfo mii = oi.createMessage(new QName(servNamespace, "RequestSecurityTokenMsg"),
                                            MessageInfo.Type.INPUT);
         oi.setInput("RequestSecurityTokenMsg", mii);
         MessagePartInfo mpi = mii.addMessagePart("request");
         mpi.setElementQName(new QName(namespace, "RequestSecurityToken"));
-        
-        MessageInfo mio = oi.createMessage(new QName(servNamespace, 
-            "RequestSecurityTokenResponseMsg"), 
+
+        MessageInfo mio = oi.createMessage(new QName(servNamespace,
+            "RequestSecurityTokenResponseMsg"),
             MessageInfo.Type.OUTPUT);
         oi.setOutput("RequestSecurityTokenResponseMsg", mio);
         mpi = mio.addMessagePart("response");
-        
+
         if (WST_NS_05_02.equals(namespace)) {
             mpi.setElementQName(new QName(namespace, "RequestSecurityTokenResponse"));
         } else {
@@ -324,22 +365,22 @@ public final class STSUtils {
         }
         return oi;
     }
-    private static OperationInfo addCancelOperation(InterfaceInfo ii, 
+    private static OperationInfo addCancelOperation(InterfaceInfo ii,
                                                     String namespace,
                                                     String servNamespace) {
         OperationInfo oi = ii.addOperation(new QName(servNamespace, "CancelSecurityToken"));
-        MessageInfo mii = oi.createMessage(new QName(servNamespace, "CancelSecurityTokenMsg"), 
+        MessageInfo mii = oi.createMessage(new QName(servNamespace, "CancelSecurityTokenMsg"),
                                            MessageInfo.Type.INPUT);
         oi.setInput("CancelSecurityTokenMsg", mii);
         MessagePartInfo mpi = mii.addMessagePart("request");
         mpi.setElementQName(new QName(namespace, "RequestSecurityToken"));
-        
-        MessageInfo mio = oi.createMessage(new QName(servNamespace, 
-                                                     "CancelSecurityTokenResponseMsg"), 
+
+        MessageInfo mio = oi.createMessage(new QName(servNamespace,
+                                                     "CancelSecurityTokenResponseMsg"),
                                            MessageInfo.Type.OUTPUT);
         oi.setOutput("CancelSecurityTokenResponseMsg", mio);
         mpi = mio.addMessagePart("response");
-        
+
         if (WST_NS_05_02.equals(namespace)) {
             mpi.setElementQName(new QName(namespace, "RequestSecurityTokenResponse"));
         } else {

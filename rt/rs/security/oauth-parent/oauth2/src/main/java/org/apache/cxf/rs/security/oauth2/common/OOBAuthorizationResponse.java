@@ -19,20 +19,10 @@
 package org.apache.cxf.rs.security.oauth2.common;
 
 
-public class OOBAuthorizationResponse {
-    private String authorizationCode;
+public class OOBAuthorizationResponse extends AbstractAuthorizationResponse {
     private String clientId;
+    private String clientDescription;
     private String userId;
-    private long expiresIn;
-    
-    public String getAuthorizationCode() {
-        return authorizationCode;
-    }
-
-    public void setAuthorizationCode(String authorizationCode) {
-        this.authorizationCode = authorizationCode;
-    }
-
     public String getClientId() {
         return clientId;
     }
@@ -49,21 +39,14 @@ public class OOBAuthorizationResponse {
         this.userId = userId;
     }
 
-    @Deprecated
-    public long getLifetime() {
-        return expiresIn;
-    }
-    @Deprecated
-    public void setLifetime(long lifetime) {
-        this.expiresIn = lifetime;
-    }
-    
-    public long getExpiresIn() {
-        return expiresIn;
+
+    public String getClientDescription() {
+        return clientDescription;
     }
 
-    public void setExpiresIn(long lifetime) {
-        this.expiresIn = lifetime;
+    public void setClientDescription(String clientDescription) {
+        this.clientDescription = clientDescription;
     }
-    
+
+
 }

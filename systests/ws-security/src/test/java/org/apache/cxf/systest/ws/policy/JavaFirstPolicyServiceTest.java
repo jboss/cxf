@@ -46,13 +46,13 @@ import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
 import org.apache.cxf.ws.policy.PolicyConstants;
 import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor;
 import org.apache.neethi.Constants;
-import org.apache.wss4j.dom.WSConstants;
-import org.apache.wss4j.dom.handler.WSHandlerConstants;
+import org.apache.wss4j.common.ConfigurationConstants;
+import org.apache.wss4j.common.WSS4JConstants;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase {
     static final String PORT = JavaFirstPolicyServer.PORT;
@@ -107,7 +107,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
         } catch (Exception e) {
             assertTrue(true);
         }
-        
+
         ctx.close();
     }
 
@@ -143,7 +143,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
         } catch (Exception e) {
             assertTrue(true);
         }
-        
+
         ctx.close();
     }
 
@@ -177,7 +177,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
 
         wssOut.setProperties(getPasswordProperties("alice", "password"));
         simpleService.doStuff();
-        
+
         clientContext.close();
     }
 
@@ -208,7 +208,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
 
         // this is successful because the alternative policy allows a password to be specified.
         simpleService.doStuff();
-        
+
         clientContext.close();
     }
 
@@ -259,7 +259,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
 
         wssOut.setProperties(getPasswordProperties("alice", "password"));
         simpleService.ping();
-        
+
         clientContext.close();
     }
 
@@ -305,7 +305,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
 
         wssOut.setProperties(getPasswordProperties("alice", "password"));
         simpleService.ping();
-        
+
         clientContext.close();
     }
 
@@ -322,7 +322,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
 
         // no security on ping!
         simpleService.ping();
-        
+
         try {
             simpleService.doStuff();
             fail("Expected exception as no credentials");
@@ -343,7 +343,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
         // this is successful because the alternative policy allows a password to be specified.
         wssOut.setProperties(getPasswordProperties("alice", "password"));
         simpleService.doStuff();
-        
+
         clientContext.close();
     }
 
@@ -360,7 +360,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
 
         // no security on ping!
         simpleService.ping();
-        
+
         try {
             simpleService.doStuff();
             fail("Expected exception as no credentials");
@@ -376,7 +376,7 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
         // this is successful because the alternative policy allows a password to be specified.
         wssOut.setProperties(getPasswordProperties("alice", "password"));
         simpleService.doStuff();
-        
+
         clientContext.close();
     }
 
@@ -392,19 +392,19 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
         UTPasswordCallback callback = new UTPasswordCallback();
         callback.setAliasPassword(username, password);
 
-        Map<String, Object> outProps = new HashMap<String, Object>();
-        outProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.USERNAME_TOKEN);
-        outProps.put(WSHandlerConstants.PASSWORD_TYPE, WSConstants.PW_TEXT);
-        outProps.put(WSHandlerConstants.PW_CALLBACK_REF, callback);
-        outProps.put(WSHandlerConstants.USER, username);
+        Map<String, Object> outProps = new HashMap<>();
+        outProps.put(ConfigurationConstants.ACTION, ConfigurationConstants.USERNAME_TOKEN);
+        outProps.put(ConfigurationConstants.PASSWORD_TYPE, WSS4JConstants.PW_TEXT);
+        outProps.put(ConfigurationConstants.PW_CALLBACK_REF, callback);
+        outProps.put(ConfigurationConstants.USER, username);
         return outProps;
     }
 
     private Map<String, Object> getNoPasswordProperties(String username) {
-        Map<String, Object> outProps = new HashMap<String, Object>();
-        outProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.USERNAME_TOKEN);
-        outProps.put(WSHandlerConstants.PASSWORD_TYPE, WSConstants.PW_NONE);
-        outProps.put(WSHandlerConstants.USER, username);
+        Map<String, Object> outProps = new HashMap<>();
+        outProps.put(ConfigurationConstants.ACTION, ConfigurationConstants.USERNAME_TOKEN);
+        outProps.put(ConfigurationConstants.PASSWORD_TYPE, WSS4JConstants.PW_NONE);
+        outProps.put(ConfigurationConstants.USER, username);
         return outProps;
     }
 
@@ -529,9 +529,8 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
                                                                  "PolicyReference");
         if (policyReference != null) {
             return policyReference.getAttributeNS(null, "URI");
-        } else {
-            return null;
         }
+        return null;
     }
 
     private String getOperationPolicyReferenceId(Element operationElement, String policyNamespace) {
@@ -539,9 +538,8 @@ public class JavaFirstPolicyServiceTest extends AbstractBusClientServerTestBase 
                                                                  "PolicyReference");
         if (policyReference != null) {
             return policyReference.getAttributeNS(null, "URI");
-        } else {
-            return null;
         }
+        return null;
     }
 }
 

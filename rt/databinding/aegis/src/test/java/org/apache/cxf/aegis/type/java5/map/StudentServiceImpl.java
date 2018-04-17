@@ -24,16 +24,16 @@ import java.util.List;
 import java.util.Map;
 
 public class StudentServiceImpl implements StudentService {
-    
+
     private Map<Long, Student> studentMap;
-    
+
     public StudentServiceImpl() {
-        studentMap = new HashMap<Long, Student>();
+        studentMap = new HashMap<>();
         studentMap.put(Long.valueOf(1), new Student("Student1", 1));
         studentMap.put(Long.valueOf(100), new Student("Student100", 100));
         studentMap.put(Long.valueOf(-1), new Student("StudentNegative", -1));
     }
-    
+
     public Student findStudent(Long id) {
         return studentMap.get(id);
     }
@@ -41,10 +41,10 @@ public class StudentServiceImpl implements StudentService {
     public List<Student> getStudents(Map<String, String> filters) {
         List<Student> returnValue = new LinkedList<Student>();
         for (Map.Entry<Long, Student> e : studentMap.entrySet()) {
-            if (filters.containsKey(e.getValue())) {
+            if (filters.containsKey((Object)e.getValue())) {
                 returnValue.add(e.getValue());
             }
-            
+
         }
         return returnValue;
     }
@@ -64,7 +64,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     public Map<String, ?> getWildcardMap() {
-        Map<String, String> m = new HashMap<String, String>();
+        Map<String, String> m = new HashMap<>();
         m.put("keystring", "valuestring");
         return m;
     }

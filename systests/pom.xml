@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf</artifactId>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.5-SNAPSHOT</version>
     </parent>
     <modules>
         <module>container-integration</module>
@@ -36,6 +36,7 @@
         <module>transports</module>
         <module>transports-ssl3</module>
         <module>transport-jms</module>
+        <module>transport-undertow</module>
         <module>jaxws</module>
         <module>databinding</module>
         <module>jaxrs</module>
@@ -44,32 +45,14 @@
         <module>ws-security</module>
         <module>ws-security-examples</module>
         <module>kerberos</module>
+        <module>ldap</module>
         <module>rs-security</module>
         <module>wsdl_maven</module>
         <module>cdi</module>
         <module>rs-http-sci</module>
         <module>tracing</module>
+        <module>ws-transfer</module>
+        <module>rs-sse</module>
+        <module>microprofile</module>
     </modules>
-
-    <profiles>
-      <!-- jibx does support JDK8 -->
-      <profile>
-        <id>jdk-7</id>
-        <modules>
-          <module>jibx</module>
-        </modules>
-        <activation>
-          <jdk>1.7</jdk>
-        </activation>
-      </profile>
-      <profile>
-        <id>jdk-6</id>
-        <modules>
-          <module>jibx</module>
-        </modules>
-        <activation>
-          <jdk>1.6</jdk>
-        </activation>
-      </profile>
-    </profiles>
 </project>

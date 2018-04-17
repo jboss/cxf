@@ -25,13 +25,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Can be used to enable server-side XSLT transformations 
- * 
+ * Can be used to enable server-side XSLT transformations
+ *
  */
 @Target({ElementType.METHOD, ElementType.PARAMETER })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface XSLTTransform {
-    public enum TransformType {
+    enum TransformType {
         CLIENT, SERVER, BOTH
     }
     /**
@@ -39,7 +39,7 @@ public @interface XSLTTransform {
      */
     String value();
     /**
-     * Supported media types 
+     * Supported media types
      **/
     String[] mediaTypes() default { };
     TransformType type() default TransformType.SERVER;

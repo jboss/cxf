@@ -31,8 +31,9 @@ import javax.ws.rs.core.Application;
 
 import org.apache.cxf.jaxrs.provider.jsrjsonp.JsrJsonpProvider;
 import org.apache.cxf.tracing.htrace.jaxrs.HTraceFeature;
-import org.apache.htrace.HTraceConfiguration;
-import org.apache.htrace.impl.AlwaysSampler;
+import org.apache.htrace.core.AlwaysSampler;
+import org.apache.htrace.core.HTraceConfiguration;
+import org.apache.htrace.core.Tracer;
 
 import demo.jaxrs.tracing.conf.TracingConfiguration;
 
@@ -41,10 +42,10 @@ public class CatalogApplication extends Application {
     @Override
     public Set<Object> getSingletons() {
         try {
-            return new HashSet<Object>(
+            return new HashSet<>(
                 Arrays.asList(
                     new Catalog(),
-                    new HTraceFeature(HTraceConfiguration.fromMap(getTracingProperties())),
+                    new HTraceFeature(HTraceConfiguration.fromMap(getTracingProperties()), "catalog-server"),
                     new JsrJsonpProvider()
                 )
             );
@@ -52,11 +53,11 @@ public class CatalogApplication extends Application {
             throw new RuntimeException("Failed to initaliaze JAX-RS application", ex);
         }
     }
-    
+
     private static Map<String, String> getTracingProperties() {
-        final Map<String, String> properties = new HashMap<String, String>();
-        properties.put("span.receiver", TracingConfiguration.SPAN_RECEIVER.getName());
-        properties.put("sampler", AlwaysSampler.class.getName());
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(Tracer.SPAN_RECEIVER_CLASSES_KEY, TracingConfiguration.SPAN_RECEIVER.getName());
+        properties.put(Tracer.SAMPLER_CLASSES_KEY, AlwaysSampler.class.getName());
         return properties;
     }
 }

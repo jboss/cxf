@@ -31,10 +31,10 @@ import org.apache.wss4j.common.ext.WSPasswordCallback;
 /**
  */
 public class CommonPasswordCallback implements CallbackHandler {
-    
-    private Map<String, String> passwords = 
+
+    private Map<String, String> passwords =
         new HashMap<String, String>();
-    
+
     public CommonPasswordCallback() {
         passwords.put("Alice", "ecilA");
         passwords.put("Frank", "knarF");
@@ -42,10 +42,11 @@ public class CommonPasswordCallback implements CallbackHandler {
         passwords.put("alice", "password");
         passwords.put("bob", "password");
         passwords.put("cxfca", "password");
+        passwords.put("sts", "password");
     }
 
     /**
-     * Here, we attempt to get the password from the private 
+     * Here, we attempt to get the password from the private
      * alias/passwords map.
      */
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
@@ -59,7 +60,7 @@ public class CommonPasswordCallback implements CallbackHandler {
             }
         }
     }
-    
+
     /**
      * Add an alias/password pair to the callback mechanism.
      */

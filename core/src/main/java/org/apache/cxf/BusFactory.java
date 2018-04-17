@@ -22,6 +22,7 @@ package org.apache.cxf;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -67,12 +68,12 @@ public abstract class BusFactory {
     public static final String DEFAULT_BUS_FACTORY = "org.apache.cxf.bus.CXFBusFactory";
 
     protected static Bus defaultBus;
-    
+
     static class BusHolder {
         Bus bus;
         volatile boolean stale;
     }
-    
+
     protected static final Map<Thread, BusHolder> THREAD_BUSSES = new WeakHashMap<Thread, BusHolder>();
     protected static final ThreadLocal<BusHolder> THREAD_BUS = new ThreadLocal<BusHolder>();
 
@@ -108,11 +109,10 @@ public abstract class BusFactory {
         if (defaultBus == null) {
             // never set up.
             return null;
-        } else {
-            return defaultBus;
         }
+        return defaultBus;
     }
-    
+
     private static BusHolder getThreadBusHolder(boolean set) {
         BusHolder h = THREAD_BUS.get();
         if (h == null || h.stale) {
@@ -122,7 +122,7 @@ public abstract class BusFactory {
             }
             if (h == null || h.stale) {
                 h = new BusHolder();
-            
+
                 synchronized (THREAD_BUSSES) {
                     THREAD_BUSSES.put(cur, h);
                 }
@@ -133,7 +133,7 @@ public abstract class BusFactory {
         }
         return h;
     }
-    
+
 
     /**
      * Sets the default bus.
@@ -174,7 +174,7 @@ public abstract class BusFactory {
             b.bus = bus;
         }
     }
-    
+
     /**
      * Sets the default bus for the thread.
      *
@@ -264,7 +264,7 @@ public abstract class BusFactory {
                     if (itBus != null) {
                         itBus.bus = null;
                         //mark as stale so if a thread asks again, it will create a new one
-                        itBus.stale = true;  
+                        itBus.stale = true;
                     }
                     //This will remove the BusHolder from the only place that should
                     //strongly reference it
@@ -326,7 +326,7 @@ public abstract class BusFactory {
         try {
             busFactoryClass = ClassLoaderUtils.loadClass(className, BusFactory.class)
                 .asSubclass(BusFactory.class);
-            
+
             instance = busFactoryClass.newInstance();
         } catch (Exception ex) {
             LogUtils.log(LOG, Level.SEVERE, "BUS_FACTORY_INSTANTIATION_EXC", ex);
@@ -378,15 +378,15 @@ public abstract class BusFactory {
             }
 
             if (is != null) {
-                try (BufferedReader rd = new BufferedReader(new InputStreamReader(is, "UTF-8"))) {
+                try (BufferedReader rd = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
                     busFactoryClass = rd.readLine();
                     busFactoryCondition = rd.readLine();
                 }
             }
-            if (isValidBusFactoryClass(busFactoryClass) 
+            if (isValidBusFactoryClass(busFactoryClass)
                 && busFactoryCondition != null) {
                 try {
-                    Class<?> cls =  ClassLoaderUtils.loadClass(busFactoryClass, BusFactory.class)
+                    Class<?> cls = ClassLoaderUtils.loadClass(busFactoryClass, BusFactory.class)
                         .asSubclass(BusFactory.class);
                     if (busFactoryCondition.startsWith("#")) {
                         busFactoryCondition = busFactoryCondition.substring(1);
@@ -403,7 +403,7 @@ public abstract class BusFactory {
                 } catch (NoClassDefFoundError e) {
                     busFactoryClass = DEFAULT_BUS_FACTORY;
                 }
-                
+
             }
             return busFactoryClass;
 

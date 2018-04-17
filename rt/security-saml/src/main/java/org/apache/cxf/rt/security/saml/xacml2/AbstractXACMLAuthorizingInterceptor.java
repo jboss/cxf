@@ -54,24 +54,24 @@ import org.opensaml.xacml.ctx.StatusType;
  */
 public abstract class AbstractXACMLAuthorizingInterceptor extends AbstractPhaseInterceptor<Message> {
     private static final Logger LOG = LogUtils.getL7dLogger(AbstractXACMLAuthorizingInterceptor.class);
-    
+
     private XACMLRequestBuilder requestBuilder = new DefaultXACMLRequestBuilder();
-    
+
     public AbstractXACMLAuthorizingInterceptor() {
         super(Phase.PRE_INVOKE);
         org.apache.wss4j.common.saml.OpenSAMLUtil.initSamlEngine();
     }
-    
+
     public void handleMessage(Message message) throws Fault {
         SecurityContext sc = message.get(SecurityContext.class);
-        
+
         if (sc instanceof LoginSecurityContext) {
             Principal principal = sc.getUserPrincipal();
             String principalName = null;
             if (principal != null) {
                 principalName = principal.getName();
             }
-            
+
             LoginSecurityContext loginSecurityContext = (LoginSecurityContext)sc;
             Set<Principal> principalRoles = loginSecurityContext.getUserRoles();
             List<String> roles = new ArrayList<>();
@@ -82,7 +82,7 @@ public abstract class AbstractXACMLAuthorizingInterceptor extends AbstractPhaseI
                     }
                 }
             }
-            
+
             try {
                 if (authorize(principal, roles, message)) {
                     return;
@@ -98,10 +98,10 @@ public abstract class AbstractXACMLAuthorizingInterceptor extends AbstractPhaseI
                 + "is possible as a result"
             );
         }
-        
+
         throw new AccessDeniedException("Unauthorized");
     }
-    
+
     public XACMLRequestBuilder getRequestBuilder() {
         return requestBuilder;
     }
@@ -122,20 +122,20 @@ public abstract class AbstractXACMLAuthorizingInterceptor extends AbstractPhaseI
             Element requestElement = OpenSAMLUtil.toDom(request, doc);
             LOG.log(Level.FINE, DOM2Writer.nodeToString(requestElement));
         }
-        
+
         ResponseType response = performRequest(request, message);
-        
+
         List<ResultType> results = response.getResults();
-        
+
         if (results == null) {
             return false;
         }
-        
+
         for (ResultType result : results) {
             // Handle any Obligations returned by the PDP
             handleObligations(request, principal, message, result);
-            
-            DECISION decision = result.getDecision() != null ? result.getDecision().getDecision() : DECISION.Deny; 
+
+            DECISION decision = result.getDecision() != null ? result.getDecision().getDecision() : DECISION.Deny;
             String code = "";
             String statusMessage = "";
             if (result.getStatus() != null) {
@@ -143,13 +143,15 @@ public abstract class AbstractXACMLAuthorizingInterceptor extends AbstractPhaseI
                 code = status.getStatusCode() != null ? status.getStatusCode().getValue() : "";
                 statusMessage = status.getStatusMessage() != null ? status.getStatusMessage().getValue() : "";
             }
-            LOG.fine("XACML authorization result: " + decision + ", code: " + code + ", message: " + statusMessage);
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("XACML authorization result: " + decision + ", code: " + code + ", message: " + statusMessage);
+            }
             return decision == DECISION.Permit;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Handle any Obligations returned by the PDP
      */
@@ -163,5 +165,5 @@ public abstract class AbstractXACMLAuthorizingInterceptor extends AbstractPhaseI
     }
 
     protected abstract ResponseType performRequest(RequestType request, Message message) throws Exception;
-    
+
 }

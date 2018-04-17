@@ -18,6 +18,7 @@
  */
 package org.apache.cxf.sts.request;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.cxf.common.logging.LogUtils;
@@ -27,17 +28,19 @@ import org.apache.cxf.common.logging.LogUtils;
  */
 public class Lifetime {
     private static final Logger LOG = LogUtils.getL7dLogger(Lifetime.class);
-    
+
     private String created;
     private String expires;
-    
+
     public String getCreated() {
         return created;
     }
 
     public void setCreated(String created) {
         this.created = created;
-        LOG.fine("Found created value: " + created);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Found created value: " + created);
+        }
     }
 
     public String getExpires() {
@@ -46,7 +49,9 @@ public class Lifetime {
 
     public void setExpires(String expires) {
         this.expires = expires;
-        LOG.fine("Found expires value: " + expires);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Found expires value: " + expires);
+        }
     }
-    
+
 }

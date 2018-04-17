@@ -44,6 +44,7 @@ import org.apache.cxf.service.model.ServiceInfo;
 import org.apache.cxf.staxutils.StaxUtils;
 import org.apache.cxf.transport.DestinationFactoryManager;
 import org.apache.cxf.wsdl11.WSDLServiceBuilder;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.After;
@@ -55,8 +56,8 @@ public class TestBase extends Assert {
     protected PhaseInterceptorChain chain;
     protected SoapMessage soapMessage;
 
-    
-    
+
+
 
     @Before
     public void setUp() throws Exception {
@@ -99,11 +100,6 @@ public class TestBase extends Assert {
                 return m;
             }
         }
-        return null;
-    }
-
-    public ServiceInfo getTestService(Class<?> clz) {
-        // FIXME?!?!?!?? There should NOT be JAX-WS stuff here
         return null;
     }
 

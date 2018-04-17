@@ -21,8 +21,9 @@
 package org.apache.cxf.transport.https;
 
 import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.FileInputStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 
@@ -38,11 +39,11 @@ public class CertConstraintsTest extends org.junit.Assert {
 
     @org.junit.Test
     public void testCertConstraints() throws Exception {
-        final X509Certificate bethalCert = 
+        final X509Certificate bethalCert =
             loadCertificate("Bethal.jks", "JKS", "password", "bethal");
-        final X509Certificate gordyCert = 
+        final X509Certificate gordyCert =
             loadCertificate("Gordy.jks", "JKS", "password", "gordy");
-        
+
         CertConstraints tmp = null;
         //
         // bethal matches but gordy doesn't
@@ -54,31 +55,31 @@ public class CertConstraintsTest extends org.junit.Assert {
         //
         tmp = loadCertConstraints("subject-CN-gordy");
         assertTrue(!tmp.matches(bethalCert) && tmp.matches(gordyCert));
-        
+
         //
         // both are under the ApacheTest organization
         //
         tmp = loadCertConstraints("subject-O-apache");
         assertTrue(tmp.matches(bethalCert) && tmp.matches(gordyCert));
-        
+
         //
         // only bethal is both CN=Bethal and O=ApacheTest
         //
         tmp = loadCertConstraints("subject-CN-bethal-O-apache");
         assertTrue(tmp.matches(bethalCert) && !tmp.matches(gordyCert));
-        
+
         //
         // neither are O=BadApacheTest
         //
         tmp = loadCertConstraints("subject-CN-bethal-O-badapache");
         assertTrue(!tmp.matches(bethalCert) && !tmp.matches(gordyCert));
-        
+
         //
         // both satisfy either CN=Bethal or O=ApacheTest
         //
         tmp = loadCertConstraints("subject-CN-bethal-O-apache-ANY");
         assertTrue(tmp.matches(bethalCert) && tmp.matches(gordyCert));
-        
+
         //
         // only Bethal has "Bethal" as an issuer
         //
@@ -89,26 +90,26 @@ public class CertConstraintsTest extends org.junit.Assert {
     //
     // Private utilities
     //
-    
+
     private static CertConstraints loadCertConstraints(
         final String id
     ) throws Exception {
-        CertificateConstraintsType certsConstraintsType = 
+        CertificateConstraintsType certsConstraintsType =
             loadCertificateConstraintsType(id);
         return CertConstraintsJaxBUtils.createCertConstraints(certsConstraintsType);
     }
-    
+
     private static CertificateConstraintsType loadCertificateConstraintsType(
         final String id
     ) throws Exception {
         return loadGeneratedType(
-            CertificateConstraintsType.class, 
-            "certConstraints", 
-            "resources/cert-constraints.xml", 
+            CertificateConstraintsType.class,
+            "certConstraints",
+            "resources/cert-constraints.xml",
             id
         );
     }
-    
+
     private static X509Certificate loadCertificate(
         final String keystoreFilename,
         final String keystoreType,
@@ -116,24 +117,23 @@ public class CertConstraintsTest extends org.junit.Assert {
         final String id
     ) throws Exception {
         final KeyStore store = KeyStore.getInstance(keystoreType);
-        FileInputStream fis = new FileInputStream(
-                "src/test/java/org/apache/cxf/transport/https/resources/" + keystoreFilename);
-        DataInputStream dis = new DataInputStream(fis);
-        byte[] bytes = new byte[dis.available()];
-        dis.readFully(bytes);
-        dis.close();
-        ByteArrayInputStream bin = new ByteArrayInputStream(bytes);
-        store.load(bin, keystorePassword.toCharArray());
-        for (java.util.Enumeration<String> aliases = store.aliases(); aliases.hasMoreElements();) {
-            final String alias = aliases.nextElement();
-            if (id.equals(alias)) {
-                return (X509Certificate) store.getCertificate(alias);
+        Path path =
+            FileSystems.getDefault().getPath("src/test/java/org/apache/cxf/transport/https/resources/",
+                                             keystoreFilename);
+        byte[] bytes = Files.readAllBytes(path);
+        try (ByteArrayInputStream bin = new ByteArrayInputStream(bytes)) {
+            store.load(bin, keystorePassword.toCharArray());
+            for (java.util.Enumeration<String> aliases = store.aliases(); aliases.hasMoreElements();) {
+                final String alias = aliases.nextElement();
+                if (id.equals(alias)) {
+                    return (X509Certificate) store.getCertificate(alias);
+                }
             }
         }
         assert false;
         throw new RuntimeException("error in test -- keystore " + id + " has no trusted certs");
     }
-    
+
     private static <T> T loadGeneratedType(
         final Class<T> cls,
         final String elementName,
@@ -155,14 +155,15 @@ public class CertConstraintsTest extends org.junit.Assert {
         }
         throw new Exception("Bad test!  No test data with id " + id);
     }
-    
-    
+
+
     private static org.w3c.dom.Document loadDocument(
         final String name
     ) throws Exception {
-        final java.io.InputStream inStream = 
-            CertConstraintsTest.class.getResourceAsStream(name);
-        return StaxUtils.read(inStream);
+        try (java.io.InputStream inStream =
+            CertConstraintsTest.class.getResourceAsStream(name)) {
+            return StaxUtils.read(inStream);
+        }
     }
 
     private static <T> T unmarshal(
@@ -171,9 +172,9 @@ public class CertConstraintsTest extends org.junit.Assert {
     ) throws JAXBException {
         final JAXBContext ctx = JAXBContext.newInstance(cls.getPackage().getName());
         final Unmarshaller unmarshaller = ctx.createUnmarshaller();
-        final JAXBElement<T> jaxbElement = 
+        final JAXBElement<T> jaxbElement =
             unmarshaller.unmarshal(elt, cls);
         return jaxbElement.getValue();
     }
-    
+
 }

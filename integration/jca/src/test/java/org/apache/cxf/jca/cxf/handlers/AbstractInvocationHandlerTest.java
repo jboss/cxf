@@ -21,25 +21,26 @@ package org.apache.cxf.jca.cxf.handlers;
 
 import org.apache.cxf.jca.cxf.CXFInvocationHandler;
 import org.apache.cxf.jca.cxf.CXFManagedConnectionFactory;
+
 import org.junit.Test;
 
-public abstract class AbstractInvocationHandlerTest 
+public abstract class AbstractInvocationHandlerTest
     extends HandlerTestBase {
-    
+
     public AbstractInvocationHandlerTest() {
-     
+
     }
 
     // seach for the setNext method
     @Test
     public void testHandlerInvokesNext() throws Throwable {
         Object[] args = new Object[0];
-                
+
         CXFInvocationHandler handler = getHandler();
-        handler.setNext(mockHandler); 
-        
-        handler.invoke(target, testMethod, args);        
-             
+        handler.setNext(mockHandler);
+
+        handler.invoke(target, testMethod, args);
+
         assertTrue("target object must not be called", !target.methodInvoked);
     }
 
@@ -80,5 +81,5 @@ public abstract class AbstractInvocationHandlerTest
         return mcf;
     }
 
-    
+
 }

@@ -34,7 +34,7 @@ class XercesXsdValidationImpl  {
     private static final Logger LOG = LogUtils.getL7dLogger(XercesXsdValidationImpl.class);
     private XercesSchemaValidationUtils utils;
 
-    public XercesXsdValidationImpl() {
+    XercesXsdValidationImpl() {
         try {
             utils = new XercesSchemaValidationUtils();
         } catch (Throwable e) {
@@ -54,6 +54,8 @@ class XercesXsdValidationImpl  {
             LOG.log(Level.WARNING, "XML Schema serialization error", e);
         } catch (TransformerException e) {
             LOG.log(Level.SEVERE, "TraX failure converting DOM to string", e);
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, "XML failure", e);
         }
     }
 }

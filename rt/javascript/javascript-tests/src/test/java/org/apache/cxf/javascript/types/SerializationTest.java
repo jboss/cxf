@@ -49,9 +49,9 @@ import org.apache.cxf.service.model.SchemaInfo;
 import org.apache.cxf.service.model.ServiceInfo;
 import org.apache.cxf.test.AbstractCXFSpringTest;
 import org.apache.cxf.ws.addressing.EndpointReferenceUtils;
+import org.springframework.context.support.GenericApplicationContext;
 
 import org.junit.Test;
-import org.springframework.context.support.GenericApplicationContext;
 
 public class SerializationTest extends AbstractCXFSpringTest {
     private JavascriptTestUtilities testUtilities;
@@ -197,7 +197,7 @@ public class SerializationTest extends AbstractCXFSpringTest {
         ServiceInfo serviceInfo = serviceInfos.get(0);
         schemata = serviceInfo.getSchemas();
         nameManager = BasicNameManager.newNameManager(serviceInfo);
-        NamespacePrefixAccumulator prefixAccumulator = 
+        NamespacePrefixAccumulator prefixAccumulator =
             new NamespacePrefixAccumulator(serviceInfo.getXmlSchemaCollection());
         for (SchemaInfo schema : schemata) {
             SchemaJavascriptBuilder builder = new SchemaJavascriptBuilder(serviceInfo

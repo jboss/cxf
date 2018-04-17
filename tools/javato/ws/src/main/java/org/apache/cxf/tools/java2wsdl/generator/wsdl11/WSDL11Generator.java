@@ -22,10 +22,11 @@ package org.apache.cxf.tools.java2wsdl.generator.wsdl11;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,7 @@ public class WSDL11Generator extends AbstractGenerator<Definition> {
         Definition def = null;
         try {
             Writer os = new FileWriterUtil(file.getParent(),
-                                           getOutputStreamCreator()).getWriter(file, "UTF-8");
+                                           getOutputStreamCreator()).getWriter(file, StandardCharsets.UTF_8.name());
             WSDLWriter wsdlWriter = WSDLFactory.newInstance().newWSDLWriter();
 
             ServiceWSDLBuilder builder = new ServiceWSDLBuilder(getBus(), getServiceModel());
@@ -81,7 +82,7 @@ public class WSDL11Generator extends AbstractGenerator<Definition> {
                 name = name.substring(0, name.lastIndexOf(".wsdl"));
             }
             builder.setBaseFileName(name);
-            Map<String, SchemaInfo> imports = new HashMap<String, SchemaInfo>();
+            Map<String, SchemaInfo> imports = new HashMap<>();
             def = builder.build(imports);
             wsdlWriter.writeWSDL(def, os);
             os.close();
@@ -95,7 +96,7 @@ public class WSDL11Generator extends AbstractGenerator<Definition> {
                     } else {
                         wsdlFile = new File(outputdir, wsdlDef.getQName().getLocalPart() + ".wsdl");
                     }
-                    try (OutputStream wsdlOs = new BufferedOutputStream(new FileOutputStream(wsdlFile))) {
+                    try (OutputStream wsdlOs = new BufferedOutputStream(Files.newOutputStream(wsdlFile.toPath()))) {
                         wsdlWriter.writeWSDL(wsdlDef, wsdlOs);
                     }
                 }
@@ -105,8 +106,9 @@ public class WSDL11Generator extends AbstractGenerator<Definition> {
                 File impfile = new File(file.getParentFile(), imp.getKey());
                 Element el = imp.getValue().getElement();
                 updateImports(el, imports);
-                os = new FileWriterUtil(impfile.getParent(),
-                                        getToolContext().get(OutputStreamCreator.class)).getWriter(impfile, "UTF-8");
+                FileWriterUtil fileWriterUtil =
+                    new FileWriterUtil(impfile.getParent(), getToolContext().get(OutputStreamCreator.class));
+                os = fileWriterUtil.getWriter(impfile, StandardCharsets.UTF_8.name());
                 StaxUtils.writeTo(el, os, 2);
                 os.close();
             }
@@ -126,7 +128,7 @@ public class WSDL11Generator extends AbstractGenerator<Definition> {
 
     private void updateImports(Element el, Map<String, SchemaInfo> imports) {
         List<Element> imps = DOMUtils.getChildrenWithName(el,
-                                                          WSDLConstants.NS_SCHEMA_XSD, 
+                                                          WSDLConstants.NS_SCHEMA_XSD,
                                                           "import");
         for (Element e : imps) {
             String ns = e.getAttribute("namespace");

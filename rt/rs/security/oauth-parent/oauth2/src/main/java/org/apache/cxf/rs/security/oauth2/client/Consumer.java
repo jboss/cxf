@@ -19,43 +19,66 @@
 package org.apache.cxf.rs.security.oauth2.client;
 
 public class Consumer {
-    
-    private String key;
-    private String secret;
-    private String description;
-    
+
+    private String clientId;
+    private String clientSecret;
+
     public Consumer() {
-        
+
     }
-    public Consumer(String key, String secret) {
-        this.setKey(key);
-        this.setSecret(secret);
+
+    public Consumer(String id) {
+        this.clientId = id;
     }
+    
+    public Consumer(String id, String secret) {
+        this.clientId = id;
+        this.clientSecret = secret;
+    }
+
+    @Deprecated
     public String getKey() {
-        return key;
+        return getClientId();
     }
+
+    @Deprecated
     public void setKey(String key) {
-        this.key = key;
+        setClientId(key);
     }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String id) {
+        this.clientId = id;
+    }
+
+    @Deprecated
     public String getSecret() {
-        return secret;
+        return getClientSecret();
     }
+
+    @Deprecated
     public void setSecret(String secret) {
-        this.secret = secret;
+        setClientSecret(secret);
     }
-    public String getDescription() {
-        return description;
+    public String getClientSecret() {
+        return clientSecret;
     }
-    public void setDescription(String description) {
-        this.description = description;
+
+    public void setClientSecret(String secret) {
+        this.clientSecret = secret;
     }
+
     @Override
     public int hashCode() {
-        return key.hashCode();
+        return clientId.hashCode();
     }
+
     @Override
     public boolean equals(Object o) {
-        return o instanceof Consumer && key.equals(((Consumer)o).key);
+        return o instanceof Consumer && clientId.equals(((Consumer)o).clientId);
     }
-    
+
 }

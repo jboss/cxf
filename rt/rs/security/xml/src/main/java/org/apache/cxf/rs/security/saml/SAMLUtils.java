@@ -40,37 +40,79 @@ import org.apache.wss4j.common.ext.WSPasswordCallback;
 import org.apache.wss4j.common.saml.SAMLCallback;
 import org.apache.wss4j.common.saml.SAMLUtil;
 import org.apache.wss4j.common.saml.SamlAssertionWrapper;
+import org.opensaml.saml.saml1.core.AttributeStatement;
+import org.opensaml.saml.saml1.core.AuthenticationStatement;
+import org.opensaml.saml.saml1.core.AuthorizationDecisionStatement;
+import org.opensaml.saml.saml1.core.NameIdentifier;
+import org.opensaml.saml.saml1.core.Statement;
 import org.opensaml.saml.saml2.core.NameID;
 
 public final class SAMLUtils {
-    private static final Logger LOG = 
+    private static final Logger LOG =
         LogUtils.getL7dLogger(SAMLUtils.class);
-    
+
     private SAMLUtils() {
-        
+
     }
-    
+
     public static Subject getSubject(Message message, SamlAssertionWrapper assertionW) {
-        org.opensaml.saml.saml2.core.Subject s = assertionW.getSaml2().getSubject();
-        Subject subject = new Subject();
-        NameID nameId = s.getNameID();
-        subject.setNameQualifier(nameId.getNameQualifier());
-        // if format is transient then we may need to use STSClient
-        // to request an alternate name from IDP
-        subject.setNameFormat(nameId.getFormat());
-        
-        subject.setName(nameId.getValue());
-        subject.setSpId(nameId.getSPProvidedID());
-        subject.setSpQualifier(nameId.getSPNameQualifier());
-        return subject;
+        if (assertionW.getSaml2() != null) {
+            org.opensaml.saml.saml2.core.Subject s = assertionW.getSaml2().getSubject();
+            Subject subject = new Subject();
+            NameID nameId = s.getNameID();
+            subject.setNameQualifier(nameId.getNameQualifier());
+            // if format is transient then we may need to use STSClient
+            // to request an alternate name from IDP
+            subject.setNameFormat(nameId.getFormat());
+
+            subject.setName(nameId.getValue());
+            subject.setSpId(nameId.getSPProvidedID());
+            subject.setSpQualifier(nameId.getSPNameQualifier());
+            return subject;
+        } else if (assertionW.getSaml1() != null) {
+            org.opensaml.saml.saml1.core.Subject s = getSaml1Subject(assertionW);
+            if (s != null) {
+                Subject subject = new Subject();
+                NameIdentifier nameId = s.getNameIdentifier();
+                subject.setNameQualifier(nameId.getNameQualifier());
+                // if format is transient then we may need to use STSClient
+                // to request an alternate name from IDP
+                subject.setNameFormat(nameId.getFormat());
+
+                subject.setName(nameId.getValue());
+                return subject;
+            }
+        }
+        return null;
     }
-    
+
+    private static org.opensaml.saml.saml1.core.Subject getSaml1Subject(SamlAssertionWrapper assertionW) {
+        for (Statement stmt : assertionW.getSaml1().getStatements()) {
+            org.opensaml.saml.saml1.core.Subject samlSubject = null;
+            if (stmt instanceof AttributeStatement) {
+                AttributeStatement attrStmt = (AttributeStatement) stmt;
+                samlSubject = attrStmt.getSubject();
+            } else if (stmt instanceof AuthenticationStatement) {
+                AuthenticationStatement authStmt = (AuthenticationStatement) stmt;
+                samlSubject = authStmt.getSubject();
+            } else {
+                AuthorizationDecisionStatement authzStmt =
+                    (AuthorizationDecisionStatement)stmt;
+                samlSubject = authzStmt.getSubject();
+            }
+            if (samlSubject != null) {
+                return samlSubject;
+            }
+        }
+        return null;
+    }
+
     public static SamlAssertionWrapper createAssertion(Message message) throws Fault {
         try {
             // Check if the token is already available in the current context;
             // For example, STS Client can set it up.
-            Element samlToken = 
-                (Element)MessageUtils.getContextualProperty(message, 
+            Element samlToken =
+                (Element)MessageUtils.getContextualProperty(message,
                                                             SAMLConstants.WS_SAML_TOKEN_ELEMENT,
                                                             SAMLConstants.SAML_TOKEN_ELEMENT);
             if (samlToken != null) {
@@ -87,31 +129,31 @@ public final class SAMLUtils {
             throw new Fault(new RuntimeException(ex.getMessage() + ", stacktrace: " + sw.toString()));
         }
     }
-    
+
     public static SamlAssertionWrapper createAssertion(Message message,
                                                    CallbackHandler handler) throws Fault {
-            
+
         SAMLCallback samlCallback = new SAMLCallback();
         SAMLUtil.doSAMLCallback(handler, samlCallback);
-        
+
         try {
             SamlAssertionWrapper assertion = new SamlAssertionWrapper(samlCallback);
             if (samlCallback.isSignAssertion()) {
                 //--- This code will be moved to a common utility class
-                Crypto crypto = new CryptoLoader().getCrypto(message, 
+                Crypto crypto = new CryptoLoader().getCrypto(message,
                                           SecurityConstants.SIGNATURE_CRYPTO,
                                           SecurityConstants.SIGNATURE_PROPERTIES);
-                
-                String user = 
+
+                String user =
                     RSSecurityUtils.getUserName(message, crypto, SecurityConstants.SIGNATURE_USERNAME);
                 if (StringUtils.isEmpty(user)) {
                     return assertion;
                 }
-        
-                String password = 
-                    RSSecurityUtils.getPassword(message, user, WSPasswordCallback.SIGNATURE, 
+
+                String password =
+                    RSSecurityUtils.getPassword(message, user, WSPasswordCallback.SIGNATURE,
                             SAMLUtils.class);
-                
+
                 assertion.signAssertion(user, password, crypto, false,
                                         samlCallback.getCanonicalizationAlgorithm(),
                                         samlCallback.getSignatureAlgorithm(),
@@ -124,20 +166,20 @@ public final class SAMLUtils {
             LOG.warning(sw.toString());
             throw new Fault(new RuntimeException(ex.getMessage() + ", stacktrace: " + sw.toString()));
         }
-        
+
     }
-    
+
     public static SamlAssertionWrapper createAssertion(CallbackHandler handler,
                                                    SelfSignInfo info) throws Fault {
-            
+
         SAMLCallback samlCallback = new SAMLCallback();
         SAMLUtil.doSAMLCallback(handler, samlCallback);
-        
+
         try {
             SamlAssertionWrapper assertion = new SamlAssertionWrapper(samlCallback);
-            assertion.signAssertion(info.getUser(), 
-                                    info.getPassword(), 
-                                    info.getCrypto(), 
+            assertion.signAssertion(info.getUser(),
+                                    info.getPassword(),
+                                    info.getCrypto(),
                                     false);
             return assertion;
         } catch (Exception ex) {
@@ -146,20 +188,20 @@ public final class SAMLUtils {
             LOG.warning(sw.toString());
             throw new Fault(new RuntimeException(ex.getMessage() + ", stacktrace: " + sw.toString()));
         }
-        
+
     }
-    
+
     public static class SelfSignInfo {
         private Crypto crypto;
         private String user;
         private String password;
-        
+
         public SelfSignInfo(Crypto crypto, String user, String password) {
             this.crypto = crypto;
             this.user = user;
             this.password = password;
         }
-        
+
         public Crypto getCrypto() {
             return crypto;
         }

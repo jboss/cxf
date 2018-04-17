@@ -56,7 +56,7 @@ public class JAXRSUriInfoTest extends AbstractClientServerTestBase {
 /app/v1/     | http://host/        | "v1/"
 /app/v1/test | http://host/app/v1/ | "test"
 /app/v1/     | http://host/app/v1/ | ""
-/app/v1      | http://host/app/v1/ | "app/v1" 
+/app/v1      | http://host/app/v1/ | "app/v1"
      * @throws Exception
      */
     @Test
@@ -66,14 +66,14 @@ public class JAXRSUriInfoTest extends AbstractClientServerTestBase {
         checkUriInfo("http://localhost:" + PORT + "/app/v1/test", "\"test\"", "test");
         checkUriInfo("http://localhost:" + PORT + "/app/v1/", "\"\"", "/");
         checkUriInfo("http://localhost:" + PORT + "/app/v1", "\"\"", "/");
-          
+
         checkUriInfo("http://localhost:" + PORT + "/app/v1/bar", "\"bar\"", "bar");
         checkUriInfo("http://localhost:" + PORT + "/app/v1/bar", "\"bar\"", "bar");
         checkUriInfo("http://localhost:" + PORT + "/app/v1/bar/test", "\"bar/test\"", "bar/test");
         checkUriInfo("http://localhost:" + PORT + "/app/v1/bar", "\"bar\"", "bar");
         checkUriInfo("http://localhost:" + PORT + "/app/v1/bar", "\"bar\"", "bar");
     }
-    
+
     private void checkUriInfo(String address, String path, String pathParam) {
         WebClient wc = WebClient.create(address);
         wc.accept("text/plain");
@@ -81,13 +81,36 @@ public class JAXRSUriInfoTest extends AbstractClientServerTestBase {
         assertEquals("http://localhost:" + PORT + "/app/v1/," + path + "," + pathParam, data);
     }
     
+    @Test
+    public void testBasePathAndPathAndPathParamXForwarded() throws Exception {
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1", "\"\"", "/");
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1/", "\"\"", "/");
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1/test", "\"test\"", "test");
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1/", "\"\"", "/");
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1", "\"\"", "/");
+
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1/bar", "\"bar\"", "bar");
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1/bar", "\"bar\"", "bar");
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1/bar/test", "\"bar/test\"", "bar/test");
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1/bar", "\"bar\"", "bar");
+        checkUriInfoXForwarded("http://localhost:" + PORT + "/app/v1/bar", "\"bar\"", "bar");
+    }
+    
+    private void checkUriInfoXForwarded(String address, String path, String pathParam) {
+        WebClient wc = WebClient.create(address);
+        wc.accept("text/plain");
+        wc.header("USE_XFORWARDED", true);
+        String data = wc.get(String.class);
+        assertEquals("https://external:8090/reverse/app/v1/," + path + "," + pathParam, data);
+    }
+
     @Ignore
     @Path("/")
     public static class Resource {
-        
+
         @Context
         private UriInfo uriInfo;
-        
+
         @GET
         @Path("/{path:.*}")
         @Produces("text/plain")

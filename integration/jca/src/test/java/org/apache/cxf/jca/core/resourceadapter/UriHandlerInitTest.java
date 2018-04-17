@@ -28,7 +28,7 @@ public class UriHandlerInitTest extends Assert {
     private static final String PROP_NAME = "java.protocol.handler.pkgs";
 
     private static final String PKG_ADD = "do.do";
-    
+
     @Test
     public void testAppendToProp() {
         final Properties properties = System.getProperties();
@@ -46,15 +46,8 @@ public class UriHandlerInitTest extends Assert {
                              + newValue.length(), newValue.length(), len);
 
             } finally {
-                if (origVal != null) {
-                    properties.put(PROP_NAME, origVal);
-                }
+                properties.put(PROP_NAME, origVal);
             }
         }
     }
-
-   
-
-    
-   
 }

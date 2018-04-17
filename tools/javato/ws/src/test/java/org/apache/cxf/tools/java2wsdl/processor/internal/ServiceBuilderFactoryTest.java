@@ -26,11 +26,12 @@ import org.apache.cxf.service.ServiceBuilder;
 import org.apache.cxf.simple.SimpleServiceBuilder;
 import org.apache.cxf.tools.fortest.classnoanno.docbare.Stock;
 import org.apache.cxf.tools.fortest.simple.Hello;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 public class ServiceBuilderFactoryTest extends Assert {
-    ServiceBuilderFactory factory = ServiceBuilderFactory.getInstance(new ArrayList<String>(),
+    ServiceBuilderFactory factory = ServiceBuilderFactory.getInstance(new ArrayList<>(),
                                                                       "jaxb");
 
     @Test

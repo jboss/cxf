@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 
 import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.ws.spi.http.HttpExchange;
@@ -39,10 +40,10 @@ import javax.xml.ws.spi.http.HttpExchange;
  * coming from the HttpExchange instance provided
  * by the underlying container.
  * Note: many methods' implementation still TODO.
- * 
+ *
  */
 class HttpServletResponseAdapter implements HttpServletResponse {
-    
+
     private HttpExchange exchange;
     private String characterEncoding;
     private Locale locale;
@@ -50,8 +51,8 @@ class HttpServletResponseAdapter implements HttpServletResponse {
     private ServletOutputStreamAdapter servletOutputStream;
     private PrintWriter writer;
     private int status;
-    
-    public HttpServletResponseAdapter(HttpExchange exchange) {
+
+    HttpServletResponseAdapter(HttpExchange exchange) {
         this.exchange = exchange;
     }
 
@@ -117,7 +118,7 @@ class HttpServletResponseAdapter implements HttpServletResponse {
 
     public void setContentLength(int len) {
         if (!committed) {
-            exchange.getResponseHeaders().put("Content-Length", 
+            exchange.getResponseHeaders().put("Content-Length",
                 Collections.singletonList(String.valueOf(len)));
         }
     }
@@ -224,11 +225,11 @@ class HttpServletResponseAdapter implements HttpServletResponse {
         this.setStatus(sc);
     }
 
-    private class ServletOutputStreamAdapter extends ServletOutputStream {
+    private static class ServletOutputStreamAdapter extends ServletOutputStream {
 
         private OutputStream delegate;
 
-        public ServletOutputStreamAdapter(OutputStream delegate) {
+        ServletOutputStreamAdapter(OutputStream delegate) {
             this.delegate = delegate;
         }
 
@@ -236,10 +237,25 @@ class HttpServletResponseAdapter implements HttpServletResponse {
         public void write(int b) throws IOException {
             delegate.write(b);
         }
-        
+
         @Override
         public void flush() throws IOException {
             delegate.flush();
         }
+
+        @Override
+        public boolean isReady() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setWriteListener(WriteListener arg0) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    @Override
+    public void setContentLengthLong(long arg0) {
+        throw new UnsupportedOperationException();
     }
 }

@@ -34,6 +34,7 @@ import javax.xml.namespace.QName;
 import org.apache.cxf.connector.Connection;
 import org.apache.cxf.jca.cxf.handlers.ProxyInvocationHandler;
 import org.apache.hello_world_soap_http.Greeter;
+
 import org.easymock.EasyMock;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -58,15 +59,6 @@ public class ManagedConnectionImplTest extends ManagedConnectionTestBase {
         assertTrue(o instanceof Foo);
     }
 
-    
-    @Ignore("Need to check the classloader")
-    public void testThreadContextClassLoaderIsSet() throws Exception {
-        //set the threadContextClassLoader for Bus 
-        //TODO njiang classloader things
-        //check the threadContextClassLoader 
-        mci.getConnection(subj, cri);
-    }
-    
     @Test
     public void testGetConnectionWithNoWSDLInvokesCreateClientWithTwoParameters() throws Exception {
         cri = new CXFConnectionRequestInfo(Greeter.class, null, serviceName, portName);
@@ -76,7 +68,7 @@ public class ManagedConnectionImplTest extends ManagedConnectionTestBase {
         assertTrue("Checking implementation of Connection interface", o instanceof Connection);
         assertTrue("Checking implementation of passed interface", o instanceof Greeter);
     }
-    
+
 
     @Test
     public void testGetConnectionWithNoWSDLInvokesCreateClientWithTwoArgs()
@@ -87,14 +79,15 @@ public class ManagedConnectionImplTest extends ManagedConnectionTestBase {
         assertTrue("Checking implementation of passed interface", o instanceof Greeter);
     }
 
+    @Test
     @Ignore
     public void testGetConnectionWithNoPortReturnsConnection() throws Exception {
 
-        cri = new CXFConnectionRequestInfo(Greeter.class, 
+        cri = new CXFConnectionRequestInfo(Greeter.class,
                                            wsdl,
                                            serviceName,
                                            null);
-        
+
         Object o = mci.getConnection(subj, cri);
 
         assertTrue("Returned connection does not implement Connection interface", o instanceof Connection);
@@ -111,7 +104,7 @@ public class ManagedConnectionImplTest extends ManagedConnectionTestBase {
 
     private void verifyProxyInterceptors(Object o) {
         assertTrue(o instanceof Proxy);
-        assertEquals("First handler must be a ProxyInvocation Handler", ProxyInvocationHandler.class, 
+        assertEquals("First handler must be a ProxyInvocation Handler", ProxyInvocationHandler.class,
                      Proxy.getInvocationHandler(o).getClass());
     }
 
@@ -130,7 +123,7 @@ public class ManagedConnectionImplTest extends ManagedConnectionTestBase {
         PasswordCredential creds = new PasswordCredential(user, password);
         subj.getPrivateCredentials().add(creds);
         Object o = mci.getConnection(subj, cri);
-        
+
         verifyProxyInterceptors(o);
     }
 
@@ -146,10 +139,10 @@ public class ManagedConnectionImplTest extends ManagedConnectionTestBase {
 
         verifyProxyInterceptors(o);
     }
- 
+
 
     @Test
-    public void testCloseConnection() throws Exception {      
+    public void testCloseConnection() throws Exception {
         Connection conn = (Connection)mci.getConnection(subj, cri);
         EasyMock.reset(mockListener);
         mockListener.connectionClosed(EasyMock.isA(ConnectionEvent.class));
@@ -161,7 +154,7 @@ public class ManagedConnectionImplTest extends ManagedConnectionTestBase {
 
     @Test
     public void testAssociateConnection() throws Exception {
-        
+
         CXFConnectionRequestInfo cri2 = new CXFConnectionRequestInfo(Greeter.class,
                                                                          new URL("file:/tmp/foo2"),
                                                                          new QName("service2"),
@@ -199,7 +192,7 @@ public class ManagedConnectionImplTest extends ManagedConnectionTestBase {
     public void testAssociateConnectionThrowsException() throws Throwable {
 
         InvocationHandler ih = EasyMock.createMock(InvocationHandler.class);
-                
+
         Object dodgyHandle = Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] {Foo.class}, ih);
 
         try {
@@ -218,5 +211,5 @@ public class ManagedConnectionImplTest extends ManagedConnectionTestBase {
         assertEquals("Checking the EISProductionVersion", "1.1", data.getEISProductVersion());
         assertEquals("Checking the EISProductName", "WS-based-EIS", data.getEISProductName());
     }
-  
+
 }

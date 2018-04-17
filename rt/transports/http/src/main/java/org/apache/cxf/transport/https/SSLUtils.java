@@ -19,6 +19,7 @@
 package org.apache.cxf.transport.https;
 
 import java.security.GeneralSecurityException;
+import java.util.logging.Logger;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -27,21 +28,24 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509KeyManager;
 
+import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.configuration.jsse.TLSClientParameters;
 import org.apache.cxf.configuration.jsse.TLSParameterBase;
 import org.apache.cxf.configuration.jsse.TLSServerParameters;
-
 import org.apache.cxf.transport.https.httpclient.DefaultHostnameVerifier;
 import org.apache.cxf.transport.https.httpclient.PublicSuffixMatcherLoader;
 
 public final class SSLUtils {
+
+    private static final Logger LOG = LogUtils.getL7dLogger(SSLUtils.class);
+
     private SSLUtils() {
         //Helper class
     }
-    
+
     public static HostnameVerifier getHostnameVerifier(TLSClientParameters tlsClientParameters) {
         HostnameVerifier verifier;
-        
+
         if (tlsClientParameters.getHostnameVerifier() != null) {
             verifier = tlsClientParameters.getHostnameVerifier();
         } else if (tlsClientParameters.isUseHttpsURLConnectionDefaultHostnameVerifier()) {
@@ -53,8 +57,8 @@ public final class SSLUtils {
         }
         return verifier;
     }
-    
-    public static SSLContext getSSLContext(TLSParameterBase parameters) throws Exception {
+
+    public static SSLContext getSSLContext(TLSParameterBase parameters) throws GeneralSecurityException {
         // TODO do we need to cache the context
         String provider = parameters.getJsseProvider();
 
@@ -63,29 +67,30 @@ public final class SSLUtils {
 
         SSLContext ctx = provider == null ? SSLContext.getInstance(protocol) : SSLContext
             .getInstance(protocol, provider);
-        
+
         if (parameters instanceof TLSClientParameters) {
             ctx.getClientSessionContext().setSessionTimeout(((TLSClientParameters)parameters).getSslCacheTimeout());
         }
-        
-        // TODO setting on the server side
-        
+
         KeyManager[] keyManagers = parameters.getKeyManagers();
-        if (parameters.getCertAlias() != null) {
-            getKeyManagersWithCertAlias(parameters, keyManagers);
+        if (keyManagers == null && parameters instanceof TLSClientParameters) {
+            keyManagers = org.apache.cxf.configuration.jsse.SSLUtils.getDefaultKeyStoreManagers(LOG);
         }
+        configureKeyManagersWithCertAlias(parameters, keyManagers);
+
         ctx.init(keyManagers, parameters.getTrustManagers(),
                  parameters.getSecureRandom());
-        
+
         return ctx;
     }
-        
-    protected static void getKeyManagersWithCertAlias(TLSParameterBase tlsParameters,
+
+    public static void configureKeyManagersWithCertAlias(TLSParameterBase tlsParameters,
                                                       KeyManager[] keyManagers)
         throws GeneralSecurityException {
-        if (tlsParameters.getCertAlias() != null) {
+        if (tlsParameters.getCertAlias() != null && keyManagers != null) {
             for (int idx = 0; idx < keyManagers.length; idx++) {
-                if (keyManagers[idx] instanceof X509KeyManager) {
+                if (keyManagers[idx] instanceof X509KeyManager
+                    && !(keyManagers[idx] instanceof AliasedX509ExtendedKeyManager)) {
                     try {
                         keyManagers[idx] = new AliasedX509ExtendedKeyManager(tlsParameters.getCertAlias(),
                                                                              (X509KeyManager)keyManagers[idx]);
@@ -96,7 +101,7 @@ public final class SSLUtils {
             }
         }
     }
-    
+
     public static SSLEngine createServerSSLEngine(TLSServerParameters parameters) throws Exception {
         SSLContext sslContext = getSSLContext(parameters);
         SSLEngine serverEngine = sslContext.createSSLEngine();
@@ -104,13 +109,13 @@ public final class SSLUtils {
         serverEngine.setNeedClientAuth(parameters.getClientAuthentication().isRequired());
         return serverEngine;
     }
-    
+
     public static SSLEngine createClientSSLEngine(TLSClientParameters parameters) throws Exception {
         SSLContext sslContext = getSSLContext(parameters);
         SSLEngine clientEngine = sslContext.createSSLEngine();
         clientEngine.setUseClientMode(true);
         return clientEngine;
     }
-    
+
 
 }

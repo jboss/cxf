@@ -30,6 +30,7 @@ import org.apache.cxf.message.MessageImpl;
 import org.apache.cxf.service.model.EndpointInfo;
 import org.apache.cxf.transport.Conduit;
 import org.apache.cxf.transport.MessageObserver;
+
 import org.junit.Test;
 
 public class RequestResponseTest extends AbstractJMSTester {
@@ -59,7 +60,7 @@ public class RequestResponseTest extends AbstractJMSTester {
             .getJMSType(), inHeader.getJMSType());
     }
 
-    
+
     @Test
     public void testRequestQueueResponseTempQueue() throws Exception {
         EndpointInfo ei = setupServiceInfo("http://cxf.apache.org/jms_simple", "/wsdl/jms_spec_testsuite.wsdl",
@@ -67,7 +68,7 @@ public class RequestResponseTest extends AbstractJMSTester {
         sendAndReceiveMessages(ei, true);
         sendAndReceiveMessages(ei, false);
     }
-    
+
     @Test
     public void testRequestQueueResponseStaticQueue() throws Exception {
         EndpointInfo ei = setupServiceInfo("http://cxf.apache.org/jms_simple", "/wsdl/jms_spec_testsuite.wsdl",
@@ -75,14 +76,14 @@ public class RequestResponseTest extends AbstractJMSTester {
         sendAndReceiveMessages(ei, true);
         sendAndReceiveMessages(ei, false);
     }
-    
+
     @Test
     public void testRequestTopicResponseTempQueue() throws Exception {
         EndpointInfo ei = setupServiceInfo("http://cxf.apache.org/jms_simple", "/wsdl/jms_spec_testsuite.wsdl",
                          "JMSSimpleService002X", "SimplePortTopicRequest");
         sendAndReceiveMessages(ei, true);
     }
-    
+
     @Test
     public void testRequestTopicResponseStaticQueue() throws Exception {
         EndpointInfo ei = setupServiceInfo("http://cxf.apache.org/jms_simple", "/wsdl/jms_spec_testsuite.wsdl",
@@ -90,7 +91,7 @@ public class RequestResponseTest extends AbstractJMSTester {
         sendAndReceiveMessages(ei, true);
         sendAndReceiveMessages(ei, false);
     }
-    
+
     private Message createMessage() {
         Message outMessage = new MessageImpl();
         JMSMessageHeadersType header = new JMSMessageHeadersType();
@@ -129,12 +130,12 @@ public class RequestResponseTest extends AbstractJMSTester {
             }
         };
         destination.setMessageObserver(observer);
-        
+
         try {
             sendMessage(conduit, outMessage, synchronous);
             // wait for the message to be got from the destination,
             // create the thread to handler the Destination incoming message
-    
+
             waitForReceiveInMessage();
             verifyReceivedMessage(inMessage);
         } finally {

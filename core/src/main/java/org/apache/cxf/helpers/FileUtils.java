@@ -21,11 +21,12 @@ package org.apache.cxf.helpers;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -38,14 +39,15 @@ import org.apache.cxf.common.util.SystemPropertyAction;
 public final class FileUtils {
     private static final int RETRY_SLEEP_MILLIS = 10;
     private static File defaultTempDir;
-    private static final char[] ILLEGAL_CHARACTERS 
-        = {'/', '\n', '\r', '\t', '\0', '\f', '`', '?', '*', '\\', '<', '>', '|', '\"', ':'};    
-    
+    private static Thread shutdownHook;
+    private static final char[] ILLEGAL_CHARACTERS
+        = {'/', '\n', '\r', '\t', '\0', '\f', '`', '?', '*', '\\', '<', '>', '|', '\"', ':'};
+
     private FileUtils() {
-        
+
     }
-    
-    public boolean isValidFileName(String name) {
+
+    public static boolean isValidFileName(String name) {
         for (int i = name.length(); i > 0; i--) {
             char c = name.charAt(i - 1);
             for (char c2 : ILLEGAL_CHARACTERS) {
@@ -74,34 +76,72 @@ public final class FileUtils {
             && defaultTempDir.exists()) {
             return defaultTempDir;
         }
-        
+
         String s = SystemPropertyAction.getPropertyOrNull(FileUtils.class.getName() + ".TempDirectory");
         if (s != null) {
             //assume someone outside of us will manage the directory
             File f = new File(s);
             if (f.mkdirs()) {
-                defaultTempDir = f;                
+                defaultTempDir = f;
             }
         }
         if (defaultTempDir == null) {
-            defaultTempDir = createTmpDir();         
+            defaultTempDir = createTmpDir(false);
+            if (shutdownHook != null) {
+                Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            }
+            shutdownHook = new Thread() {
+                @Override
+                public void run() {
+                    removeDir(defaultTempDir, true);
+                }
+            };
+            Runtime.getRuntime().addShutdownHook(shutdownHook);
+
         }
         return defaultTempDir;
     }
-    
+
+    public static synchronized void maybeDeleteDefaultTempDir() {
+        if (defaultTempDir != null) {
+            Runtime.getRuntime().gc(); // attempt a garbage collect to close any files
+            String files[] = defaultTempDir.list();
+            if (files != null && files.length > 0) {
+                //there are files in there, we need to attempt some more cleanup
+
+                //HOWEVER, we don't want to just wipe out every file as something may be holding onto
+                //the files for a reason. We'll re-run the gc and run the finalizers to see if
+                //anything gets cleaned up.
+                Runtime.getRuntime().gc(); // attempt a garbage collect to close any files
+                Runtime.getRuntime().runFinalization();
+                Runtime.getRuntime().gc();
+                files = defaultTempDir.list();
+            }
+            if (files == null || files.length == 0) {
+                //all the files are gone, we can remove the shutdownhook and reset
+                Runtime.getRuntime().removeShutdownHook(shutdownHook);
+                shutdownHook.run();
+                shutdownHook = null;
+                defaultTempDir = null;
+            }
+        }
+    }
+
     public static File createTmpDir() {
-        int x = (int)(Math.random() * 1000000);
+        return createTmpDir(true);
+    }
+    public static File createTmpDir(boolean addHook) {
         String s = SystemPropertyAction.getProperty("java.io.tmpdir");
         File checkExists = new File(s);
         if (!checkExists.exists() || !checkExists.isDirectory()) {
-            throw new RuntimeException("The directory " 
-                                   + checkExists.getAbsolutePath() 
+            throw new RuntimeException("The directory "
+                                   + checkExists.getAbsolutePath()
                                    + " does not exist, please set java.io.tempdir"
                                    + " to an existing directory");
         }
         if (!checkExists.canWrite()) {
-            throw new RuntimeException("The directory " 
-                                   + checkExists.getAbsolutePath() 
+            throw new RuntimeException("The directory "
+                                   + checkExists.getAbsolutePath()
                                    + " is not writable, please set java.io.tempdir"
                                    + " to a writable directory");
         }
@@ -110,28 +150,40 @@ public final class FileUtils {
                                                            + "little usable temporary space.  Operations"
                                                            + " requiring temporary files may fail.");
         }
-        File f = new File(checkExists, "cxf-tmp-" + x);
-        int count = 0;
-        while (!f.mkdir()) {
-            
-            if (count > 10000) {
-                throw new RuntimeException("Could not create a temporary directory in "
-                                           + s + ",  please set java.io.tempdir"
-                                           + " to a writable directory");
+
+        File newTmpDir;
+        try {
+            Path path = Files.createTempDirectory(checkExists.toPath(), "cxf-tmp-");
+            File f = path.toFile();
+            f.deleteOnExit();
+            newTmpDir = f;
+        } catch (IOException ex) {
+            int x = (int)(Math.random() * 1000000);
+            File f = new File(checkExists, "cxf-tmp-" + x);
+            int count = 0;
+            while (!f.mkdir()) {
+
+                if (count > 10000) {
+                    throw new RuntimeException("Could not create a temporary directory in "
+                                               + s + ",  please set java.io.tempdir"
+                                               + " to a writable directory");
+                }
+                x = (int)(Math.random() * 1000000);
+                f = new File(checkExists, "cxf-tmp-" + x);
+                count++;
             }
-            x = (int)(Math.random() * 1000000);
-            f = new File(checkExists, "cxf-tmp-" + x);
-            count++;
+            newTmpDir = f;
         }
-        File newTmpDir  = f;
-        final File f2 = f;
-        Thread hook = new Thread() {
-            @Override
-            public void run() {
-                removeDir(f2, true);
-            }
-        };
-        Runtime.getRuntime().addShutdownHook(hook); 
+        if (addHook) {
+            final File f2 = newTmpDir;
+            Thread hook = new Thread() {
+                @Override
+                public void run() {
+                    removeDir(f2, true);
+                }
+            };
+            Runtime.getRuntime().addShutdownHook(hook);
+        }
         return newTmpDir;
     }
 
@@ -219,14 +271,14 @@ public final class FileUtils {
     public static File createTempFile(String prefix, String suffix) throws IOException {
         return createTempFile(prefix, suffix, null, false);
     }
-    
+
     public static File createTempFile(String prefix, String suffix, File parentDir,
                                boolean deleteOnExit) throws IOException {
         File result = null;
         File parent = (parentDir == null)
             ? getDefaultTempDir()
             : parentDir;
-            
+
         if (suffix == null) {
             suffix = ".tmp";
         }
@@ -235,7 +287,7 @@ public final class FileUtils {
         } else if (prefix.length() < 3) {
             prefix = prefix + "cxf";
         }
-        result = File.createTempFile(prefix, suffix, parent);
+        result = Files.createTempFile(parent.toPath(), prefix, suffix).toFile();
 
         //if parentDir is null, we're in our default dir
         //which will get completely wiped on exit from our exit
@@ -245,13 +297,13 @@ public final class FileUtils {
         }
         return result;
     }
-    
+
     public static String getStringFromFile(File location) {
         InputStream is = null;
         String result = null;
 
         try {
-            is = new FileInputStream(location);
+            is = Files.newInputStream(location.toPath());
             result = normalizeCRLF(is);
         } catch (Exception e) {
             e.printStackTrace();
@@ -294,8 +346,8 @@ public final class FileUtils {
         rtn = ignoreTokens(rtn, "/*", "*/");
         return rtn;
     }
-    
-    private static String ignoreTokens(final String contents, 
+
+    private static String ignoreTokens(final String contents,
                                        final String startToken, final String endToken) {
         String rtn = contents;
         int headerIndexStart = rtn.indexOf(startToken);
@@ -315,25 +367,28 @@ public final class FileUtils {
     }
 
     public static List<File> getFiles(File dir, final String pattern, File exclude) {
-        return getFilesRecurse(dir, Pattern.compile(pattern), exclude, false, new ArrayList<File>());
+        return getFilesRecurse(dir, Pattern.compile(pattern), exclude, false, new ArrayList<>());
     }
     public static List<File> getFilesRecurse(File dir, final String pattern, File exclude) {
-        return getFilesRecurse(dir, Pattern.compile(pattern), exclude, true, new ArrayList<File>());    
+        return getFilesRecurse(dir, Pattern.compile(pattern), exclude, true, new ArrayList<>());
     }
-    private static List<File> getFilesRecurse(File dir, 
+    private static List<File> getFilesRecurse(File dir,
                                               Pattern pattern,
                                               File exclude, boolean rec,
                                               List<File> fileList) {
-        for (File file : dir.listFiles()) {
-            if (file.equals(exclude)) {
-                continue;
-            }
-            if (file.isDirectory() && rec) {
-                getFilesRecurse(file, pattern, exclude, rec, fileList);
-            } else {
-                Matcher m = pattern.matcher(file.getName());
-                if (m.matches()) {
-                    fileList.add(file);                                
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : dir.listFiles()) {
+                if (file.equals(exclude)) {
+                    continue;
+                }
+                if (file.isDirectory() && rec) {
+                    getFilesRecurse(file, pattern, exclude, rec, fileList);
+                } else {
+                    Matcher m = pattern.matcher(file.getName());
+                    if (m.matches()) {
+                        fileList.add(file);
+                    }
                 }
             }
         }
@@ -342,9 +397,9 @@ public final class FileUtils {
 
     public static List<String> readLines(File file) throws Exception {
         if (!file.exists()) {
-            return new ArrayList<String>();
+            return new ArrayList<>();
         }
-        List<String> results = new ArrayList<String>();
+        List<String> results = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line = reader.readLine();
             while (line != null) {

@@ -29,6 +29,7 @@ import org.apache.cxf.message.ExchangeImpl;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
 import org.apache.cxf.transport.MessageObserver;
+
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,7 +40,7 @@ public class JMSContinuationTest extends Assert {
     private Message m;
     private Bus b;
     private MessageObserver observer;
-    
+
     @Before
     public void setUp() {
         m = new MessageImpl();
@@ -47,11 +48,11 @@ public class JMSContinuationTest extends Assert {
         m.setExchange(exchange);
         m.setInterceptorChain(EasyMock.createMock(InterceptorChain.class));
         exchange.setInMessage(m);
-        
+
         b = BusFactory.getDefaultBus();
         observer = EasyMock.createMock(MessageObserver.class);
     }
-    
+
     @Test
     public void testInitialStatus() {
         Counter continuations = EasyMock.createMock(Counter.class);
@@ -60,7 +61,7 @@ public class JMSContinuationTest extends Assert {
         assertFalse(cw.isPending());
         assertFalse(cw.isResumed());
     }
-    
+
     @Test
     public void testSuspendResume() {
         DummyCounter continuations = new DummyCounter();
@@ -68,45 +69,45 @@ public class JMSContinuationTest extends Assert {
 
         cw.suspend(5000);
         Assert.assertEquals(1, continuations.counter.get());
-          
+
         assertFalse(cw.isNew());
         assertTrue(cw.isPending());
         assertFalse(cw.isResumed());
-        
-        
+
+
         assertFalse(cw.suspend(1000));
         Assert.assertEquals(1, continuations.counter.get());
-        
+
         observer.onMessage(m);
         EasyMock.expectLastCall();
         EasyMock.replay(observer);
-        
+
         cw.resume();
-        Assert.assertEquals(0, continuations.counter.get());        
+        Assert.assertEquals(0, continuations.counter.get());
         assertFalse(cw.isNew());
         assertFalse(cw.isPending());
         assertTrue(cw.isResumed());
-        
+
         EasyMock.verify(observer);
     }
-    
+
     @Test
     public void testSendMessageOnResume() {
         Counter continuations = new DummyCounter();
         JMSContinuation cw = new JMSContinuation(b, m, observer, continuations);
-        
+
         cw.suspend(5000);
         assertFalse(cw.suspend(1000));
-        
+
         observer.onMessage(m);
         EasyMock.expectLastCall();
         EasyMock.replay(observer);
-        
+
         cw.resume();
-        
+
         EasyMock.verify(observer);
     }
-    
+
     @Test
     public void testUserObject() {
         Counter continuations = new DummyCounter();
@@ -116,7 +117,7 @@ public class JMSContinuationTest extends Assert {
         cw.setObject(userObject);
         assertSame(userObject, cw.getObject());
     }
-    
+
     public class DummyCounter implements Counter {
         AtomicInteger counter = new AtomicInteger();
 
@@ -129,7 +130,7 @@ public class JMSContinuationTest extends Assert {
         public int decrementAndGet() {
             return counter.decrementAndGet();
         }
-        
+
     }
 
 }

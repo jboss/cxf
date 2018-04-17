@@ -17,16 +17,27 @@ Using either UNIX or Windows:
   mvn -Pserver  (from one command line window)  
     
 
-To view the swagger document, use your Browser to open the page at
+After the service is started, the Swagger API documents in JSON and YAML
+are available at
 
-  http://localhost:9000/?url=/swagger.json
+  http://localhost:9000/swagger.json
+  http://localhost:9000/swagger.yaml
+
+
+To view the Swagger document using Swagger-UI, use your Browser to 
+open the Swagger-UI page at
+
+  http://localhost:9000/api-docs?url=/swagger.json
 
 or
 
-  http://localhost:9000/?url=/swagger.yaml
+  http://localhost:9000/api-docs?url=/swagger.yaml
 
+or access it from the CXF Services page:
 
-To remove the target dir, run mvn clean".
+  http://localhost:9000/services
+  and follow a Swagger link.
+  
 
 
 

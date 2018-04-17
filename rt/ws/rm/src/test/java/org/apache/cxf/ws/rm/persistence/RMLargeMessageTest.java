@@ -45,12 +45,8 @@ public class RMLargeMessageTest extends RMMessageTest {
             System.setProperty("org.apache.cxf.io.CachedOutputStream.Threshold", oldThreshold);
         }
     }
-    
-    @Test
-    public void testContentInputStream() throws Exception {
-        super.testContentInputStream();
-    }
-    
+
+
     @Test
     public void testContentCachedOutputStream() throws Exception {
         super.testContentCachedOutputStream();

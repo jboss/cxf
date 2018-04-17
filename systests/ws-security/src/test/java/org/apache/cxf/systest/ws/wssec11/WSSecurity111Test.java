@@ -28,6 +28,7 @@ import org.apache.cxf.systest.ws.wssec11.server.Server11;
 import org.apache.cxf.systest.ws.wssec11.server.Server11Restricted;
 import org.apache.cxf.systest.ws.wssec11.server.StaxServer11;
 import org.apache.cxf.systest.ws.wssec11.server.StaxServer11Restricted;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,29 +36,29 @@ import org.junit.runners.Parameterized.Parameters;
 
 
 /**
- * This class runs the first half of the tests, as having all in 
+ * This class runs the first half of the tests, as having all in
  * the one class causes an out of memory problem in eclipse.
  */
 @RunWith(value = org.junit.runners.Parameterized.class)
 public class WSSecurity111Test extends WSSecurity11Common {
     private static boolean unrestrictedPoliciesInstalled;
-    
+
     static {
         unrestrictedPoliciesInstalled = SecurityTestUtil.checkUnrestrictedPoliciesInstalled();
     };
-    
+
     final TestParam test;
-    
+
     public WSSecurity111Test(TestParam type) {
         this.test = type;
     }
-    
+
     static class TestParam {
         final String prefix;
         final boolean streaming;
         final String port;
-        
-        public TestParam(String p, String port, boolean b) {
+
+        TestParam(String p, String port, boolean b) {
             prefix = p;
             this.port = port;
             streaming = b;
@@ -102,7 +103,7 @@ public class WSSecurity111Test extends WSSecurity11Common {
             );
         }
     }
-    
+
     @Parameters(name = "{0}")
     public static Collection<TestParam[]> data() {
         String domPort = null;
@@ -111,14 +112,14 @@ public class WSSecurity111Test extends WSSecurity11Common {
         } else {
             domPort = Server11Restricted.PORT;
         }
-        
+
         String staxPort = null;
         if (unrestrictedPoliciesInstalled) {
             staxPort = StaxServer11.PORT;
         } else {
             staxPort = StaxServer11Restricted.PORT;
         }
-        
+
         return Arrays.asList(new TestParam[][] {
             {new TestParam("A", domPort, false)},
             {new TestParam("A-NoTimestamp", domPort, false)},
@@ -130,7 +131,7 @@ public class WSSecurity111Test extends WSSecurity11Common {
             {new TestParam("UXD", domPort, false)},
             {new TestParam("UX-SEES", domPort, false)},
             {new TestParam("UXD-SEES", domPort, false)},
-            
+
             {new TestParam("A", domPort, true)},
             {new TestParam("A-NoTimestamp", domPort, true)},
             {new TestParam("AD", domPort, true)},
@@ -141,7 +142,7 @@ public class WSSecurity111Test extends WSSecurity11Common {
             {new TestParam("UXD", domPort, true)},
             {new TestParam("UX-SEES", domPort, true)},
             {new TestParam("UXD-SEES", domPort, true)},
-            
+
             {new TestParam("A", staxPort, false)},
             {new TestParam("A-NoTimestamp", staxPort, false)},
             {new TestParam("AD", staxPort, false)},
@@ -152,7 +153,7 @@ public class WSSecurity111Test extends WSSecurity11Common {
             {new TestParam("UXD", staxPort, false)},
             {new TestParam("UX-SEES", staxPort, false)},
             {new TestParam("UXD-SEES", staxPort, false)},
-            
+
             {new TestParam("A", staxPort, true)},
             {new TestParam("A-NoTimestamp", staxPort, true)},
             {new TestParam("AD", staxPort, true)},
@@ -165,7 +166,7 @@ public class WSSecurity111Test extends WSSecurity11Common {
             {new TestParam("UXD-SEES", staxPort, true)},
         });
     }
-    
+
     @org.junit.AfterClass
     public static void cleanup() throws Exception {
         SecurityTestUtil.cleanup();
@@ -179,8 +180,8 @@ public class WSSecurity111Test extends WSSecurity11Common {
             System.out.println("Not running as there is a problem with 1.6 jdk and restricted jars");
             return;
         }
-        
+
         runClientServer(test.prefix, test.port, unrestrictedPoliciesInstalled, test.streaming);
     }
-        
+
 }

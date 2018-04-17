@@ -19,17 +19,19 @@
 
 package org.apache.cxf.tools.wsdlto.javascript;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-import org.apache.cxf.helpers.IOUtils;
 import org.apache.cxf.tools.common.ProcessorTestBase;
 import org.apache.cxf.tools.common.ToolConstants;
 import org.apache.cxf.tools.common.ToolContext;
+
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class WSDLToJavaScriptTest extends ProcessorTestBase {
 
@@ -50,44 +52,46 @@ public class WSDLToJavaScriptTest extends ProcessorTestBase {
 
         ToolContext context = new ToolContext();
         context.put(ToolConstants.CFG_WSDLURL, getLocation("hello_world.wsdl"));
-        context.put(ToolConstants.CFG_OUTPUTDIR, output.toString()); 
+        context.put(ToolConstants.CFG_OUTPUTDIR, output.toString());
         String[] prefixes = new String[1];
         prefixes[0] = "http://apache.org/hello_world_soap_http=murble";
         context.put(ToolConstants.CFG_JSPACKAGEPREFIX, prefixes);
-        container.setContext(context); 
+        container.setContext(context);
         container.execute();
+
         // now we really want to check some results.
-        File resultFile = new File(output, "SOAPService_Test1.js");
-        assertTrue(resultFile.canRead());
-        FileInputStream fis = new FileInputStream(resultFile);
-        String javascript = IOUtils.readStringFromStream(fis);
+        Path path = FileSystems.getDefault().getPath(output.getPath(), "SOAPService_Test1.js");
+        assertTrue(Files.isReadable(path));
+        String javascript = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+
         assertTrue(javascript.contains("xmlns:murble='http://apache.org/hello_world_soap_http'"));
         assertEquals("Number of '{' does not match number of '}' in generated JavaScript.",
                 countChar(javascript, '{'),
                 countChar(javascript, '}'));
     }
-   
+
     @Test
     public void testCXF3891() throws Exception {
         JavaScriptContainer container = new JavaScriptContainer(null);
 
         ToolContext context = new ToolContext();
         context.put(ToolConstants.CFG_WSDLURL, getLocation("hello_world_ref.wsdl"));
-        context.put(ToolConstants.CFG_OUTPUTDIR, output.toString()); 
+        context.put(ToolConstants.CFG_OUTPUTDIR, output.toString());
         String[] prefixes = new String[1];
         prefixes[0] = "http://apache.org/hello_world_soap_http=murble";
         context.put(ToolConstants.CFG_JSPACKAGEPREFIX, prefixes);
-        container.setContext(context); 
+        container.setContext(context);
         container.execute();
+
         // now we really want to check some results.
-        File resultFile = new File(output, "SOAPService.js");
-        assertTrue(resultFile.canRead());
-        FileInputStream fis = new FileInputStream(resultFile);
-        String javascript = IOUtils.readStringFromStream(fis);
+        Path path = FileSystems.getDefault().getPath(output.getPath(), "SOAPService.js");
+        assertTrue(Files.isReadable(path));
+        String javascript = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+
         assertTrue(javascript.contains("xmlns:murble='http://apache.org/hello_world_soap_http'"));
         assertEquals("Number of '{' does not match number of '}' in generated JavaScript.",
                 countChar(javascript, '{'),
                 countChar(javascript, '}'));
     }
-   
+
 }

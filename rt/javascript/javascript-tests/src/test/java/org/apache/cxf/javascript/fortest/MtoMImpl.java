@@ -32,9 +32,9 @@ import javax.xml.ws.soap.MTOM;
 import org.apache.cxf.helpers.IOUtils;
 
 /**
- * 
+ *
  */
-@org.apache.cxf.feature.Features(features = "org.apache.cxf.feature.LoggingFeature")   
+@org.apache.cxf.feature.Features(features = "org.apache.cxf.feature.LoggingFeature")
 @WebService(targetNamespace = "uri:org.apache.cxf.javascript.fortest")
 @MTOM(enabled = true, threshold = 0)
 public class MtoMImpl implements MtoM {
@@ -42,12 +42,11 @@ public class MtoMImpl implements MtoM {
     private String returnData;
     private MtoMParameterBeanNoDataHandler lastBean;
     private MtoMParameterBeanWithDataHandler lastDHBean;
-    
+
     public MtoMImpl() {
-        InputStream someData = 
+        InputStream someData =
             getClass().getClassLoader().getResourceAsStream("org/apache/cxf/javascript/cxf-utils.js");
-        StringWriter sw = new StringWriter();
-        try {
+        try (StringWriter sw = new StringWriter()) {
             InputStreamReader isr = new InputStreamReader(someData, "utf-8");
             IOUtils.copy(isr, sw, 4096);
             returnData = sw.toString();
@@ -56,7 +55,7 @@ public class MtoMImpl implements MtoM {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        
+
     }
 
     public void reset() {

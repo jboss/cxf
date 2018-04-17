@@ -32,36 +32,35 @@ import org.apache.cxf.phase.Phase;
 import org.apache.cxf.rs.security.saml.SAMLConstants;
 import org.apache.cxf.rs.security.saml.SamlFormOutInterceptor;
 import org.apache.cxf.rs.security.saml.SamlHeaderOutInterceptor;
-
 import org.apache.wss4j.common.ext.WSSecurityException;
 import org.apache.wss4j.common.saml.SAMLCallback;
 import org.apache.wss4j.common.saml.SAMLUtil;
 import org.apache.wss4j.common.saml.SamlAssertionWrapper;
-import org.apache.wss4j.dom.WSSConfig;
+import org.apache.wss4j.dom.engine.WSSConfig;
 
 /**
  * An Interceptor to "retrieve" a SAML Token, i.e. create one and set it on the message
  * context so that the Saml*Interceptors can write it out in a particular way.
  */
 public class SamlRetrievalInterceptor extends AbstractPhaseInterceptor<Message> {
-    
+
     static {
         WSSConfig.init();
     }
-    
+
     protected SamlRetrievalInterceptor() {
         super(Phase.WRITE);
         addBefore(SamlFormOutInterceptor.class.getName());
         addBefore(SamlHeaderOutInterceptor.class.getName());
-    } 
+    }
 
     @Override
     public void handleMessage(Message message) throws Fault {
-        
+
         // Create a SAML Token
         SAMLCallback samlCallback = new SAMLCallback();
         SAMLUtil.doSAMLCallback(new SamlCallbackHandler(), samlCallback);
-        
+
         try {
             SamlAssertionWrapper assertion = new SamlAssertionWrapper(samlCallback);
             Document doc = DOMUtils.createDocument();
@@ -72,6 +71,6 @@ public class SamlRetrievalInterceptor extends AbstractPhaseInterceptor<Message> 
             ex.printStackTrace(new PrintWriter(sw));
             throw new Fault(new RuntimeException(ex.getMessage() + ", stacktrace: " + sw.toString()));
         }
-        
+
     }
 }

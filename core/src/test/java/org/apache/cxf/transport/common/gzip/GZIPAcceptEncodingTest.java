@@ -34,8 +34,8 @@ import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.ExchangeImpl;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
-import org.easymock.EasyMock;
 
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,32 +81,32 @@ public class GZIPAcceptEncodingTest extends Assert {
 
     @Test
     public void testAcceptGzip() throws Exception {
-        singleTest("gzip", true, YES, "gzip");
+        singleTest("gzip", YES, "gzip");
     }
 
     @Test
     public void testAcceptXGzip() throws Exception {
-        singleTest("x-gzip, x-compress", true, YES, "x-gzip");
+        singleTest("x-gzip, x-compress", YES, "x-gzip");
     }
 
     @Test
     public void testAcceptStar() throws Exception {
-        singleTest("*", true, YES, "gzip");
+        singleTest("*", YES, "gzip");
     }
 
     @Test
     public void testAcceptOnlyGzip() throws Exception {
-        singleTest("gzip, identity; q=0", true, FORCE, "gzip");
+        singleTest("gzip, identity; q=0", FORCE, "gzip");
     }
 
     @Test
     public void testOnlyIdentitySupported() throws Exception {
-        singleTest("deflate", false, null, null);
+        singleTest("deflate", null, null);
     }
 
     @Test
     public void testGzipExplicitlyDisabled() throws Exception {
-        singleTest("gzip; q=0.00", false, null, null);
+        singleTest("gzip; q=0.00", null, null);
     }
 
     @Test(expected = Fault.class)
@@ -116,7 +116,7 @@ public class GZIPAcceptEncodingTest extends Assert {
         interceptor.handleMessage(outMessage);
     }
 
-    private void singleTest(String encoding, boolean expectEndingInterceptor,
+    private void singleTest(String encoding,
                             GZIPOutInterceptor.UseGzip expectedUseGzip, String expectedGzipEncoding)
         throws Exception {
 
@@ -130,7 +130,7 @@ public class GZIPAcceptEncodingTest extends Assert {
     }
 
     private void setAcceptEncoding(String enc) {
-        Map<String, List<String>> protocolHeaders 
+        Map<String, List<String>> protocolHeaders
             = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
         protocolHeaders.put(HttpHeaderHelper.getHeaderKey(HttpHeaderHelper.ACCEPT_ENCODING), Collections
             .singletonList(enc));

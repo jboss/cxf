@@ -23,15 +23,16 @@ import org.apache.cxf.transport.http.policy.impl.ClientPolicyCalculator;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.apache.cxf.ws.policy.builder.jaxb.JaxbAssertion;
 import org.apache.neethi.Assertion;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class HTTPClientAssertionBuilderTest extends Assert {
 
-    
+
     @Test
     public void testBuildAssertion() throws Exception {
         HTTPClientAssertionBuilder ab = new HTTPClientAssertionBuilder();
@@ -41,13 +42,13 @@ public class HTTPClientAssertionBuilderTest extends Assert {
         assertEquals(new ClientPolicyCalculator().getDataClassName(), a.getName());
         assertTrue(!a.isOptional());
     }
-    
+
     @Test
     public void testHTTPCLientPolicyAssertionEqual() throws Exception {
         HTTPClientAssertionBuilder ab = new HTTPClientAssertionBuilder();
         JaxbAssertion<HTTPClientPolicy>  a = ab.buildAssertion();
         a.setData(new HTTPClientPolicy());
-        assertTrue(a.equal(a));        
+        assertTrue(a.equal(a));
         JaxbAssertion<HTTPClientPolicy> b = ab.buildAssertion();
         b.setData(new HTTPClientPolicy());
         assertTrue(a.equal(b));
@@ -58,6 +59,6 @@ public class HTTPClientAssertionBuilderTest extends Assert {
         b.setData(pb);
         assertTrue(a.equal(b));
         pa.setDecoupledEndpoint("http://localhost:9999/decoupled_endpoint");
-        assertTrue(!a.equal(b));  
-    }    
+        assertTrue(!a.equal(b));
+    }
 }

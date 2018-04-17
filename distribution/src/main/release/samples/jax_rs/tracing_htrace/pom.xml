@@ -25,12 +25,11 @@
     <parent>
         <groupId>org.apache.cxf.samples</groupId>
         <artifactId>cxf-samples</artifactId>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.5-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
     <properties>
         <cxf.version>${project.version}</cxf.version>
-        <httpclient.version>3.1</httpclient.version>
     </properties>
     <profiles>
         <profile>
@@ -84,33 +83,33 @@
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-transports-http</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>
         <!-- This dependency is needed if you're using the Jetty container -->
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-transports-http-jetty</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxrs</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-rs-client</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>    
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-integration-tracing-htrace</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-rs-extension-providers</artifactId>
-            <version>3.1.3-SNAPSHOT</version>
+            <version>3.2.5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.json</groupId>
@@ -120,14 +119,6 @@
             <groupId>org.glassfish</groupId>
             <artifactId>javax.json</artifactId>
         </dependency>                    
-        <dependency>
-            <groupId>commons-lang</groupId>
-            <artifactId>commons-lang</artifactId>
-        </dependency>                        
-        <dependency>
-            <groupId>commons-httpclient</groupId>
-            <artifactId>commons-httpclient</artifactId>
-        </dependency>                
         <dependency>
             <groupId>javax.ws.rs</groupId>
             <artifactId>javax.ws.rs-api</artifactId>

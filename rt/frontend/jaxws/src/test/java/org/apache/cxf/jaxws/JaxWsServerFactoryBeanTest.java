@@ -20,6 +20,7 @@ package org.apache.cxf.jaxws;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.wsdl.Definition;
 import javax.wsdl.xml.WSDLWriter;
 import javax.xml.xpath.XPathConstants;
@@ -41,10 +42,11 @@ import org.apache.cxf.service.model.ServiceInfo;
 import org.apache.cxf.wsdl.WSDLManager;
 import org.apache.cxf.wsdl11.ServiceWSDLBuilder;
 import org.apache.hello_world_doc_lit.GreeterImplDoc;
+
 import org.junit.Test;
 
 public class JaxWsServerFactoryBeanTest extends AbstractJaxWsTest {
-    
+
     @Test
     public void testBean() {
         JaxWsServerFactoryBean sf = new JaxWsServerFactoryBean();
@@ -52,11 +54,11 @@ public class JaxWsServerFactoryBeanTest extends AbstractJaxWsTest {
         sf.setAddress("http://localhost:9000/test");
         sf.setServiceClass(Hello.class);
         sf.setStart(false);
-        
+
         Server server = sf.create();
         assertNotNull(server);
     }
-    
+
     @Test
     public void testJaxbExtraClass() {
         JaxWsServerFactoryBean sf = new JaxWsServerFactoryBean();
@@ -66,9 +68,9 @@ public class JaxWsServerFactoryBeanTest extends AbstractJaxWsTest {
         sf.setStart(false);
         Map<String, Object> props = sf.getProperties();
         if (props == null) {
-            props = new HashMap<String, Object>();
+            props = new HashMap<>();
         }
-        props.put("jaxb.additionalContextClasses", 
+        props.put("jaxb.additionalContextClasses",
                   new Class[] {DescriptionType.class, DisplayNameType.class});
         sf.setProperties(props);
         Server server = sf.create();
@@ -78,14 +80,14 @@ public class JaxWsServerFactoryBeanTest extends AbstractJaxWsTest {
         assertEquals(extraClass[0], DescriptionType.class);
         assertEquals(extraClass[1], DisplayNameType.class);
     }
-    
+
     @Test
     public void testBareGreeter() throws Exception {
         JaxWsServerFactoryBean sf = new JaxWsServerFactoryBean();
         sf.setBus(getBus());
         sf.setServiceClass(GreeterImplDoc.class);
         sf.setStart(false);
-        
+
         Server server = sf.create();
         assertNotNull(server);
     }
@@ -109,7 +111,7 @@ public class JaxWsServerFactoryBeanTest extends AbstractJaxWsTest {
         def.setExtensionRegistry(bus.getExtension(WSDLManager.class).getExtensionRegistry());
         Document doc = wsdlWriter.getDocument(def);
 
-        Map<String, String> ns = new HashMap<String, String>();
+        Map<String, String> ns = new HashMap<>();
         ns.put("wsdl", "http://schemas.xmlsoap.org/wsdl/");
         ns.put("soap", "http://schemas.xmlsoap.org/wsdl/soap/");
         XPathUtils xpather = new XPathUtils(ns);
@@ -144,7 +146,7 @@ public class JaxWsServerFactoryBeanTest extends AbstractJaxWsTest {
         def.setExtensionRegistry(bus.getExtension(WSDLManager.class).getExtensionRegistry());
         Document doc = wsdlWriter.getDocument(def);
 
-        Map<String, String> ns = new HashMap<String, String>();
+        Map<String, String> ns = new HashMap<>();
         ns.put("wsdl", "http://schemas.xmlsoap.org/wsdl/");
         ns.put("soap", "http://schemas.xmlsoap.org/wsdl/soap/");
         XPathUtils xpather = new XPathUtils(ns);
@@ -159,7 +161,7 @@ public class JaxWsServerFactoryBeanTest extends AbstractJaxWsTest {
                         doc,
                         XPathConstants.NODE);
     }
-    
+
     @Test
     public void testPostConstructCalled() throws Exception {
         JaxWsServerFactoryBean factory = new JaxWsServerFactoryBean();
@@ -171,7 +173,7 @@ public class JaxWsServerFactoryBeanTest extends AbstractJaxWsTest {
         factory.create();
         assertTrue("PostConstruct is not called", bean.isPostConstructCalled());
     }
-    
+
     @Test
     public void testPostConstructBlocked() throws Exception {
         JaxWsServerFactoryBean factory = new JaxWsServerFactoryBean();

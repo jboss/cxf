@@ -28,13 +28,13 @@ import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.ExchangeImpl;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
-import org.easymock.EasyMock;
 
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class PerRequestResourceProviderTest extends Assert {
-    
+
     @Test
     public void testGetInstance() {
         PerRequestResourceProvider rp = new PerRequestResourceProvider(Customer.class);
@@ -47,7 +47,7 @@ public class PerRequestResourceProviderTest extends Assert {
         rp.releaseInstance(message, c);
         assertTrue(c.isPreDestroyCalled());
     }
-    
+
     private Message createMessage() {
         ProviderFactory factory = ServerProviderFactory.getInstance();
         Message m = new MessageImpl();

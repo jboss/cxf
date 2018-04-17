@@ -19,8 +19,10 @@
 package org.apache.cxf.rs.security.oauth2.filters;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.cxf.jaxrs.client.WebClient;
@@ -34,15 +36,17 @@ import org.apache.cxf.rs.security.oauth2.utils.OAuthConstants;
 public class AccessTokenValidatorClient implements AccessTokenValidator {
 
     private WebClient tokenValidatorClient;
-    
+    private List<String> supportedSchemes = new LinkedList<String>();
     public List<String> getSupportedAuthorizationSchemes() {
-        return Collections.singletonList(OAuthConstants.ALL_AUTH_SCHEMES);
+        return supportedSchemes.isEmpty()
+            ? Collections.singletonList(OAuthConstants.ALL_AUTH_SCHEMES)
+            : Collections.unmodifiableList(supportedSchemes);
     }
 
     public AccessTokenValidation validateAccessToken(MessageContext mc,
-                                                     String authScheme, 
+                                                     String authScheme,
                                                      String authSchemeData,
-                                                     MultivaluedMap<String, String> extraProps) 
+                                                     MultivaluedMap<String, String> extraProps)
         throws OAuthServiceException {
         WebClient client = WebClient.fromClient(tokenValidatorClient, true);
         MultivaluedMap<String, String> props = new MetadataMap<String, String>();
@@ -51,11 +55,21 @@ public class AccessTokenValidatorClient implements AccessTokenValidator {
         if (extraProps != null) {
             props.putAll(extraProps);
         }
-        return client.post(props, AccessTokenValidation.class);
+        try {
+            return client.post(props, AccessTokenValidation.class);
+        } catch (WebApplicationException ex) {
+            throw new OAuthServiceException(ex);
+        }
     }
 
     public void setTokenValidatorClient(WebClient tokenValidatorClient) {
         this.tokenValidatorClient = tokenValidatorClient;
+    }
+    public void setSupportedSchemes(List<String> schemes) {
+        this.supportedSchemes.addAll(schemes);
+    }
+    public void setSupportedScheme(String scheme) {
+        this.supportedSchemes.add(scheme);
     }
 
 }

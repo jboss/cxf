@@ -22,9 +22,11 @@ package org.apache.cxf.common.util;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 /**
- * 
+ *
  */
 public class ProxyHelper {
     static final ProxyHelper HELPER;
@@ -37,11 +39,11 @@ public class ProxyHelper {
         }
         HELPER = theHelper;
     }
-    
-    
+
+
     protected ProxyHelper() {
     }
-    
+
     protected Object getProxyInternal(ClassLoader loader, Class<?>[] interfaces, InvocationHandler handler) {
         ClassLoader combinedLoader = getClassLoaderForInterfaces(loader, interfaces);
         return Proxy.newProxyInstance(combinedLoader, interfaces, handler);
@@ -50,20 +52,43 @@ public class ProxyHelper {
     /**
      * Return a classloader that can see all the given interfaces If the given loader can see all interfaces
      * then it is used. If not then a combined classloader of all interface classloaders is returned.
-     * 
+     *
      * @param loader use supplied class loader
      * @param interfaces
      * @return classloader that sees all interfaces
      */
-    private ClassLoader getClassLoaderForInterfaces(ClassLoader loader, Class<?>[] interfaces) {
+    private ClassLoader getClassLoaderForInterfaces(final ClassLoader loader, final Class<?>[] interfaces) {
         if (canSeeAllInterfaces(loader, interfaces)) {
             return loader;
         }
-        ProxyClassLoader combined = new ProxyClassLoader(loader, interfaces);
+        ProxyClassLoader combined;
+        final SecurityManager sm = System.getSecurityManager();
+        if (sm == null) {
+            combined = new ProxyClassLoader(loader, interfaces);
+        } else {
+            combined = AccessController.doPrivileged(new PrivilegedAction<ProxyClassLoader>() {
+                @Override
+                public ProxyClassLoader run() {
+                    return new ProxyClassLoader(loader, interfaces);
+                }
+            });
+        }
         for (Class<?> currentInterface : interfaces) {
-            combined.addLoader(currentInterface.getClassLoader());
+            combined.addLoader(getClassLoader(currentInterface));
         }
         return combined;
+    }
+
+    private static ClassLoader getClassLoader(final Class<?> clazz) {
+        final SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+                public ClassLoader run() {
+                    return clazz.getClassLoader();
+                }
+            });
+        }
+        return clazz.getClassLoader();
     }
 
     private boolean canSeeAllInterfaces(ClassLoader loader, Class<?>[] interfaces) {
@@ -74,13 +99,18 @@ public class ProxyHelper {
                 if (ifClass != currentInterface) {
                     return false;
                 }
-                //we need to check all the params/returns as well as the Proxy creation 
+                //we need to check all the params/returns as well as the Proxy creation
                 //will try to create methods for all of this even if they aren't used
                 //by the client and not available in the clients classloader
                 for (Method m : ifClass.getMethods()) {
-                    Class.forName(m.getReturnType().getName(), true, loader);
+                    Class<?> returnType = m.getReturnType();
+                    if (!returnType.isPrimitive()) {
+                        Class.forName(returnType.getName(), true, loader);
+                    }
                     for (Class<?> p : m.getParameterTypes()) {
-                        Class.forName(p.getName(), true, loader);
+                        if (!p.isPrimitive()) {
+                            Class.forName(p.getName(), true, loader);
+                        }
                     }
                 }
             } catch (NoClassDefFoundError e) {

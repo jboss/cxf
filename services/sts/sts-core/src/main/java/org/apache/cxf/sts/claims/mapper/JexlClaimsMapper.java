@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.jexl2.JexlContext;
@@ -76,24 +77,25 @@ public class JexlClaimsMapper implements ClaimsMapper {
             LOG.warning("No claim mapping script defined");
             return new ProcessedClaimCollection(); // TODO Check if null or an exception would be more
                                                    // appropriate
-        } else {
-            return (ProcessedClaimCollection)s.execute(context);
         }
+        return (ProcessedClaimCollection)s.execute(context);
     }
 
     public Script getScript() {
         return script;
     }
 
-    public void setScript(Script script) {
+    public final void setScript(Script script) {
         this.script = script;
     }
 
-    public void setScript(String scriptLocation) throws IOException {
+    public final void setScript(String scriptLocation) throws IOException {
         URL resource = ClassLoaderUtils.getResource(scriptLocation, this.getClass());
         if (resource != null) {
             scriptLocation = resource.getPath();
-            LOG.fine("Script found within Classpath: " + scriptLocation);
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Script found within Classpath: " + scriptLocation);
+            }
         }
         File scriptFile = new File(scriptLocation);
         if (scriptFile.exists()) {

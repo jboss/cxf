@@ -22,6 +22,7 @@ package org.apache.cxf.sts.service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,16 +36,16 @@ import org.apache.cxf.common.logging.LogUtils;
  */
 public class StaticService implements ServiceMBean {
     private static final Logger LOG = LogUtils.getL7dLogger(StaticService.class);
-    
+
     private String tokenType;
     private String keyType;
     private EncryptionProperties encryptionProperties;
-    
+
     /**
      * a collection of compiled regular expression patterns
      */
     private final Collection<Pattern> endpointPatterns = new ArrayList<>();
-    
+
     /**
      * Return true if the supplied address corresponds to a known address for this service
      */
@@ -56,47 +57,54 @@ public class StaticService implements ServiceMBean {
         for (Pattern endpointPattern : endpointPatterns) {
             final Matcher matcher = endpointPattern.matcher(addressToMatch);
             if (matcher.matches()) {
-                LOG.fine("Address " + address + " matches with pattern " + endpointPattern);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Address " + address + " matches with pattern " + endpointPattern);
+                }
                 return true;
             }
         }
         return false;
     }
-    
+
     /**
      * Get the default Token Type to be issued for this Service
      */
     public String getTokenType() {
         return tokenType;
     }
-    
+
     /**
      * Set the default Token Type to be issued for this Service
      */
     public void setTokenType(String tokenType) {
         this.tokenType = tokenType;
-        LOG.fine("Setting Token Type: " + tokenType);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Setting Token Type: " + tokenType);
+        }
     }
-    
+
     /**
      * Get the default Key Type to be issued for this Service
      */
     public String getKeyType() {
         return keyType;
     }
-    
+
     /**
      * Set the default Key Type to be issued for this Service
      */
     public void setKeyType(String keyType) {
         this.keyType = keyType;
-        LOG.fine("Setting Key Type: " + keyType);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Setting Key Type: " + keyType);
+        }
     }
-    
+
     /**
      * Set the list of endpoint addresses that correspond to this service
      */
     public void setEndpoints(List<String> endpoints) {
+        endpointPatterns.clear();
         if (endpoints != null) {
             for (String endpoint : endpoints) {
                 try {
@@ -108,14 +116,14 @@ public class StaticService implements ServiceMBean {
             }
         }
     }
-    
+
     /**
      * Get the EncryptionProperties to be used to encrypt tokens issued for this service
      */
     public EncryptionProperties getEncryptionProperties() {
         return encryptionProperties;
     }
-    
+
     /**
      * Set the EncryptionProperties to be used to encrypt tokens issued for this service
      */
@@ -123,5 +131,5 @@ public class StaticService implements ServiceMBean {
         this.encryptionProperties = encryptionProperties;
         LOG.fine("Setting encryption properties");
     }
-    
+
 }

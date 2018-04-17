@@ -26,25 +26,26 @@ import org.apache.cxf.binding.corba.CorbaBindingException;
 import org.apache.cxf.binding.corba.CorbaTypeMap;
 import org.apache.cxf.binding.corba.wsdl.CorbaConstants;
 import org.apache.cxf.binding.corba.wsdl.CorbaType;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCode;
 
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 public class CorbaUtilsTest extends Assert {
 
     private static ORB orb;
-    
+
     @Before
     public void setUp() throws Exception {
         java.util.Properties props = System.getProperties();
         props.put("yoko.orb.id", "CXF-CORBA-Server-Binding");
         orb = ORB.init(new String[0], props);
     }
-    
+
     @After
     public void tearDown() throws Exception {
         if (orb != null) {
@@ -55,7 +56,7 @@ public class CorbaUtilsTest extends Assert {
             }
         }
     }
-    
+
     @Test
     public void testBooleanTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "boolean", "corba");
@@ -64,7 +65,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_boolean);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testCharTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "char", "corba");
@@ -73,7 +74,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_char);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testWCharTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "wchar", "corba");
@@ -82,7 +83,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_wchar);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testOctetTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "octet", "corba");
@@ -91,7 +92,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_octet);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testShortTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "short", "corba");
@@ -100,7 +101,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_short);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testUShortTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "ushort", "corba");
@@ -109,7 +110,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_ushort);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testLongTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "long", "corba");
@@ -118,7 +119,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_long);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testULongTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "ulong", "corba");
@@ -127,7 +128,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_ulong);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testLongLongTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "longlong", "corba");
@@ -136,7 +137,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_longlong);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testULongLongTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "ulonglong", "corba");
@@ -145,7 +146,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_ulonglong);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testFloatTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "float", "corba");
@@ -154,7 +155,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_float);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testDoubleTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "double", "corba");
@@ -163,7 +164,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_double);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testStringTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "string", "corba");
@@ -172,7 +173,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_string);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testWStringTypeCode() {
         QName type = new QName(CorbaConstants.NU_WSDL_CORBA, "wstring", "corba");
@@ -181,7 +182,7 @@ public class CorbaUtilsTest extends Assert {
         assertTrue(tc.kind().value() == TCKind._tk_wstring);
         assertTrue(CorbaUtils.isPrimitiveIdlType(type));
     }
-    
+
     @Test
     public void testErrorConditionNullTypeQName() {
         try {
@@ -190,24 +191,24 @@ public class CorbaUtilsTest extends Assert {
         } catch (CorbaBindingException expected) {
             //ignore
         }
-        
+
         CorbaTypeMap typeMap = new CorbaTypeMap("dud:namespace");
         QName seen = new QName("bla", "Bla");
-        Stack<QName> seenTypes = new Stack<QName>();            
+        Stack<QName> seenTypes = new Stack<QName>();
         seenTypes.add(seen);
         try {
             CorbaUtils.getTypeCode(orb, null, typeMap, seenTypes);
             fail("expect exception on null type");
-        } catch (CorbaBindingException expected) { 
+        } catch (CorbaBindingException expected) {
             assertTrue("enclosed type is present",
                     expected.getMessage().indexOf(seen.toString()) != -1);
         }
-        
+
         CorbaType ctype = new CorbaType();
         try {
             CorbaUtils.getTypeCode(orb, null, ctype, typeMap);
             fail("expect exception on null type");
-        } catch (CorbaBindingException expected) { 
+        } catch (CorbaBindingException expected) {
             assertTrue("enclosed corba type is present",
                     expected.getMessage().indexOf(ctype.toString()) != -1);
         }

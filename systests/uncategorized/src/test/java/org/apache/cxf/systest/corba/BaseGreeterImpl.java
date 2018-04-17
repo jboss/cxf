@@ -25,6 +25,7 @@ import org.apache.cxf.hello_world_corba.Greeter;
 import org.apache.cxf.hello_world_corba.PingMeFault;
 import org.apache.cxf.hello_world_corba.types.FaultDetail;
 import org.apache.cxf.interceptor.Fault;
+
 import org.junit.Assert;
 
 /**
@@ -46,12 +47,12 @@ import org.junit.Assert;
  * under the License.
  */
 
-@javax.jws.WebService(portName = "GreeterCORBAPort", 
+@javax.jws.WebService(portName = "GreeterCORBAPort",
         serviceName = "GreeterCORBAService",
         targetNamespace = "http://cxf.apache.org/hello_world_corba",
         wsdlLocation = "classpath:/wsdl_systest/hello_world_corba.wsdl",
         endpointInterface = "org.apache.cxf.hello_world_corba.Greeter")
-        
+
 public class BaseGreeterImpl extends Assert implements Greeter {
     public static final String GREETME_IN = "test in";
     public static final String GREETME_OUT = "test out";

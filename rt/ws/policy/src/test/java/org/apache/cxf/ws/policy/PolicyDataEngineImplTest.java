@@ -28,6 +28,7 @@ import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.policy.PolicyCalculator;
 import org.apache.cxf.ws.policy.builder.jaxb.JaxbAssertion;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.Assert;
@@ -35,10 +36,10 @@ import org.junit.Test;
 
 public class PolicyDataEngineImplTest extends Assert {
     private static final QName TEST_POLICY_NAME = new QName("http://test", "TestPolicy");
-    
+
     class TestPolicy {
     }
-    
+
     class TestPolicyCalculator implements PolicyCalculator<TestPolicy> {
 
         public Class<TestPolicy> getDataClass() {
@@ -56,21 +57,21 @@ public class PolicyDataEngineImplTest extends Assert {
         public boolean isAsserted(Message message, TestPolicy policy, TestPolicy refPolicy) {
             return true;
         }
-        
+
     }
-    
+
     public AssertionInfo getTestPolicyAssertionInfo(TestPolicy policy) {
-        JaxbAssertion<TestPolicy> assertion = 
+        JaxbAssertion<TestPolicy> assertion =
             new JaxbAssertion<TestPolicy>(TEST_POLICY_NAME, false);
         assertion.setData(policy);
         return new AssertionInfo(assertion);
     }
-    
+
     @Test
     public void testAssertMessageNullAim() {
         checkAssertWithMap(null);
     }
-    
+
     @Test
     public void testAssertMessageEmptyAim() {
         checkAssertWithMap(new AssertionInfoMap(CastUtils.cast(Collections.EMPTY_LIST,
@@ -83,7 +84,7 @@ public class PolicyDataEngineImplTest extends Assert {
         AssertionInfo ai = getTestPolicyAssertionInfo(policy);
         AssertionInfoMap aim = new AssertionInfoMap(CastUtils.cast(Collections.EMPTY_LIST,
                                                                    PolicyAssertion.class));
-        Collection<AssertionInfo> ais = new ArrayList<AssertionInfo>();
+        Collection<AssertionInfo> ais = new ArrayList<>();
         ais.add(ai);
         aim.put(TEST_POLICY_NAME, ais);
         checkAssertWithMap(aim);
@@ -92,7 +93,7 @@ public class PolicyDataEngineImplTest extends Assert {
 
     /**
      * Simply check that it runs without any exceptions
-     * 
+     *
      * @param assertionInfoMap
      */
     private void checkAssertWithMap(AssertionInfoMap assertionInfoMap) {
@@ -105,7 +106,7 @@ public class PolicyDataEngineImplTest extends Assert {
         EasyMock.expect(message.get(TestPolicy.class)).andReturn(confPol);
         EasyMock.expect(message.get(AssertionInfoMap.class)).andReturn(assertionInfoMap);
         control.replay();
-        pde.assertMessage(message , confPol , policyCalculator);
+        pde.assertMessage(message, confPol, policyCalculator);
         control.verify();
     }
 }

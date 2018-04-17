@@ -76,7 +76,7 @@ import org.jdom.UncheckedJDOMFactory;
 /**
  * Builds a JDOM {@link org.jdom.Document org.jdom.Document} using a
  * {@link javax.xml.stream.XMLStreamReader}.
- * 
+ *
  * @author Tatu Saloranta
  * @author Bradley S. Huffman
  * @author Benson I. Margulies, mods for CXF to allow reading a portion of a stream.
@@ -87,7 +87,7 @@ public class StaxBuilder {
      * Map that contains conversion from textual attribute types StAX uses, to
      * int values JDOM uses.
      */
-    private static final Map<String, Integer> ATTR_TYPES = new HashMap<String, Integer>(32);
+    private static final Map<String, Integer> ATTR_TYPES = new HashMap<>(32);
     static {
         ATTR_TYPES.put("CDATA", new Integer(Attribute.CDATA_TYPE));
         ATTR_TYPES.put("cdata", new Integer(Attribute.CDATA_TYPE));
@@ -162,7 +162,7 @@ public class StaxBuilder {
     /**
      * Returns the current {@link org.jdom.JDOMFactory} in use, if one has been
      * previously set with {@link #setFactory}, otherwise null.
-     * 
+     *
      * @return the factory builder will use
      */
     public JDOMFactory getFactory() {
@@ -171,7 +171,7 @@ public class StaxBuilder {
     /**
      * This will build a JDOM tree given a StAX stream reader.
      * This API explicitly supports building mid-stream.
-     * 
+     *
      * @param r Stream reader from which input is read.
      * @return <code>Document</code> - JDOM document object.
      * @throws XMLStreamException If the reader threw such exception (to
@@ -190,7 +190,7 @@ public class StaxBuilder {
             return buildInternal(reader);
         } finally {
             StaxUtils.close(reader);
-        }        
+        }
     }
 
     public Document build(Reader reader) throws XMLStreamException {
@@ -201,13 +201,13 @@ public class StaxBuilder {
             return buildInternal(streamReader);
         } finally {
             StaxUtils.close(streamReader);
-        }        
+        }
     }
-    
+
     private Document buildInternal(XMLStreamReader r) throws XMLStreamException {
         /*
          * Should we do sanity checking to see that r is positioned at
-         * beginning in the non-mid-stream case? 
+         * beginning in the non-mid-stream case?
          */
         JDOMFactory f = factory;
         if (f == null) {
@@ -223,11 +223,10 @@ public class StaxBuilder {
      * Recursion has been eliminated by using local stack of open elements; this
      * improves performance somewhat (classic
      * recursion-by-iteration-and-explicit stack transformation)
-     * 
+     *
      * @param node <code>Code</node> to examine.
      * @param doc JDOM <code>Document</code> being built.
      */
-    @SuppressWarnings("fallthrough")
     private void buildTree(JDOMFactory f, XMLStreamReader r, Document doc) throws XMLStreamException {
         Element current = null; // At top level
         int event = r.getEventType();
@@ -284,7 +283,7 @@ public class StaxBuilder {
                     current = current.getParentElement();
                 }
                 noadd = true;
-                if(isReadingMidStream && current == null) 
+                if(isReadingMidStream && current == null)
                     return;
                 break;
 
@@ -306,7 +305,7 @@ public class StaxBuilder {
                 child = f.processingInstruction(r.getPITarget(), r.getPIData());
                 break;
 
-            case XMLStreamConstants.START_ELEMENT: 
+            case XMLStreamConstants.START_ELEMENT:
             {
                 // Ok, need to add a new element and simulate recursion
                 Element newElem = null;
@@ -380,7 +379,7 @@ public class StaxBuilder {
                 }
                 // And then 'push' new element...
                 current = newElem;
-                
+
                 // Already added the element, can continue
                 noadd = true;
                 break;

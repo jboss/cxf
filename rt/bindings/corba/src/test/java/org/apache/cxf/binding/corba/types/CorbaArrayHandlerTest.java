@@ -22,13 +22,14 @@ import javax.xml.namespace.QName;
 
 import org.apache.cxf.binding.corba.wsdl.Array;
 import org.apache.cxf.binding.corba.wsdl.CorbaConstants;
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.TCKind;
+import org.omg.CORBA.TypeCode;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.omg.CORBA.ORB;
-import org.omg.CORBA.TCKind;
-import org.omg.CORBA.TypeCode;
 
 public class CorbaArrayHandlerTest extends Assert {
 
@@ -37,11 +38,11 @@ public class CorbaArrayHandlerTest extends Assert {
     private QName objName;
     private QName objIdlType;
     private TypeCode objTypeCode;
-    
-    
+
+
     @Before
     public void setUp() throws Exception {
-        
+
         java.util.Properties props = System.getProperties();
         props.put("yoko.orb.id", "CXF-CORBA-Server-Binding");
         orb = ORB.init(new String[0], props);
@@ -50,7 +51,7 @@ public class CorbaArrayHandlerTest extends Assert {
         objIdlType = null;
         objTypeCode = null;
     }
-    
+
     @After
     public void tearDown() throws Exception {
         if (orb != null) {

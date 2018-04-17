@@ -19,25 +19,23 @@
 
 package org.apache.cxf.sts.token.provider;
 
-import java.util.Date;
-
-import org.w3c.dom.Element;
+import java.time.Instant;
 
 /**
  * This class encapsulates the response from a TokenProvider instance after creating a token.
  */
 public class TokenProviderResponse {
 
-    private Element token;
+    private Object token;
     private String tokenId;
     private byte[] entropy;
     private long keySize;
     private boolean computedKey;
     private TokenReference attachedReference;
     private TokenReference unAttachedReference;
-    private Date created;
-    private Date expires;
-    
+    private Instant created;
+    private Instant expires;
+
     /**
      * Return true if the entropy represents a Computed Key.
      */
@@ -70,15 +68,15 @@ public class TokenProviderResponse {
      * Set the token
      * @param token the token to set
      */
-    public void setToken(Element token) {
+    public void setToken(Object token) {
         this.token = token;
     }
-    
+
     /**
      * Get the token
      * @return the token to set
      */
-    public Element getToken() {
+    public Object getToken() {
         return token;
     }
 
@@ -89,7 +87,7 @@ public class TokenProviderResponse {
     public void setTokenId(String tokenId) {
         this.tokenId = tokenId;
     }
-    
+
     /**
      * Get the token Id
      * @return the token Id
@@ -97,7 +95,7 @@ public class TokenProviderResponse {
     public String getTokenId() {
         return tokenId;
     }
-    
+
     /**
      * Set the entropy associated with the token.
      * @param entropy the entropy associated with the token.
@@ -105,7 +103,7 @@ public class TokenProviderResponse {
     public void setEntropy(byte[] entropy) {
         this.entropy = entropy;
     }
-    
+
     /**
      * Get the entropy associated with the token.
      * @return the entropy associated with the token.
@@ -113,7 +111,7 @@ public class TokenProviderResponse {
     public byte[] getEntropy() {
         return entropy;
     }
-    
+
     /**
      * Set the attached TokenReference
      * @param attachtedReference the attached TokenReference
@@ -121,7 +119,7 @@ public class TokenProviderResponse {
     public void setAttachedReference(TokenReference attachedReference) {
         this.attachedReference = attachedReference;
     }
-    
+
     /**
      * Get the attached TokenReference
      * @return the attached TokenReference
@@ -129,7 +127,7 @@ public class TokenProviderResponse {
     public TokenReference getAttachedReference() {
         return attachedReference;
     }
-    
+
     /**
      * Set the unattached TokenReference
      * @param unAttachedReference  Set the unattached TokenReference
@@ -137,7 +135,7 @@ public class TokenProviderResponse {
     public void setUnattachedReference(TokenReference unattachedReference) {
         this.unAttachedReference = unattachedReference;
     }
-    
+
     /**
      * Get the unattached TokenReference
      * @return the unattached TokenReference
@@ -147,34 +145,34 @@ public class TokenProviderResponse {
     }
 
     /**
-     * Get the Date that this Token was Created 
-     * @return the Date that this Token was Created 
+     * Get the Instant that this Token was Created
+     * @return the Instant that this Token was Created
      */
-    public Date getCreated() {
+    public Instant getCreated() {
         return created;
     }
 
     /**
-     * Set the Date that this Token was Created 
-     * @param created the Date that this Token was Created
+     * Set the Instant that this Token was Created
+     * @param created the Instant that this Token was Created
      */
-    public void setCreated(Date created) {
+    public void setCreated(Instant created) {
         this.created = created;
     }
 
     /**
-     * Get the Date that this Token expires
-     * @return the Date that this Token expires
+     * Get the Instant that this Token expires
+     * @return the Instant that this Token expires
      */
-    public Date getExpires() {
+    public Instant getExpires() {
         return expires;
     }
 
     /**
-     * Set the Date that this Token expires
-     * @param expires the Date that this Token expires
+     * Set the Instant that this Token expires
+     * @param expires the Instant that this Token expires
      */
-    public void setExpires(Date expires) {
+    public void setExpires(Instant expires) {
         this.expires = expires;
     }
 
