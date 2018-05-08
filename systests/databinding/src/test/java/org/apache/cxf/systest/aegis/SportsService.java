@@ -35,11 +35,11 @@ public interface SportsService {
 
     BeanWithCharacter getCharBean();
 
-    public class CustomerMap extends HashMap<String, Map<Integer, Integer>> {
+    class CustomerMap extends HashMap<String, Map<Integer, Integer>> {
         private static final long serialVersionUID = 6235169270166551322L;
     }
-    
-    public static class Pair<T1, T2> {
+
+    class Pair<T1, T2> {
         private T1 first;
         private T2 second;
 
@@ -74,20 +74,20 @@ public interface SportsService {
     }
 
 
-    public class SimpleMapResult extends HashMap<String, Integer> {
+    class SimpleMapResult extends HashMap<String, Integer> {
 
         private static final long serialVersionUID = -5599483363035948690L;
     }
 
     Map<String, Map<Integer, Integer>> testComplexMapResult();
-    
+
     <T> T getGeneric(Collection<T> collection);
-    
+
     <T1, T2> Pair<T1, T2> getReturnGenericPair(T1 first, T2 second);
-    
+
     Pair<Integer, String> getReturnQualifiedPair(Integer first, String second);
-    
+
     <T1, T2> int getGenericPair(Pair<T1, T2> pair);
-    
+
     int getQualifiedPair(Pair<Integer, String> pair);
 }

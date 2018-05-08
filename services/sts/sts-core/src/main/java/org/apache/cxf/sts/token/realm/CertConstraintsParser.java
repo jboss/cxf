@@ -22,6 +22,7 @@ package org.apache.cxf.sts.token.realm;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,12 +36,12 @@ import org.apache.cxf.common.logging.LogUtils;
  */
 public class CertConstraintsParser {
     private static final Logger LOG = LogUtils.getL7dLogger(CertConstraintsParser.class);
-    
+
     /**
      * a collection of compiled regular expression patterns for the subject DN
      */
     private Collection<Pattern> subjectDNPatterns = new ArrayList<>();
-    
+
     /**
      * Set a list of Strings corresponding to regular expression constraints on the subject DN
      * of a certificate
@@ -58,11 +59,11 @@ public class CertConstraintsParser {
             }
         }
     }
-    
+
     public Collection<Pattern> getCompiledSubjectContraints() {
         return subjectDNPatterns;
     }
-    
+
     /**
      * @return      true if the certificate's SubjectDN matches the constraints defined in the
      *              subject DNConstraints; false, otherwise. The certificate subject DN only
@@ -81,7 +82,9 @@ public class CertConstraintsParser {
             for (Pattern subjectDNPattern : subjectDNPatterns) {
                 final Matcher matcher = subjectDNPattern.matcher(subjectName);
                 if (matcher.matches()) {
-                    LOG.fine("Subject DN " + subjectName + " matches with pattern " + subjectDNPattern);
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine("Subject DN " + subjectName + " matches with pattern " + subjectDNPattern);
+                    }
                     subjectMatch = true;
                     break;
                 }
@@ -90,7 +93,7 @@ public class CertConstraintsParser {
                 return false;
             }
         }
-        
+
         return true;
     }
 }

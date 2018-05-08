@@ -31,7 +31,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-    
+
 
 
 
@@ -44,7 +44,7 @@ import org.apache.cxf.staxutils.StaxUtils;
 
 /**
  * (not thread safe)
- * 
+ *
  */
 public class ExtendedDocumentBuilder {
 
@@ -67,7 +67,7 @@ public class ExtendedDocumentBuilder {
             this.schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
             try {
                 this.schema = schemaFactory.newSchema(new StreamSource(getSchemaLocation()));
-            } catch (org.xml.sax.SAXException e) {
+            } catch (SAXException e) {
                 LOG.log(Level.SEVERE, "SCHEMA_FACTORY_EXCEPTION_MSG");
             }
             try {
@@ -78,7 +78,7 @@ public class ExtendedDocumentBuilder {
                     //old version, not supported.
                 }
                 parserFactory.setNamespaceAware(true);
-                parserFactory.setSchema(this.schema);                
+                parserFactory.setSchema(this.schema);
             } catch (UnsupportedOperationException e) {
                 LOG.log(Level.WARNING, "DOC_PARSER_NOT_SUPPORTED", e);
             }
@@ -93,7 +93,7 @@ public class ExtendedDocumentBuilder {
             //validating, so need to use the validating parser factory
             try {
                 return parserFactory.newDocumentBuilder().parse(in);
-            } catch (javax.xml.parsers.ParserConfigurationException e) {
+            } catch (ParserConfigurationException e) {
                 LOG.log(Level.SEVERE, "NEW_DOCUMENT_BUILDER_EXCEPTION_MSG");
             }
         }

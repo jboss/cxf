@@ -26,10 +26,12 @@ import javax.ws.rs.core.Response;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
 import org.apache.xml.security.signature.XMLSignature;
 import org.apache.xml.security.utils.Constants;
+
 import org.junit.BeforeClass;
 
 /**
@@ -40,10 +42,10 @@ public class MetadataTest extends AbstractBusClientServerTestBase {
 
     @BeforeClass
     public static void startServers() throws Exception {
-        assertTrue("server did not launch correctly", 
+        assertTrue("server did not launch correctly",
                    launchServer(MetadataServer.class, true));
     }
-    
+
     @org.junit.Test
     public void testGetMetadata() throws Exception {
         URL busFile = MetadataTest.class.getResource("client.xml");
@@ -56,17 +58,17 @@ public class MetadataTest extends AbstractBusClientServerTestBase {
         assertEquals(response.getStatus(), 200);
         Document doc = response.readEntity(Document.class);
         assertEquals("EntityDescriptor", doc.getDocumentElement().getLocalName());
-        
+
         // Now validate the signature
-        Element signature = 
+        Element signature =
             (Element)doc.getElementsByTagNameNS(Constants.SignatureSpecNS, "Signature").item(0);
         assertNotNull(signature);
         XMLSignature signatureElem = new XMLSignature(signature, "");
         doc.getDocumentElement().setIdAttributeNS(null, "ID", true);
-        
+
         X509Certificate signingCert = signatureElem.getKeyInfo().getX509Certificate();
         assertNotNull(signingCert);
         assertTrue(signatureElem.checkSignatureValue(signingCert));
     }
-    
+
 }

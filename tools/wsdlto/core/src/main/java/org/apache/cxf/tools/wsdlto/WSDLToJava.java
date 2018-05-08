@@ -81,7 +81,7 @@ public class WSDLToJava {
         }
         return "YES".equalsIgnoreCase(exit) || "TRUE".equalsIgnoreCase(exit);
     }
-    
+
     public void run(ToolContext context) throws Exception {
         run(context, null);
     }
@@ -176,7 +176,8 @@ public class WSDLToJava {
     }
 
     public static void main(String[] pargs) {
-
+        System.setProperty("org.apache.cxf.JDKBugHacks.defaultUsesCaches", "true");
+        
         CommandInterfaceUtils.commandCommonMain();
         WSDLToJava w2j = new WSDLToJava(pargs);
         try {

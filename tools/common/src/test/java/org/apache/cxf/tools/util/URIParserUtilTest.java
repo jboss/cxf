@@ -20,8 +20,10 @@
 package org.apache.cxf.tools.util;
 
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.cxf.common.util.URIParserUtil;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -30,7 +32,7 @@ public class URIParserUtilTest extends Assert {
 
     @Test
     public void testGetPackageName() {
-        
+
         String packageName = URIParserUtil.getPackageName("http://www.cxf.iona.com");
         assertEquals(packageName, "com.iona.cxf");
         packageName = URIParserUtil.getPackageName("urn://www.class.iona.com");
@@ -59,7 +61,7 @@ public class URIParserUtilTest extends Assert {
 
         uri = "/c:\\hello.wsdl";
         assertEquals("file:/c:/hello.wsdl", URIParserUtil.normalize(uri));
-        
+
         uri = "file:/home/john/test/all/../../alltest";
         assertEquals("file:/home/john/alltest", URIParserUtil.normalize(uri));
     }
@@ -92,15 +94,15 @@ public class URIParserUtilTest extends Assert {
 
         uri = "http://hello/world.wsdl";
         assertEquals(uri, URIParserUtil.getAbsoluteURI(uri));
-        
+
         uri = "file:/home/john/test/all/../../alltest";
         assertEquals("file:/home/john/alltest", URIParserUtil.getAbsoluteURI(uri));
     }
     @Test
     public void testCXF3855() throws Exception {
-        String orig = new String(new byte[] {-47, -122}, "UTF-8");
+        String orig = new String(new byte[] {-47, -122}, StandardCharsets.UTF_8);
         orig = "/foo" + orig + ".txt";
         String s = URIParserUtil.escapeChars(orig);
-        assertEquals(orig, URLDecoder.decode(s, "UTF-8"));
+        assertEquals(orig, URLDecoder.decode(s, StandardCharsets.UTF_8.name()));
     }
 }

@@ -20,6 +20,7 @@
 package org.apache.cxf.sts.token.provider;
 
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.security.auth.callback.CallbackHandler;
@@ -28,7 +29,7 @@ import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.sts.STSPropertiesMBean;
 import org.apache.cxf.sts.SignatureProperties;
 import org.apache.cxf.sts.request.KeyRequirements;
-import org.apache.cxf.sts.token.realm.SAMLRealm;
+import org.apache.cxf.sts.token.realm.RealmProperties;
 import org.apache.wss4j.common.crypto.Crypto;
 import org.apache.wss4j.common.ext.WSPasswordCallback;
 import org.apache.wss4j.common.saml.SamlAssertionWrapper;
@@ -37,12 +38,12 @@ import org.apache.wss4j.common.saml.SamlAssertionWrapper;
  * Some abstract functionality for creating a SAML token
  */
 public abstract class AbstractSAMLTokenProvider {
-    
+
     private static final Logger LOG = LogUtils.getL7dLogger(AbstractSAMLTokenProvider.class);
-    
+
     protected void signToken(
-        SamlAssertionWrapper assertion, 
-        SAMLRealm samlRealm,
+        SamlAssertionWrapper assertion,
+        RealmProperties samlRealm,
         STSPropertiesMBean stsProperties,
         KeyRequirements keyRequirements
     ) throws Exception {
@@ -73,11 +74,13 @@ public abstract class AbstractSAMLTokenProvider {
             // If none then default to what is configured
             signatureAlgorithm = signatureProperties.getSignatureAlgorithm();
         } else {
-            List<String> supportedAlgorithms = 
+            List<String> supportedAlgorithms =
                 signatureProperties.getAcceptedSignatureAlgorithms();
             if (!supportedAlgorithms.contains(signatureAlgorithm)) {
                 signatureAlgorithm = signatureProperties.getSignatureAlgorithm();
-                LOG.fine("SignatureAlgorithm not supported, defaulting to: " + signatureAlgorithm);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("SignatureAlgorithm not supported, defaulting to: " + signatureAlgorithm);
+                }
             }
         }
 
@@ -87,24 +90,31 @@ public abstract class AbstractSAMLTokenProvider {
             // If none then default to what is configured
             c14nAlgorithm = signatureProperties.getC14nAlgorithm();
         } else {
-            List<String> supportedAlgorithms = 
+            List<String> supportedAlgorithms =
                 signatureProperties.getAcceptedC14nAlgorithms();
             if (!supportedAlgorithms.contains(c14nAlgorithm)) {
                 c14nAlgorithm = signatureProperties.getC14nAlgorithm();
-                LOG.fine("C14nAlgorithm not supported, defaulting to: " + c14nAlgorithm);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("C14nAlgorithm not supported, defaulting to: " + c14nAlgorithm);
+                }
             }
         }
 
         // If alias not defined, get the default of the SignatureCrypto
         if ((alias == null || "".equals(alias)) && (signatureCrypto != null)) {
             alias = signatureCrypto.getDefaultX509Identifier();
-            LOG.fine("Signature alias is null so using default alias: " + alias);
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.fine("Signature alias is null so using default alias: " + alias);
+            }
         }
         // Get the password
-        WSPasswordCallback[] cb = {new WSPasswordCallback(alias, WSPasswordCallback.SIGNATURE)};
-        LOG.fine("Creating SAML Token");
-        callbackHandler.handle(cb);
-        String password = cb[0].getPassword();
+        String password = null;
+        if (callbackHandler != null) {
+            WSPasswordCallback[] cb = {new WSPasswordCallback(alias, WSPasswordCallback.SIGNATURE)};
+            LOG.fine("Creating SAML Token");
+            callbackHandler.handle(cb);
+            password = cb[0].getPassword();
+        }
 
         LOG.fine("Signing SAML Token");
         boolean useKeyValue = signatureProperties.isUseKeyValue();
@@ -113,6 +123,6 @@ public abstract class AbstractSAMLTokenProvider {
             signatureProperties.getDigestAlgorithm()
         );
     }
-    
-    
+
+
 }

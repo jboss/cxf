@@ -39,7 +39,7 @@ import org.apache.cxf.demo.aegis.types.Zoo;
 import javanet.staxutils.IndentingXMLStreamWriter;
 
 /**
- * 
+ *
  */
 public final class WriteZoo {
     private XMLOutputFactory outputFactory;
@@ -74,7 +74,7 @@ public final class WriteZoo {
         Zoo zoo = new Zoo();
         zoo.setFounder("Noah");
         zoo.setName("The Original Zoo");
-        Map<String, Animal> animals = new HashMap<String, Animal>();
+        Map<String, Animal> animals = new HashMap<>();
         Animal a = new Animal();
         a.setName("lion");
         animals.put("lion", a);

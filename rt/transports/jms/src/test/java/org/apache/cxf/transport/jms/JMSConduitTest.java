@@ -25,6 +25,7 @@ import java.io.Writer;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
 import org.apache.cxf.service.model.EndpointInfo;
+
 import org.junit.Test;
 
 public class JMSConduitTest extends AbstractJMSTester {
@@ -56,7 +57,7 @@ public class JMSConduitTest extends AbstractJMSTester {
     /**
      * Sends several messages and verifies the results. The service sends the message to itself. So it should
      * always receive the result
-     * 
+     *
      * @throws Exception
      */
     @Test

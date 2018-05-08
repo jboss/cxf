@@ -20,6 +20,7 @@ package org.apache.cxf.transport.jms.uri;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -34,15 +35,15 @@ import org.apache.cxf.common.util.StringUtils;
  */
 final class JMSURIParser {
     private static final Logger LOG = LogUtils.getL7dLogger(JMSURIParser.class);
-    
+
     String uri;
     int pos;
     private String scheme;
     private String variant;
     private String destination;
     private String query;
-    
-    public JMSURIParser(String uri) {
+
+    JMSURIParser(String uri) {
         this.uri = UnsafeUriCharactersEncoder.encode(uri);
         this.scheme = parseUntil(":");
         this.variant = parseUntil(":");
@@ -57,7 +58,7 @@ final class JMSURIParser {
         LOG.log(Level.FINE, "Creating endpoint uri=[" + uri + "], destination=[" + destination
                 + "], query=[" + query + "]");
     }
-    
+
     private String parseToEnd() {
         return uri.substring(pos, uri.length());
     }
@@ -68,13 +69,12 @@ final class JMSURIParser {
             String found = uri.substring(pos, separatorPos);
             pos = separatorPos + 1;
             return found;
-        } else {
-            return null;
         }
+        return null;
     }
 
     public Map<String, Object> parseQuery() {
-        Map<String, Object> rc = new HashMap<String, Object>();
+        Map<String, Object> rc = new HashMap<>();
         if (query != null) {
             String[] parameters = StringUtils.split(query, "&");
             for (String parameter : parameters) {
@@ -91,10 +91,10 @@ final class JMSURIParser {
         return rc;
 
     }
-    
+
     private static String urldecode(String s) {
         try {
-            return URLDecoder.decode(s, "UTF-8");
+            return URLDecoder.decode(s, StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException e) {
             throw new IllegalArgumentException("Encoding UTF-8 not supported");
         }
@@ -112,5 +112,5 @@ final class JMSURIParser {
         return destination;
     }
 
-    
+
 }

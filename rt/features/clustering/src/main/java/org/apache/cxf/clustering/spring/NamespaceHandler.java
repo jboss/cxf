@@ -26,5 +26,7 @@ public class NamespaceHandler extends NamespaceHandlerSupport {
                                      new FailoverBeanDefinitionParser());
         registerBeanDefinitionParser("loadDistributor",
                                      new LoadDistributorBeanDefinitionParser());
+        registerBeanDefinitionParser("circuit-breaker-failover",
+                                     new CircuitBreakerFailoverBeanDefinitionParser());
     }
 }

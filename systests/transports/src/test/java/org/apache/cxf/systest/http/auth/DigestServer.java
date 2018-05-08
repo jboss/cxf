@@ -18,6 +18,7 @@
  */
 package org.apache.cxf.systest.http.auth;
 
+import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
@@ -40,11 +41,13 @@ public class DigestServer extends AbstractBusTestServerBase {
     protected void configureServer() throws Exception {
         URL resource = getClass()
             .getResource("jetty-realm.properties");
-        LoginService realm = 
-            new HashLoginService("BookStoreRealm", resource.toString());
+        File file = new File(resource.toURI());
+
+        LoginService realm =
+            new HashLoginService("BookStoreRealm", file.getAbsolutePath());
         server.addBean(realm);
     }
-    
+
     protected void run() {
         //System.out.println("Starting Server");
 
@@ -60,20 +63,20 @@ public class DigestServer extends AbstractBusTestServerBase {
         } catch (URISyntaxException e1) {
             e1.printStackTrace();
         }
-        
+
         webappcontext.setWar(warPath);
 
         HandlerCollection handlers = new HandlerCollection();
         handlers.setHandlers(new Handler[] {webappcontext, new DefaultHandler()});
 
         server.setHandler(handlers);
-        
+
         try {
             configureServer();
             server.start();
         } catch (Exception e) {
             e.printStackTrace();
-        }     
+        }
     }
     public void tearDown() throws Exception {
         if (server != null) {

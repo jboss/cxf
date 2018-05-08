@@ -21,34 +21,30 @@ package org.apache.cxf.common.util;
 
 /**
  * Base64 URL Encoding/Decoding utility.
- *  
+ *
  * Character 62 ('+') is '-', Character 63 ('/') is '_';
- * Padding characters are dropped after the encoding.   
- *                  
+ * Padding characters are dropped after the encoding.
+ *
  */
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 
 public final class Base64UrlUtility {
     private Base64UrlUtility() {
         //utility class, never constructed
     }
-    
+
     public static byte[] decode(String encoded) throws Base64Exception {
         return Base64Utility.decode(encoded, true);
     }
 
     public static String encode(String str) {
-        try {
-            return encode(str.getBytes("UTF-8"));
-        } catch (UnsupportedEncodingException ex) {
-            throw new RuntimeException(ex);
-        }
+        return encode(str.getBytes(StandardCharsets.UTF_8));
     }
-    
+
     public static String encode(byte[] id) {
         return encodeChunk(id, 0, id.length);
     }
@@ -57,11 +53,10 @@ public final class Base64UrlUtility {
         char[] chunk = Base64Utility.encodeChunk(id, offset, length, true);
         if (chunk != null) {
             return new String(chunk);
-        } else {
-            return null;
         }
+        return null;
     }
-     
+
     public static void encodeAndStream(byte[] id,
                                        int o,
                                        int l,

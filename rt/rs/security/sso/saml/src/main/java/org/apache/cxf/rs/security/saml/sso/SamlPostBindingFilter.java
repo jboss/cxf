@@ -19,6 +19,7 @@
 package org.apache.cxf.rs.security.saml.sso;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
@@ -28,6 +29,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 
 import org.w3c.dom.Element;
+
 import org.apache.cxf.common.util.Base64Utility;
 import org.apache.cxf.jaxrs.ext.MessageContextImpl;
 import org.apache.cxf.jaxrs.utils.ExceptionUtils;
@@ -48,61 +50,61 @@ import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.SignatureConstants;
 
 public class SamlPostBindingFilter extends AbstractServiceProviderFilter {
-    
+
     private boolean useDeflateEncoding;
-    
+
     public void setUseDeflateEncoding(boolean useDeflateEncoding) {
         this.useDeflateEncoding = useDeflateEncoding;
     }
-    
+
+    @Override
     public void filter(ContainerRequestContext context) {
         Message m = JAXRSUtils.getCurrentMessage();
         if (checkSecurityContext(m)) {
             return;
-        } else {
-            try {
-                SamlRequestInfo info = createSamlRequestInfo(m);
-                info.setIdpServiceAddress(getIdpServiceAddress());
-                // This depends on RequestDispatcherProvider linking
-                // SamlRequestInfo with the jsp page which will fill
-                // in the XHTML form using SamlRequestInfo
-                // in principle we could've built the XHTML form right here
-                // but it will be cleaner to get that done in JSP
-                
-                String contextCookie = createCookie(SSOConstants.RELAY_STATE,
-                                                    info.getRelayState(),
-                                                    info.getWebAppContext(),
-                                                    info.getWebAppDomain());
-                new MessageContextImpl(m).getHttpServletResponse().addHeader(
-                    HttpHeaders.SET_COOKIE, contextCookie);
-                
-                context.abortWith(Response.ok(info)
-                               .type("text/html")
-                               .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store")
-                               .header("Pragma", "no-cache") 
-                               .build());
-                
-            } catch (Exception ex) {
-                throw ExceptionUtils.toInternalServerErrorException(ex, null);
-            }
+        }
+        try {
+            SamlRequestInfo info = createSamlRequestInfo(m);
+            info.setIdpServiceAddress(getIdpServiceAddress());
+            // This depends on RequestDispatcherProvider linking
+            // SamlRequestInfo with the jsp page which will fill
+            // in the XHTML form using SamlRequestInfo
+            // in principle we could've built the XHTML form right here
+            // but it will be cleaner to get that done in JSP
+
+            String contextCookie = createCookie(SSOConstants.RELAY_STATE,
+                                                info.getRelayState(),
+                                                info.getWebAppContext(),
+                                                info.getWebAppDomain());
+            new MessageContextImpl(m).getHttpServletResponse().addHeader(
+                HttpHeaders.SET_COOKIE, contextCookie);
+
+            context.abortWith(Response.ok(info)
+                           .type("text/html")
+                           .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store")
+                           .header("Pragma", "no-cache")
+                           .build());
+
+        } catch (Exception ex) {
+            throw ExceptionUtils.toInternalServerErrorException(ex, null);
         }
     }
-    
+
     protected String encodeAuthnRequest(Element authnRequest) throws IOException {
         String requestMessage = DOM2Writer.nodeToString(authnRequest);
-        
+
         byte[] deflatedBytes = null;
         // Not correct according to the spec but required by some IDPs.
         if (useDeflateEncoding) {
             DeflateEncoderDecoder encoder = new DeflateEncoderDecoder();
-            deflatedBytes = encoder.deflateToken(requestMessage.getBytes("UTF-8"));
+            deflatedBytes = encoder.deflateToken(requestMessage.getBytes(StandardCharsets.UTF_8));
         } else {
-            deflatedBytes = requestMessage.getBytes("UTF-8");
+            deflatedBytes = requestMessage.getBytes(StandardCharsets.UTF_8);
         }
 
         return Base64Utility.encode(deflatedBytes);
     }
-    
+
     protected void signAuthnRequest(AuthnRequest authnRequest) throws Exception {
         Crypto crypto = getSignatureCrypto();
         if (crypto == null) {
@@ -119,7 +121,7 @@ public class SamlPostBindingFilter extends AbstractServiceProviderFilter {
             LOG.fine("No CallbackHandler configured to supply a password for signature");
             throw ExceptionUtils.toInternalServerErrorException(null, null);
         }
-        
+
         CryptoType cryptoType = new CryptoType(CryptoType.TYPE.ALIAS);
         cryptoType.setAlias(signatureUser);
         X509Certificate[] issuerCerts = crypto.getX509Certificates(cryptoType);
@@ -136,27 +138,27 @@ public class SamlPostBindingFilter extends AbstractServiceProviderFilter {
             sigAlgo = SSOConstants.DSA_SHA1;
         }
         LOG.fine("Using Signature algorithm " + sigAlgo);
-        
+
         // Get the password
         WSPasswordCallback[] cb = {new WSPasswordCallback(signatureUser, WSPasswordCallback.SIGNATURE)};
         callbackHandler.handle(cb);
         String password = cb[0].getPassword();
-        
+
         // Get the private key
         PrivateKey privateKey = crypto.getPrivateKey(signatureUser, password);
-        
+
         // Create the signature
         Signature signature = OpenSAMLUtil.buildSignature();
         signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
         signature.setSignatureAlgorithm(sigAlgo);
-        
+
         BasicX509Credential signingCredential = new BasicX509Credential(issuerCerts[0], privateKey);
 
         signature.setSigningCredential(signingCredential);
 
         X509KeyInfoGeneratorFactory kiFactory = new X509KeyInfoGeneratorFactory();
         kiFactory.setEmitEntityCertificate(true);
-        
+
         try {
             KeyInfo keyInfo = kiFactory.newInstance().generate(signingCredential);
             signature.setKeyInfo(keyInfo);
@@ -164,12 +166,12 @@ public class SamlPostBindingFilter extends AbstractServiceProviderFilter {
             throw new Exception(
                     "Error generating KeyInfo from signing credential", ex);
         }
-        
-        SignableSAMLObject signableObject = (SignableSAMLObject) authnRequest;
+
+        SignableSAMLObject signableObject = authnRequest;
         signableObject.setSignature(signature);
         signableObject.releaseDOM();
         signableObject.releaseChildrenDOM(true);
-        
+
     }
-    
+
 }

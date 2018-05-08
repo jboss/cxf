@@ -24,63 +24,36 @@ import javax.ws.rs.client.ClientRequestContext;
 import javax.ws.rs.client.ClientRequestFilter;
 import javax.ws.rs.client.ClientResponseContext;
 import javax.ws.rs.client.ClientResponseFilter;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 
-import org.apache.cxf.tracing.AbstractTracingProvider;
-import org.apache.htrace.Sampler;
-import org.apache.htrace.Span;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
-import org.apache.htrace.impl.NeverSampler;
+import org.apache.cxf.tracing.htrace.AbstractHTraceClientProvider;
+import org.apache.htrace.core.TraceScope;
+import org.apache.htrace.core.Tracer;
 
 @Provider
-public class HTraceClientProvider extends AbstractTracingProvider 
+public class HTraceClientProvider extends AbstractHTraceClientProvider
         implements ClientRequestFilter, ClientResponseFilter {
-    private static final String TRACE_SPAN = "org.apache.cxf.tracing.client.htrace.span";
-    
-    private final Sampler< ? > sampler;
-    
-    public HTraceClientProvider() {
-        this(NeverSampler.INSTANCE);
-    }
 
-    public HTraceClientProvider(final Sampler< ? > sampler) {
-        this.sampler = sampler;
+    public HTraceClientProvider(final Tracer tracer) {
+        super(tracer);
     }
 
     @Override
     public void filter(final ClientRequestContext requestContext) throws IOException {
-        Span span = Trace.currentSpan();
-        
-        if (span == null) {
-            final TraceScope scope = Trace.startSpan(requestContext.getUri().toString(), sampler);
-            span = scope.getSpan();
-            
-            if (span != null) {
-                requestContext.setProperty(TRACE_SPAN, scope);
-            }
-        }
-        
-        if (span != null) {
-            final MultivaluedMap<String, Object> requestHeaders = requestContext.getHeaders();
-            
-            final String traceIdHeader = getTraceIdHeader();
-            final String spanIdHeader = getSpanIdHeader();
-            
-            // Transfer tracing headers into the response headers
-            requestHeaders.putSingle(traceIdHeader, Long.toString(span.getTraceId()));
-            requestHeaders.putSingle(spanIdHeader, Long.toString(span.getSpanId()));
+        final TraceScopeHolder<TraceScope> holder = super.startTraceSpan(requestContext.getStringHeaders(),
+            requestContext.getUri().toString(), requestContext.getMethod());
+
+        if (holder != null) {
+            requestContext.setProperty(TRACE_SPAN, holder);
         }
     }
-    
+
+    @SuppressWarnings("unchecked")
     @Override
     public void filter(final ClientRequestContext requestContext,
             final ClientResponseContext responseContext) throws IOException {
-        
-        final TraceScope scope = (TraceScope)requestContext.getProperty(TRACE_SPAN);
-        if (scope != null) {
-            scope.close();
-        }
+        final TraceScopeHolder<TraceScope> holder =
+            (TraceScopeHolder<TraceScope>)requestContext.getProperty(TRACE_SPAN);
+        super.stopTraceSpan(holder);
     }
 }

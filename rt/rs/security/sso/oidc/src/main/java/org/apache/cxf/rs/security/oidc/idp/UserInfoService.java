@@ -18,6 +18,9 @@
  */
 package org.apache.cxf.rs.security.oidc.idp;
 
+import java.util.Collections;
+import java.util.List;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -26,47 +29,119 @@ import javax.ws.rs.core.Response;
 
 import org.apache.cxf.jaxrs.ext.MessageContext;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
+import org.apache.cxf.rs.security.oauth2.common.Client;
 import org.apache.cxf.rs.security.oauth2.common.OAuthContext;
-import org.apache.cxf.rs.security.oauth2.provider.AbstractOAuthServerJoseJwtProducer;
 import org.apache.cxf.rs.security.oauth2.provider.OAuthDataProvider;
+import org.apache.cxf.rs.security.oauth2.provider.OAuthServerJoseJwtProducer;
 import org.apache.cxf.rs.security.oauth2.utils.OAuthContextUtils;
+import org.apache.cxf.rs.security.oauth2.utils.OAuthUtils;
+import org.apache.cxf.rs.security.oidc.common.IdToken;
 import org.apache.cxf.rs.security.oidc.common.UserInfo;
 
 @Path("/userinfo")
-public class UserInfoService extends AbstractOAuthServerJoseJwtProducer {
+public class UserInfoService extends OAuthServerJoseJwtProducer {
     private UserInfoProvider userInfoProvider;
     private OAuthDataProvider oauthDataProvider;
-    private String issuer;
-    
+    private List<String> additionalClaims = Collections.emptyList();
+    private boolean convertClearUserInfoToString;
     @Context
     private MessageContext mc;
     @GET
     @Produces({"application/json", "application/jwt" })
     public Response getUserInfo() {
         OAuthContext oauth = OAuthContextUtils.getContext(mc);
-        UserInfo userInfo = 
-            userInfoProvider.getUserInfo(oauth.getClientId(), oauth.getSubject(), oauth.getPermissions());
-        if (userInfo != null) {
-            userInfo.setIssuer(issuer);
+        UserInfo userInfo = null;
+        if (userInfoProvider != null) {
+            userInfo = userInfoProvider.getUserInfo(oauth.getClientId(), oauth.getSubject(),
+                OAuthUtils.convertPermissionsToScopeList(oauth.getPermissions()));
+        } else if (oauth.getSubject() instanceof OidcUserSubject) {
+            OidcUserSubject oidcUserSubject = (OidcUserSubject)oauth.getSubject();
+            userInfo = oidcUserSubject.getUserInfo();
+            if (userInfo == null) {
+                userInfo = createFromIdToken(oidcUserSubject.getIdToken());
+            }
         }
-        userInfo.setAudience(oauth.getClientId());
-        Object responseEntity = userInfo;
+        if (userInfo == null) {
+            // Consider customizing the error code in case of UserInfo being not available
+            return Response.serverError().build();
+        }
+
+        Object responseEntity = null;
+        // UserInfo may be returned in a clear form as JSON
         if (super.isJwsRequired() || super.isJweRequired()) {
-            responseEntity = super.processJwt(new JwtToken(userInfo),
-                                              oauthDataProvider.getClient(oauth.getClientId()));
+            Client client = null;
+            if (oauthDataProvider != null) {
+                client = oauthDataProvider.getClient(oauth.getClientId());
+            }
+            responseEntity = super.processJwt(new JwtToken(userInfo), client);
+        } else {
+            responseEntity = convertUserInfoToResponseEntity(userInfo);
         }
         return Response.ok(responseEntity).build();
-        
+
     }
-    
-    public void setIssuer(String issuer) {
-        this.issuer = issuer;
+
+    protected Object convertUserInfoToResponseEntity(UserInfo userInfo) {
+        // By default a JAX-RS MessageBodyWriter is expected to serialize UserInfo.
+        return convertClearUserInfoToString ? JwtUtils.claimsToJson(userInfo) : userInfo;
     }
+
+    protected UserInfo createFromIdToken(IdToken idToken) {
+        UserInfo userInfo = new UserInfo();
+        userInfo.setSubject(idToken.getSubject());
+
+        if (super.isJwsRequired()) {
+            userInfo.setIssuer(idToken.getIssuer());
+            userInfo.setAudience(idToken.getAudience());
+        }
+        if (idToken.getPreferredUserName() != null) {
+            userInfo.setPreferredUserName(idToken.getPreferredUserName());
+        }
+        if (idToken.getName() != null) {
+            userInfo.setName(idToken.getName());
+        }
+        if (idToken.getGivenName() != null) {
+            userInfo.setGivenName(idToken.getGivenName());
+        }
+        if (idToken.getFamilyName() != null) {
+            userInfo.setFamilyName(idToken.getFamilyName());
+        }
+        if (idToken.getEmail() != null) {
+            userInfo.setEmail(idToken.getEmail());
+        }
+        if (idToken.getNickName() != null) {
+            userInfo.setNickName(idToken.getNickName());
+        }
+
+        if (additionalClaims != null && !additionalClaims.isEmpty()) {
+            for (String additionalClaim : additionalClaims) {
+                if (idToken.containsProperty(additionalClaim)) {
+                    userInfo.setClaim(additionalClaim, idToken.getClaim(additionalClaim));
+                }
+            }
+        }
+
+        //etc
+        return userInfo;
+    }
+
     public void setUserInfoProvider(UserInfoProvider userInfoProvider) {
         this.userInfoProvider = userInfoProvider;
     }
 
     public void setOauthDataProvider(OAuthDataProvider oauthDataProvider) {
         this.oauthDataProvider = oauthDataProvider;
+    }
+
+    /**
+     * Set additional claims to return (if they exist in the IdToken).
+     */
+    public void setAdditionalClaims(List<String> additionalClaims) {
+        this.additionalClaims = additionalClaims;
+    }
+
+    public void setConvertClearUserInfoToString(boolean convertClearUserInfoToString) {
+        this.convertClearUserInfoToString = convertClearUserInfoToString;
     }
 }

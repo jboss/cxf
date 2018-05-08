@@ -34,9 +34,9 @@ import org.apache.cxf.phase.PhaseInterceptorChain;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
 import org.apache.wss4j.common.util.KeyUtils;
-import org.apache.wss4j.dom.WSSConfig;
+import org.apache.wss4j.dom.engine.WSSConfig;
 import org.apache.wss4j.dom.message.token.KerberosSecurity;
-import org.apache.xml.security.utils.Base64;
+import org.apache.xml.security.utils.XMLUtils;
 import org.ietf.jgss.GSSCredential;
 
 /**
@@ -44,9 +44,9 @@ import org.ietf.jgss.GSSCredential;
  */
 public class KerberosClient implements Configurable {
     private static final Logger LOG = LogUtils.getL7dLogger(KerberosClient.class);
-    
+
     String name = "default.kerberos-client";
-    
+
     private String serviceName;
     private CallbackHandler callbackHandler;
     private String contextName;
@@ -58,14 +58,14 @@ public class KerberosClient implements Configurable {
     @Deprecated
     public KerberosClient(Bus b) {
     }
-    
+
     public KerberosClient() {
     }
 
     public String getBeanName() {
         return name;
     }
-    
+
     /**
      * Get the JAAS Login context name to use.
      * @return the JAAS Login context name to use
@@ -81,7 +81,7 @@ public class KerberosClient implements Configurable {
     public void setContextName(String contextName) {
         this.contextName = contextName;
     }
-    
+
     /**
      * @deprecated
      * Get the JAAS Login module name to use.
@@ -123,7 +123,7 @@ public class KerberosClient implements Configurable {
     public void setServiceName(String serviceName) {
         this.serviceName = serviceName;
     }
-    
+
     /**
      * Get the name of the service to use when contacting the KDC.
      * @return the name of the service to use when contacting the KDC
@@ -142,18 +142,18 @@ public class KerberosClient implements Configurable {
                 delegatedCredential = (GSSCredential)obj;
             }
         }
-        
+
         if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("Requesting Kerberos ticket for " + serviceName 
+            LOG.fine("Requesting Kerberos ticket for " + serviceName
                     + " using JAAS Login Module: " + getContextName());
         }
-        KerberosSecurity bst = new KerberosSecurity(DOMUtils.createDocument());
+        KerberosSecurity bst = createKerberosSecurity();
         bst.retrieveServiceTicket(getContextName(), callbackHandler, serviceName,
                                   isUsernameServiceNameForm, requestCredentialDelegation,
                                   delegatedCredential);
         bst.addWSUNamespace();
         bst.setID(wssConfig.getIdAllocator().createSecureId("BST-", bst));
-        
+
         SecurityToken token = new SecurityToken(bst.getID());
         token.setToken(bst.getElement());
         token.setWsuId(bst.getID());
@@ -163,11 +163,15 @@ public class KerberosClient implements Configurable {
             token.setKey(secretKey);
             token.setSecret(secretKey.getEncoded());
         }
-        String sha1 = Base64.encode(KeyUtils.generateDigest(bst.getToken()));
+        String sha1 = XMLUtils.encodeToString(KeyUtils.generateDigest(bst.getToken()));
         token.setSHA1(sha1);
         token.setTokenType(bst.getValueType());
 
         return token;
+    }
+
+    protected KerberosSecurity createKerberosSecurity() {
+        return new KerberosSecurity(DOMUtils.getEmptyDocument());
     }
 
     public boolean isUsernameServiceNameForm() {

@@ -44,27 +44,27 @@ import java.util.Map;
  */
 class ParamReader extends ClassReader {
     private String methodName;
-    private Map<String, MethodInfo> methods = new HashMap<String, MethodInfo>();
+    private Map<String, MethodInfo> methods = new HashMap<>();
     private Class<?>[] paramTypes;
 
     /**
      * process a class file, given it's class. We'll use the defining
      * classloader to locate the bytecode.
-     * 
+     *
      * @param c
      * @throws IOException
      */
-    public ParamReader(Class<?> c) throws IOException {
+    ParamReader(Class<?> c) throws IOException {
         this(getBytes(c));
     }
 
     /**
      * process the given class bytes directly.
-     * 
+     *
      * @param b
      * @throws IOException
      */
-    public ParamReader(byte[] b) throws IOException {
+    ParamReader(byte[] b) throws IOException {
         super(b, findAttributeReaders(ParamReader.class));
 
         // check the magic number
@@ -111,13 +111,13 @@ class ParamReader extends ClassReader {
      * Retrieve a list of function parameter names from a method Returns null if
      * unable to read parameter names (i.e. bytecode not built with debug).
      */
-    public static String[] getParameterNamesFromDebugInfo(Method method) {
+    static String[] getParameterNamesFromDebugInfo(Method method) {
         // Don't worry about it if there are no params.
         int numParams = method.getParameterTypes().length;
         if (numParams == 0) {
             return null;
         }
-        
+
         // get declaring class
         Class<?> c = method.getDeclaringClass();
 
@@ -159,7 +159,7 @@ class ParamReader extends ClassReader {
      * we cannot determine the names, return null. The returned array will have
      * one name per parameter. The length of the array will be the same as the
      * length of the Class[] array returned by Constructor.getParameterTypes().
-     * 
+     *
      * @param ctor
      * @return String[] array of names, one per parameter, or null
      */
@@ -173,7 +173,7 @@ class ParamReader extends ClassReader {
      * cannot determine the names, return null. The returned array will have one
      * name per parameter. The length of the array will be the same as the
      * length of the Class[] array returned by Method.getParameterTypes().
-     * 
+     *
      * @param method
      * @return String[] array of names, one per parameter, or null
      */
@@ -208,18 +208,16 @@ class ParamReader extends ClassReader {
 
             if (found) {
                 return paramNames;
-            } else {
-                return null;
             }
-        } else {
             return null;
         }
+        return null;
     }
 
     private static class MethodInfo {
         String[] names;
 
-        public MethodInfo(int maxLocals) {
+        MethodInfo(int maxLocals) {
             names = new String[maxLocals];
         }
     }
@@ -234,7 +232,7 @@ class ParamReader extends ClassReader {
 
     /**
      * this is invoked when a LocalVariableTable attribute is encountered.
-     * 
+     *
      * @throws IOException
      */
     public void readLocalVariableTable() throws IOException {

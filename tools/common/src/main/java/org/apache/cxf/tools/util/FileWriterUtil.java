@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
 import org.apache.cxf.common.i18n.Message;
@@ -58,16 +59,16 @@ public class FileWriterUtil {
     }
 
     private Writer getWriter(File fn) throws IOException {
-        return getWriter(fn, "UTF-8");
+        return getWriter(fn, StandardCharsets.UTF_8.name());
     }
 
     public Writer getWriter(File fn, String encoding) throws IOException {
         if (encoding == null) {
-            encoding = "UTF-8";
+            encoding = StandardCharsets.UTF_8.name();
         }
         return new OutputStreamWriter(new BufferedOutputStream(osc.createOutputStream(fn)), encoding);
     }
-    
+
     public Writer getWriter(String packageName, String fileName) throws IOException {
         return getWriter(getFileToWrite(packageName, fileName));
     }

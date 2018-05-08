@@ -34,6 +34,7 @@ import org.apache.cxf.bus.extension.ExtensionManagerBus;
 import org.apache.cxf.endpoint.ServerRegistry;
 import org.apache.cxf.headers.HeaderManager;
 import org.apache.cxf.wsdl.WSDLManager;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -41,7 +42,7 @@ public class BusExtensionLoadingTest extends Assert {
 
     /**
      * Tests the ExtensionManagerBus can be built using a given classloader
-     * 
+     *
      * @throws Exception
      */
     @Test
@@ -64,7 +65,7 @@ public class BusExtensionLoadingTest extends Assert {
 
     /**
      * Test for checking the ExtensionManagerBus is built using the TCCL by default
-     * 
+     *
      * @throws Exception
      */
     @Test
@@ -88,11 +89,10 @@ public class BusExtensionLoadingTest extends Assert {
         public Class<?> loadClass(final String className) throws ClassNotFoundException {
             if (className.contains("cxf")) {
                 throw new ClassNotFoundException("TestClassLoader does not load CXF classes: " +  className);
-            } else {
-                return super.loadClass(className);
             }
+            return super.loadClass(className);
         }
-        
+
         @Override
         public URL getResource(final String name) {
             if (name.contains("cxf") || name.contains("bus")) {
@@ -104,7 +104,7 @@ public class BusExtensionLoadingTest extends Assert {
         @Override
         public Enumeration<URL> getResources(final String name) throws IOException {
             if (name.contains("cxf") || name.contains("bus")) {
-                return Collections.enumeration(new ArrayList<URL>());
+                return Collections.enumeration(new ArrayList<>());
             }
             return super.getResources(name);
         }

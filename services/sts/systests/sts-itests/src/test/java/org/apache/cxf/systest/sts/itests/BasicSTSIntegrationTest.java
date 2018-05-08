@@ -20,6 +20,8 @@ package org.apache.cxf.systest.sts.itests;
 
 import java.io.File;
 
+import org.apache.cxf.testutil.common.TestUtil;
+
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.MavenArtifactUrlReference;
@@ -38,14 +40,14 @@ import static org.ops4j.pax.exam.karaf.options.KarafDistributionOption.replaceCo
 @ExamReactorStrategy(PerClass.class)
 public class BasicSTSIntegrationTest {
 
-    protected static final String HTTP_PORT = "9191";
-    protected static final String STS_ENDPOINT = "http://localhost:" + HTTP_PORT + "/cxf/X509";
-
     @Configuration
     public Option[] getConfig() {
-        String karafVersion = System.getProperty("karaf.version", "3.0.4");
-        String localRepository = System.getProperty("localRepository");
+        String port = TestUtil.getPortNumber(BasicSTSIntegrationTest.class);
+        System.setProperty("BasicSTSIntegrationTest.PORT", port);
         
+        String karafVersion = System.getProperty("karaf.version", "4.0.8");
+        String localRepository = System.getProperty("localRepository");
+
         MavenArtifactUrlReference karafUrl = maven() //
                         .groupId("org.apache.karaf") //
                         .artifactId("apache-karaf") //
@@ -61,17 +63,18 @@ public class BasicSTSIntegrationTest {
             karafDistributionConfiguration().frameworkUrl(karafUrl).karafVersion(karafVersion)
                 .unpackDirectory(new File("target/paxexam/unpack/")).useDeployFolder(false),
             systemProperty("java.awt.headless").value("true"),
+            systemProperty("BasicSTSIntegrationTest.PORT").value(port),
 
             copy("clientKeystore.properties"),
             copy("clientstore.jks"),
             copy("etc/org.ops4j.pax.logging.cfg"),
-            editConfigurationFilePut("etc/org.ops4j.pax.web.cfg", "org.osgi.service.http.port", HTTP_PORT),
+            editConfigurationFilePut("etc/org.ops4j.pax.web.cfg", "org.osgi.service.http.port", port),
             when(localRepository != null)
                 .useOptions(editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg",
                             "org.ops4j.pax.url.mvn.localRepository",
                             localRepository)),
             features(stsFeatures, "cxf-sts-service"),
-            configureConsole().ignoreLocalConsole(),
+            configureConsole().ignoreLocalConsole().ignoreRemoteShell(),
         };
     }
 

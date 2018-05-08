@@ -23,15 +23,16 @@ import org.apache.cxf.transport.http.policy.impl.ServerPolicyCalculator;
 import org.apache.cxf.transports.http.configuration.HTTPServerPolicy;
 import org.apache.cxf.ws.policy.builder.jaxb.JaxbAssertion;
 import org.apache.neethi.Assertion;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class HTTPServerAssertionBuilderTest extends Assert {
 
-    
+
     @Test
     public void testBuildAssertion() throws Exception {
         HTTPServerAssertionBuilder ab = new HTTPServerAssertionBuilder();
@@ -41,13 +42,13 @@ public class HTTPServerAssertionBuilderTest extends Assert {
         assertEquals(new ServerPolicyCalculator().getDataClassName(), a.getName());
         assertTrue(!a.isOptional());
     }
-    
+
     @Test
     public void testHTTPServerPolicyAssertionEqual() throws Exception {
         HTTPServerAssertionBuilder ab = new HTTPServerAssertionBuilder();
-        JaxbAssertion<HTTPServerPolicy>  a = ab.buildAssertion(); 
+        JaxbAssertion<HTTPServerPolicy>  a = ab.buildAssertion();
         a.setData(new HTTPServerPolicy());
-        assertTrue(a.equal(a));        
+        assertTrue(a.equal(a));
         JaxbAssertion<HTTPServerPolicy> b = ab.buildAssertion();
         b.setData(new HTTPServerPolicy());
         assertTrue(a.equal(b));
@@ -58,7 +59,7 @@ public class HTTPServerAssertionBuilderTest extends Assert {
         b.setData(pb);
         assertTrue(a.equal(b));
         pa.setSuppressClientSendErrors(true);
-        assertTrue(!a.equal(b));       
+        assertTrue(!a.equal(b));
     }
-    
+
 }

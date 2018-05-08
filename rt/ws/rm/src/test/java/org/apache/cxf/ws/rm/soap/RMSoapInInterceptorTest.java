@@ -49,21 +49,21 @@ import org.junit.Test;
 public class RMSoapInInterceptorTest extends Assert {
 
     private static final String SEQ_IDENTIFIER = "http://Business456.com/RM/ABC";
-    private static final Long ONE = new Long(1);
+    private static final Long ONE = Long.valueOf(1);
     private static final Long MSG1_MESSAGE_NUMBER = ONE;
-    private static final Long MSG2_MESSAGE_NUMBER = new Long(2);
+    private static final Long MSG2_MESSAGE_NUMBER = Long.valueOf(2);
 
     @Test
     public void testGetUnderstoodHeaders() throws Exception {
         RMSoapInInterceptor codec = new RMSoapInInterceptor();
         Set<QName> headers = codec.getUnderstoodHeaders();
         assertTrue("expected Sequence header", headers.contains(RM10Constants.SEQUENCE_QNAME));
-        assertTrue("expected SequenceAcknowledgment header", 
+        assertTrue("expected SequenceAcknowledgment header",
                    headers.contains(RM10Constants.SEQUENCE_ACK_QNAME));
-        assertTrue("expected AckRequested header", 
+        assertTrue("expected AckRequested header",
                    headers.contains(RM10Constants.ACK_REQUESTED_QNAME));
     }
-    
+
     @Test
     public void testDecodeSequence() throws XMLStreamException {
         SoapMessage message = setUpInboundMessage("resources/Message1.xml");
@@ -74,7 +74,7 @@ public class RMSoapInInterceptorTest extends Assert {
         assertNotNull(st);
         assertEquals(st.getIdentifier().getValue(), SEQ_IDENTIFIER);
         assertEquals(st.getMessageNumber(), MSG1_MESSAGE_NUMBER);
-        
+
         assertNull(rmps.getAcks());
         assertNull(rmps.getAcksRequested());
 
@@ -151,7 +151,7 @@ public class RMSoapInInterceptorTest extends Assert {
 
         assertNull(rmps.getAcks());
     }
-    
+
     private SoapMessage setUpInboundMessage(String resource) throws XMLStreamException {
         Message message = new MessageImpl();
         SoapMessage soapMessage = new SoapMessage(message);
@@ -166,7 +166,7 @@ public class RMSoapInInterceptorTest extends Assert {
         XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(is);
         soapMessage.setContent(XMLStreamReader.class, reader);
         ReadHeadersInterceptor rji = new ReadHeadersInterceptor(BusFactory.getDefaultBus());
-        rji.handleMessage(soapMessage); 
+        rji.handleMessage(soapMessage);
         StartBodyInterceptor sbi = new StartBodyInterceptor();
         sbi.handleMessage(soapMessage);
         return soapMessage;

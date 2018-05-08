@@ -19,13 +19,15 @@
 
 package org.apache.cxf.sts.token.provider;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.helpers.DOMUtils;
 import org.apache.cxf.sts.STSConstants;
@@ -36,18 +38,18 @@ import org.apache.cxf.ws.security.tokenstore.SecurityToken;
 import org.apache.cxf.ws.security.trust.STSUtils;
 import org.apache.wss4j.common.derivedKey.ConversationConstants;
 import org.apache.wss4j.common.ext.WSSecurityException;
-import org.apache.wss4j.dom.WSSConfig;
+import org.apache.wss4j.dom.engine.WSSConfig;
 import org.apache.wss4j.dom.message.token.SecurityContextToken;
 
 /**
  * A TokenProvider implementation that provides a SecurityContextToken.
  */
 public class SCTProvider implements TokenProvider {
-    
+
     private static final Logger LOG = LogUtils.getL7dLogger(SCTProvider.class);
     private boolean returnEntropy = true;
     private long lifetime = 60L * 30L;
-    
+
     /**
      * Return the lifetime of the generated SCT
      * @return the lifetime of the generated SCT
@@ -74,14 +76,14 @@ public class SCTProvider implements TokenProvider {
 
     /**
      * Return true if this TokenProvider implementation is capable of providing a token
-     * that corresponds to the given TokenType in a given realm. The realm is ignored in this 
+     * that corresponds to the given TokenType in a given realm. The realm is ignored in this
      * token provider.
      */
     public boolean canHandleToken(String tokenType, String realm) {
-        return STSUtils.TOKEN_TYPE_SCT_05_02.equals(tokenType) 
+        return STSUtils.TOKEN_TYPE_SCT_05_02.equals(tokenType)
             || STSUtils.TOKEN_TYPE_SCT_05_12.equals(tokenType);
     }
-        
+
     /**
      * Set whether Entropy is returned to the client or not
      * @param returnEntropy whether Entropy is returned to the client or not
@@ -97,14 +99,16 @@ public class SCTProvider implements TokenProvider {
     public boolean isReturnEntropy() {
         return returnEntropy;
     }
-    
+
     /**
      * Create a token given a TokenProviderParameters
      */
     public TokenProviderResponse createToken(TokenProviderParameters tokenParameters) {
         TokenRequirements tokenRequirements = tokenParameters.getTokenRequirements();
-        LOG.fine("Handling token of type: " + tokenRequirements.getTokenType());
-        
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Handling token of type: " + tokenRequirements.getTokenType());
+        }
+
         if (tokenParameters.getTokenStore() == null) {
             LOG.log(Level.FINE, "A cache must be configured to use the SCTProvider");
             throw new STSException("Can't serialize SCT", STSException.REQUEST_FAILED);
@@ -112,16 +116,15 @@ public class SCTProvider implements TokenProvider {
 
         SymmetricKeyHandler keyHandler = new SymmetricKeyHandler(tokenParameters);
         keyHandler.createSymmetricKey();
-        
+
         try {
-            Document doc = DOMUtils.createDocument();
+            Document doc = DOMUtils.getEmptyDocument();
             SecurityContextToken sct =
                 new SecurityContextToken(getWSCVersion(tokenRequirements.getTokenType()), doc);
             WSSConfig wssConfig = WSSConfig.getNewInstance();
             sct.setID(wssConfig.getIdAllocator().createId("sctId-", sct));
-    
+
             TokenProviderResponse response = new TokenProviderResponse();
-            response.setToken(sct.getElement());
             response.setTokenId(sct.getIdentifier());
             if (returnEntropy) {
                 response.setEntropy(keyHandler.getEntropyBytes());
@@ -129,22 +132,21 @@ public class SCTProvider implements TokenProvider {
             long keySize = keyHandler.getKeySize();
             response.setKeySize(keySize);
             response.setComputedKey(keyHandler.isComputedKey());
-            
+
             // putting the secret key into the cache
-            Date currentDate = new Date();
-            response.setCreated(currentDate);
-            Date expires = null;
+            Instant created = Instant.now();
+            response.setCreated(created);
+            Instant expires = null;
             if (lifetime > 0) {
-                expires = new Date();
-                long currentTime = currentDate.getTime();
-                expires.setTime(currentTime + (lifetime * 1000L));
+                expires = created.plusSeconds(lifetime);
+                response.setExpires(expires);
             }
-            response.setExpires(expires);
-            
-            SecurityToken token = new SecurityToken(sct.getIdentifier(), currentDate, expires);
+
+            SecurityToken token =
+                new SecurityToken(sct.getIdentifier(), created, expires);
             token.setSecret(keyHandler.getSecret());
             token.setPrincipal(tokenParameters.getPrincipal());
-            
+
             Map<String, Object> props = token.getProperties();
             if (props == null) {
                 props = new HashMap<>();
@@ -158,19 +160,30 @@ public class SCTProvider implements TokenProvider {
             Renewing renewing = tokenParameters.getTokenRequirements().getRenewing();
             if (renewing != null) {
                 props.put(
-                    STSConstants.TOKEN_RENEWING_ALLOW, 
+                    STSConstants.TOKEN_RENEWING_ALLOW,
                     String.valueOf(renewing.isAllowRenewing())
                 );
                 props.put(
-                    STSConstants.TOKEN_RENEWING_ALLOW_AFTER_EXPIRY, 
+                    STSConstants.TOKEN_RENEWING_ALLOW_AFTER_EXPIRY,
                     String.valueOf(renewing.isAllowRenewingAfterExpiry())
                 );
             } else {
                 props.put(STSConstants.TOKEN_RENEWING_ALLOW, "true");
                 props.put(STSConstants.TOKEN_RENEWING_ALLOW_AFTER_EXPIRY, "false");
             }
-            
+
             tokenParameters.getTokenStore().add(token);
+
+            if (tokenParameters.isEncryptToken()) {
+                Element el = TokenProviderUtils.encryptToken(sct.getElement(), response.getTokenId(),
+                                                        tokenParameters.getStsProperties(),
+                                                        tokenParameters.getEncryptionProperties(),
+                                                        tokenParameters.getKeyRequirements(),
+                                                        tokenParameters.getMessageContext());
+                response.setToken(el);
+            } else {
+                response.setToken(sct.getElement());
+            }
 
             // Create the references
             TokenReference attachedReference = new TokenReference();
@@ -178,13 +191,13 @@ public class SCTProvider implements TokenProvider {
             attachedReference.setUseDirectReference(true);
             attachedReference.setWsseValueType(tokenRequirements.getTokenType());
             response.setAttachedReference(attachedReference);
-            
+
             TokenReference unAttachedReference = new TokenReference();
             unAttachedReference.setIdentifier(sct.getIdentifier());
             unAttachedReference.setUseDirectReference(true);
             unAttachedReference.setWsseValueType(tokenRequirements.getTokenType());
             response.setUnattachedReference(unAttachedReference);
-            
+
             LOG.fine("SecurityContextToken successfully created");
             return response;
         } catch (Exception e) {
@@ -192,7 +205,7 @@ public class SCTProvider implements TokenProvider {
             throw new STSException("Can't serialize SCT", e, STSException.REQUEST_FAILED);
         }
     }
-    
+
     /**
      * Get the Secure Conversation version from the TokenType parameter
      */
@@ -206,10 +219,10 @@ public class SCTProvider implements TokenProvider {
         } else if (tokenType.startsWith(ConversationConstants.WSC_NS_05_12)) {
             return ConversationConstants.getWSTVersion(ConversationConstants.WSC_NS_05_12);
         } else {
-            throw new WSSecurityException(WSSecurityException.ErrorCode.FAILURE, 
+            throw new WSSecurityException(WSSecurityException.ErrorCode.FAILURE,
                                           "unsupportedSecConvVersion");
         }
     }
-    
-    
+
+
 }

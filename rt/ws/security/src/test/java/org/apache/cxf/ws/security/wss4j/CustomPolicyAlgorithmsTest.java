@@ -23,6 +23,7 @@ import org.apache.cxf.ws.policy.AssertionInfoMap;
 import org.apache.neethi.Policy;
 import org.apache.wss4j.policy.SP12Constants;
 import org.apache.wss4j.policy.model.AsymmetricBinding;
+
 import org.junit.Test;
 
 public class CustomPolicyAlgorithmsTest extends AbstractPolicySecurityTest {
@@ -32,7 +33,7 @@ public class CustomPolicyAlgorithmsTest extends AbstractPolicySecurityTest {
 
         final String rsaSha2SigMethod = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
         String policyName = "signed_elements_policy.xml";
-        Policy policy = policyBuilder.getPolicy(this.getResourceAsStream(policyName)); 
+        Policy policy = policyBuilder.getPolicy(this.getResourceAsStream(policyName));
         AssertionInfoMap aim = new AssertionInfoMap(policy);
 
         AssertionInfo assertInfo = aim.get(SP12Constants.ASYMMETRIC_BINDING).iterator().next();
@@ -47,5 +48,5 @@ public class CustomPolicyAlgorithmsTest extends AbstractPolicySecurityTest {
         assertNotNull(sigMethod);
         assertEquals(rsaSha2SigMethod, sigMethod);
     }
-  
+
 }

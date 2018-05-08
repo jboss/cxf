@@ -37,34 +37,34 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class WrappedMessageContextTest extends Assert {
     @Test
     public void testPutAndGetJaxwsAttachments() throws Exception {
-        WrappedMessageContext context = 
+        WrappedMessageContext context =
             new WrappedMessageContext(new HashMap<String, Object>(), null, Scope.APPLICATION);
 
         DataHandler dh1 = new DataHandler(new ByteArrayDataSource("Hello world!".getBytes(), "text/plain"));
         DataHandler dh2 = new DataHandler(new ByteArrayDataSource("Hola mundo!".getBytes(), "text/plain"));
         DataHandler dh3 = new DataHandler(new ByteArrayDataSource("Bonjour tout le monde!".getBytes(), "text/plain"));
-        Map<String, DataHandler> jattachments = new HashMap<String, DataHandler>();
+        Map<String, DataHandler> jattachments = new HashMap<>();
         context.put(MessageContext.OUTBOUND_MESSAGE_ATTACHMENTS, jattachments);
-        
-        jattachments.put("attachment-1", dh1);                
+
+        jattachments.put("attachment-1", dh1);
 
         Set<Attachment> cattachments = CastUtils.cast((Set<?>)context.get(Message.ATTACHMENTS));
         assertNotNull(cattachments);
-        
+
         assertEquals(1, cattachments.size());
-        
+
         jattachments.put("attachment-2", dh2);
-        
+
         assertEquals(2, cattachments.size());
-        
+
         AttachmentImpl ca = new AttachmentImpl("attachment-3", dh3);
         ca.setHeader("X-test", "true");
-        cattachments.add(ca); 
+        cattachments.add(ca);
 
         assertEquals(3, jattachments.size());
         assertEquals(3, cattachments.size());

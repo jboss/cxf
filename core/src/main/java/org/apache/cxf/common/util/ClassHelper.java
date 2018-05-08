@@ -25,19 +25,19 @@ import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 
 /**
- * 
+ *
  */
 public class ClassHelper {
     static final ClassHelper HELPER;
     static {
         HELPER = getClassHelper();
     }
-    
-    
+
+
     protected ClassHelper() {
     }
-    
-    private static ClassHelper getClassHelper() { 
+
+    private static ClassHelper getClassHelper() {
         boolean useSpring = true;
         String s = SystemPropertyAction.getPropertyOrNull("org.apache.cxf.useSpringClassHelpers");
         if (!StringUtils.isEmpty(s)) {
@@ -52,26 +52,26 @@ public class ClassHelper {
         }
         return new ClassHelper();
     }
-    
+
     protected Class<?> getRealClassInternal(Object o) {
         return getRealObjectInternal(o).getClass();
     }
-    
+
     protected Class<?> getRealClassFromClassInternal(Class<?> cls) {
         return cls;
     }
     protected Object getRealObjectInternal(Object o) {
         return o instanceof Proxy ? Proxy.getInvocationHandler(o) : o;
     }
-    
+
     public static Class<?> getRealClass(Object o) {
         return getRealClass(null, o);
     }
-    
+
     public static Class<?> getRealClassFromClass(Class<?> cls) {
         return HELPER.getRealClassFromClassInternal(cls);
     }
-    
+
     public static Object getRealObject(Object o) {
         return HELPER.getRealObjectInternal(o);
     }
@@ -81,13 +81,7 @@ public class ClassHelper {
         if (bus != null && bus.getProperty(ClassUnwrapper.class.getName()) != null) {
             ClassUnwrapper unwrapper = (ClassUnwrapper)bus.getProperty(ClassUnwrapper.class.getName());
             return unwrapper.getRealClass(o);
-        } else {
-            return HELPER.getRealClassInternal(o);
         }
+        return HELPER.getRealClassInternal(o);
     }
-    public static double getJavaVersion() {
-        String version = System.getProperty("java.version");
-        return Double.parseDouble(version.substring(0, 3));    
-    }
-    
 }

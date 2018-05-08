@@ -35,6 +35,7 @@ import org.apache.cxf.transport.jms.JMSConstants;
 import org.apache.cxf.transport.jms.JMSMessageHeadersType;
 import org.apache.cxf.transport.jms.util.TestReceiver;
 import org.apache.cxf.ws.addressing.EndpointReferenceType;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,14 +46,15 @@ import org.junit.Test;
  */
 public class URIConfiguredConduitTest {
     private static final String SERVICE_QUEUE = "test";
-    private static final String BROKER_URI = "vm://URIConfiguredConduitTest?broker.persistent=false";
+    private static final String BROKER_URI 
+        = "vm://URIConfiguredConduitTest?broker.persistent=false&broker.useJmx=false";
     private static ConnectionFactory cf;
 
     private enum SyncType {
         sync,
         async
     };
-    
+
     @BeforeClass
     public static void initConnectionFactory() {
         cf = new ActiveMQConnectionFactory(BROKER_URI);
@@ -65,7 +67,7 @@ public class URIConfiguredConduitTest {
                            + SERVICE_QUEUE
                            + "?jndiInitialContextFactory=org.apache.activemq.jndi.ActiveMQInitialContextFactory"
                            + "&useConduitIdSelector=false"
-                           + "&replyToName=dynamicQueues/testreply" 
+                           + "&replyToName=dynamicQueues/testreply"
                            + "&messageType=text"
                            + "&jndiConnectionFactoryName=ConnectionFactory"
                            + "&jndiURL=" + BROKER_URI);
@@ -75,7 +77,7 @@ public class URIConfiguredConduitTest {
     public void testSendReceiveCFFromContext() throws Exception {
         sendAndReceive(SyncType.sync, "jms:queue:" + SERVICE_QUEUE + "?replyToName=testreply"
                                       + "&useConduitIdSelector=false"
-                                      + "&messageType=text" 
+                                      + "&messageType=text"
                                       + "&receiveTimeout=10000"
                                       + "&jndiConnectionFactoryName=ConnectionFactory");
     }

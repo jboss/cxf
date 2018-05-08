@@ -18,8 +18,11 @@
  */
 package org.apache.cxf.rs.security.saml;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 import org.apache.cxf.common.util.Base64Utility;
 import org.apache.cxf.helpers.IOUtils;
@@ -30,19 +33,19 @@ import org.junit.Test;
 
 public class DeflateEncoderDecoderTest extends Assert {
 
-    @Test(expected = DataFormatException.class) 
+    @Test(expected = DataFormatException.class)
     public void testInvalidContent() throws Exception {
         DeflateEncoderDecoder inflater = new DeflateEncoderDecoder();
         inflater.inflateToken("invalid_grant".getBytes());
     }
-    
+
     @Test(expected = DataFormatException.class)
     public void testInvalidContentAfterBase64() throws Exception {
         DeflateEncoderDecoder inflater = new DeflateEncoderDecoder();
         byte[] base64decoded = Base64Utility.decode("invalid_grant");
         inflater.inflateToken(base64decoded);
     }
-    
+
     @Test
     public void testInflateDeflate() throws Exception {
         DeflateEncoderDecoder inflater = new DeflateEncoderDecoder();
@@ -51,7 +54,7 @@ public class DeflateEncoderDecoderTest extends Assert {
         assertNotNull(is);
         assertEquals("valid_grant", IOUtils.readStringFromStream(is));
     }
-    
+
     @Test
     public void testInflateDeflateBase64() throws Exception {
         DeflateEncoderDecoder inflater = new DeflateEncoderDecoder();
@@ -62,5 +65,21 @@ public class DeflateEncoderDecoderTest extends Assert {
         assertNotNull(is);
         assertEquals("valid_grant", IOUtils.readStringFromStream(is));
     }
-    
+    @Test
+    public void testInflateDeflateWithTokenDuplication() throws Exception {
+        String token = "valid_grant valid_grant valid_grant valid_grant valid_grant valid_grant";
+
+        DeflateEncoderDecoder deflateEncoderDecoder = new DeflateEncoderDecoder();
+        byte[] deflatedToken = deflateEncoderDecoder.deflateToken(token.getBytes());
+
+        String cxfInflatedToken = IOUtils
+                .toString(deflateEncoderDecoder.inflateToken(deflatedToken));
+
+        String streamInflatedToken = IOUtils.toString(
+                new InflaterInputStream(new ByteArrayInputStream(deflatedToken),
+                        new Inflater(true)));
+
+        assertEquals(streamInflatedToken, token);
+        assertEquals(cxfInflatedToken, token);
+    }
 }

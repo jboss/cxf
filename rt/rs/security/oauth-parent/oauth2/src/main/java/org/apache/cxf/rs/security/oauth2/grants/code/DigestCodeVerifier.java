@@ -24,11 +24,16 @@ import org.apache.cxf.rt.security.crypto.MessageDigestUtils;
 public class DigestCodeVerifier implements CodeVerifierTransformer {
 
     public String transformCodeVerifier(String codeVerifier) {
-        byte[] digest = MessageDigestUtils.createDigest(codeVerifier, 
+        byte[] digest = MessageDigestUtils.createDigest(codeVerifier,
                                                         MessageDigestUtils.ALGO_SHA_256);
         return Base64UrlUtility.encode(digest);
     }
 
-    
+    @Override
+    public String getChallengeMethod() {
+        return "S256";
+    }
+
+
 
 }

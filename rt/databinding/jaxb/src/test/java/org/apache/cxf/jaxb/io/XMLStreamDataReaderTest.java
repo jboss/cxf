@@ -37,17 +37,18 @@ import org.apache.hello_world_doc_lit_bare.types.TradePriceData;
 import org.apache.hello_world_rpclit.types.MyComplexStruct;
 import org.apache.hello_world_soap_http.types.GreetMe;
 import org.apache.hello_world_soap_http.types.GreetMeResponse;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
- 
+
 public class XMLStreamDataReaderTest extends Assert {
 
     private XMLInputFactory factory;
     private XMLStreamReader reader;
     private InputStream is;
-    
+
     @Before
     public void setUp() throws Exception {
         factory = XMLInputFactory.newInstance();
@@ -61,9 +62,9 @@ public class XMLStreamDataReaderTest extends Assert {
     @Test
     public void testSetProperty() throws Exception {
         MyCustomHandler handler = new MyCustomHandler();
-        
+
         DataReaderImpl<XMLStreamReader> dr = newDataReader(handler);
-        
+
         // Should fail if custom handler doesn't skip formatting error
         Object val = dr.read(reader);
         assertTrue(val instanceof GreetMe);
@@ -71,11 +72,11 @@ public class XMLStreamDataReaderTest extends Assert {
 
         assertTrue(handler.getUsed());
     }
-    
+
     @Test
     public void testSetPropertyWithCustomExceptionHandling() throws Exception {
         MyCustomMarshallerHandler handler = new MyCustomMarshallerHandler();
-        
+
         DataReaderImpl<XMLStreamReader> dr = newDataReader(handler);
 
         // Should fail if custom handler doesn't skip formatting error
@@ -85,39 +86,39 @@ public class XMLStreamDataReaderTest extends Assert {
         } catch (Fault f) {
             assertTrue(f.getMessage().contains("My unmarshalling exception"));
         }
-        
+
         // Check handler used
         assertTrue(handler.getUsed());
         assertFalse(handler.isOnMarshalComplete());
         assertTrue(handler.isOnUnmarshalComplete());
     }
-    
+
     private DataReaderImpl<XMLStreamReader> newDataReader(ValidationEventHandler handler) throws Exception {
         JAXBDataBinding db = getDataBinding(GreetMe.class);
-    
+
         reader = getTestReader("../resources/SetPropertyValidationFailureReq.xml");
         assertNotNull(reader);
-        
+
         DataReaderImpl<XMLStreamReader> dr = (DataReaderImpl<XMLStreamReader>)db.createReader(XMLStreamReader.class);
         assertNotNull(dr);
-        
+
         // Build message to set custom event handler
         org.apache.cxf.message.Message message = new org.apache.cxf.message.MessageImpl();
         message.put(JAXBDataBinding.READER_VALIDATION_EVENT_HANDLER, handler);
         message.put("unwrap.jaxb.element", true);
-    
-        dr.setProperty("org.apache.cxf.message.Message", message);        
-        
+
+        dr.setProperty("org.apache.cxf.message.Message", message);
+
         return dr;
     }
-    
+
     @Test
     public void testReadWrapper() throws Exception {
         JAXBDataBinding db = getDataBinding(GreetMe.class);
-        
+
         reader = getTestReader("../resources/GreetMeDocLiteralReq.xml");
         assertNotNull(reader);
-        
+
         DataReader<XMLStreamReader> dr = db.createReader(XMLStreamReader.class);
         assertNotNull(dr);
         Object val = dr.read(reader);
@@ -135,9 +136,9 @@ public class XMLStreamDataReaderTest extends Assert {
 
         DataReader<XMLStreamReader> dr = db.createReader(XMLStreamReader.class);
         assertNotNull(dr);
-        
+
         Object retValue = dr.read(reader);
-        
+
         assertNotNull(retValue);
         assertTrue(retValue instanceof GreetMeResponse);
         assertEquals("TestSOAPOutputPMessage", ((GreetMeResponse)retValue).getResponseType());
@@ -151,7 +152,7 @@ public class XMLStreamDataReaderTest extends Assert {
 
         reader = getTestReader("../resources/greetMeRpcLitReq.xml");
         assertNotNull(reader);
-        
+
         XMLStreamReader localReader = getTestFilteredReader(reader, tags);
 
         DataReader<XMLStreamReader> dr = db.createReader(XMLStreamReader.class);
@@ -174,7 +175,7 @@ public class XMLStreamDataReaderTest extends Assert {
 
         reader = getTestReader("../resources/sayHiDocLitBareReq.xml");
         assertNotNull(reader);
-        
+
         DataReader<XMLStreamReader> dr = db.createReader(XMLStreamReader.class);
         assertNotNull(dr);
         QName elName = new QName("http://apache.org/hello_world_doc_lit_bare/types", "inout");
@@ -187,7 +188,7 @@ public class XMLStreamDataReaderTest extends Assert {
         assertNotNull(val);
         assertTrue(val instanceof TradePriceData);
         assertEquals("CXF", ((TradePriceData)val).getTickerSymbol());
-        assertEquals(new Float(1.0f), new Float(((TradePriceData)val).getTickerPrice()));
+        assertEquals(Float.valueOf(1.0f), new Float(((TradePriceData)val).getTickerPrice()));
     }
 
     private JAXBDataBinding getDataBinding(Class<?>... clz) throws Exception {

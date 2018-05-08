@@ -28,26 +28,31 @@ import javax.ws.rs.core.Response;
 
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.cxf.tracing.htrace.jaxrs.HTraceClientProvider;
-import org.apache.htrace.HTraceConfiguration;
-import org.apache.htrace.Trace;
-import org.apache.htrace.impl.AlwaysSampler;
-import org.apache.htrace.impl.StandardOutSpanReceiver;
+import org.apache.htrace.core.AlwaysSampler;
+import org.apache.htrace.core.HTraceConfiguration;
+import org.apache.htrace.core.Tracer;
+
+import demo.jaxrs.tracing.conf.TracingConfiguration;
 
 public final class Client {
     private Client() {
     }
-    
+
     public static void main(final String[] args) throws Exception {
-        final Map<String, String> properties = new HashMap<String, String>();
-        final HTraceConfiguration conf = HTraceConfiguration.fromMap(properties);
-        Trace.addReceiver(new StandardOutSpanReceiver(conf));
-        
-        final HTraceClientProvider provider = new HTraceClientProvider(new AlwaysSampler(conf));
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(Tracer.SPAN_RECEIVER_CLASSES_KEY, TracingConfiguration.SPAN_RECEIVER.getName());
+        properties.put(Tracer.SAMPLER_CLASSES_KEY, AlwaysSampler.class.getName());
+
+        final Tracer tracer = new Tracer.Builder("catalog-client")
+            .conf(HTraceConfiguration.fromMap(properties))
+            .build();
+
+        final HTraceClientProvider provider = new HTraceClientProvider(tracer);
         final Response response = WebClient
             .create("http://localhost:9000/catalog", Arrays.asList(provider))
             .accept(MediaType.APPLICATION_JSON)
             .get();
-        
+
         System.out.println(response.readEntity(String.class));
         response.close();
     }

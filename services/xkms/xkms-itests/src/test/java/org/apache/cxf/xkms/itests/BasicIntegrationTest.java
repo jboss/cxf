@@ -23,17 +23,19 @@ import java.util.Iterator;
 
 import javax.inject.Inject;
 
+import org.apache.cxf.testutil.common.TestUtil;
 import org.apache.cxf.xkms.model.extensions.ResultDetails;
 import org.apache.cxf.xkms.model.xkms.LocateResultType;
 import org.apache.cxf.xkms.model.xkms.MessageExtensionAbstractType;
 import org.apache.cxf.xkms.model.xkms.ResultMajorEnum;
+import org.w3._2002._03.xkms_wsdl.XKMSPortType;
+
 import org.junit.Assert;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.MavenArtifactUrlReference;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
-import org.w3._2002._03.xkms_wsdl.XKMSPortType;
 
 import static org.ops4j.pax.exam.CoreOptions.maven;
 import static org.ops4j.pax.exam.CoreOptions.systemProperty;
@@ -47,9 +49,6 @@ import static org.ops4j.pax.exam.karaf.options.KarafDistributionOption.replaceCo
 @ExamReactorStrategy(PerClass.class)
 public class BasicIntegrationTest {
 
-    private static final String HTTP_PORT = "9191";
-    private static final String XKMS_ENDPOINT = "http://localhost:" + HTTP_PORT + "/cxf/XKMS";
-
     // Adding apache snapshots as cxf trunk may contain snapshot dependencies
     //private static final String REPOS = "http://repo1.maven.org/maven2@id=central, "
     //    + "http://repository.apache.org/content/groups/snapshots-group@snapshots@noreleases@id=apache-snapshots ";
@@ -59,7 +58,11 @@ public class BasicIntegrationTest {
 
     @Configuration
     public Option[] getConfig() {
-        String karafVersion = System.getProperty("karaf.version", "3.0.4");
+        String port = TestUtil.getPortNumber(BasicIntegrationTest.class);
+        System.setProperty("BasicIntegrationTest.PORT", port);
+        String xkmsEndpoint = "http://localhost:" + port + "/cxf/XKMS";
+
+        String karafVersion = System.getProperty("karaf.version", "4.0.8");
         String localRepository = System.getProperty("localRepository");
         MavenArtifactUrlReference karafUrl = maven() //
             .groupId("org.apache.karaf") //
@@ -76,6 +79,7 @@ public class BasicIntegrationTest {
             karafDistributionConfiguration().frameworkUrl(karafUrl).karafVersion(karafVersion)
                 .unpackDirectory(new File("target/paxexam/unpack/")).useDeployFolder(false),
             systemProperty("java.awt.headless").value("true"),
+            systemProperty("BasicIntegrationTest.PORT").value(port),
 
             copy("data/xkms/certificates/trusted_cas/root.cer"),
             copy("data/xkms/certificates/trusted_cas/wss40CA.cer"),
@@ -84,8 +88,8 @@ public class BasicIntegrationTest {
             copy("data/xkms/certificates/http___localhost_8080_services_TestService.cer"),
             copy("etc/org.ops4j.pax.logging.cfg"),
             //editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.repositories", REPOS),
-            editConfigurationFilePut("etc/org.ops4j.pax.web.cfg", "org.osgi.service.http.port", HTTP_PORT),
-            editConfigurationFilePut("etc/org.apache.cxf.xkms.client.cfg", "xkms.endpoint", XKMS_ENDPOINT),
+            editConfigurationFilePut("etc/org.ops4j.pax.web.cfg", "org.osgi.service.http.port", port),
+            editConfigurationFilePut("etc/org.apache.cxf.xkms.client.cfg", "xkms.endpoint", xkmsEndpoint),
             when(localRepository != null)
                 .useOptions(editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg",
                             "org.ops4j.pax.url.mvn.localRepository",

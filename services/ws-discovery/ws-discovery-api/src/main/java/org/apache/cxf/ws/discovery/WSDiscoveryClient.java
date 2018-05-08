@@ -72,15 +72,13 @@ import org.apache.cxf.ws.discovery.wsdl.ResolveType;
 import org.apache.cxf.ws.discovery.wsdl.ScopesType;
 
 /**
- * 
+ *
  */
 public class WSDiscoveryClient implements Closeable {
-    
+
     public static final QName SERVICE_QNAME = new QName(WSDVersion.NS_1_1, "DiscoveryProxy");
-    
-    
-    
     String address = "soap.udp://239.255.255.250:3702";
+    String ipv6Address = "soap.udp://[FF02::C]:3702";
     boolean adHoc = true;
     AtomicInteger msgId = new AtomicInteger(1);
     long instanceId = System.currentTimeMillis();
@@ -95,9 +93,11 @@ public class WSDiscoveryClient implements Closeable {
 
     public WSDiscoveryClient() {
         this((Bus)null);
+        setIpV6Address();
     }
     public WSDiscoveryClient(Bus b) {
         this.bus = b == null ? BusFactory.getThreadDefaultBus() : b;
+        setIpV6Address();
     }
     public WSDiscoveryClient(String address) {
         this((Bus)null);
@@ -107,14 +107,14 @@ public class WSDiscoveryClient implements Closeable {
         this(b);
         resetDispatch(address);
     }
-    
+
     public void setDefaultProbeTimeout(int i) {
         defaultProbeTimeout = i;
     }
     public int getDefaultProbeTimeout() {
         return defaultProbeTimeout;
     }
-    
+
     public String getAddress() {
         return address;
     }
@@ -124,40 +124,48 @@ public class WSDiscoveryClient implements Closeable {
             resetDispatch(a);
         }
     }
-    
-    
+
+
     /**
      * By default, CXF's WS-Discovery implementation is based on WS-Discovery 1.1.  Some devices will
      * not respond to 1.1 probes.  This allows CXF to use the WS-Discovery 1.0 namespaces and actions
-     * which will allow older devices to be discovered.   
+     * which will allow older devices to be discovered.
      */
     public void setVersion10() {
         setVersion(true);
     }
-    
+
     public void setVersion(boolean version10) {
-        WSDVersion newv =  version10 ? WSDVersion.INSTANCE_1_0 : WSDVersion.INSTANCE_1_1;
+        WSDVersion newv = version10 ? WSDVersion.INSTANCE_1_0 : WSDVersion.INSTANCE_1_1;
         if (newv != version) {
             version = newv;
             uncache();
         }
     }
 
-    
+
     /**
-     * WS-Discovery will use SOAP 1.2 by default.  This allows forcing the use of SOAP 1.1. 
+     * WS-Discovery will use SOAP 1.2 by default.  This allows forcing the use of SOAP 1.1.
      * @param do11
      */
     public void setSoapVersion11() {
         setSoapVersion(true);
     }
-    
-    
+
+
     public void setSoapVersion(boolean do11) {
         String newVer = do11 ? SOAPBinding.SOAP11HTTP_BINDING : SOAPBinding.SOAP12HTTP_BINDING;
         if (!soapVersion.equals(newVer)) {
             soapVersion = newVer;
             uncache();
+        }
+    }
+
+    private void setIpV6Address() {
+        String preferIPv4StackValue = System.getProperty("java.net.preferIPv4Stack");
+        String preferIPv6AddressesValue = System.getProperty("java.net.preferIPv6Addresses");
+        if ("true".equals(preferIPv6AddressesValue) && "false".equals(preferIPv4StackValue)) {
+            address = "soap.udp://[FF02::C]:3702";
         }
     }
     private void uncache() {
@@ -171,7 +179,7 @@ public class WSDiscoveryClient implements Closeable {
         dispatch = null;
         service = null;
     }
-    
+
     private synchronized JAXBContext getJAXBContext() {
         if (jaxbContext == null) {
             try {
@@ -189,12 +197,12 @@ public class WSDiscoveryClient implements Closeable {
                 service = new ServiceImpl(bus, null,
                                           version.getServiceName(),
                                           Service.class);
-                service.addPort(version.getServiceName(), 
+                service.addPort(version.getServiceName(),
                                 soapVersion, address);
             } finally {
                 BusFactory.setThreadDefaultBus(b);
             }
-        } 
+        }
         return service;
     }
     private synchronized void resetDispatch(String newad) {
@@ -212,12 +220,12 @@ public class WSDiscoveryClient implements Closeable {
                 if (isa.getAddress().isMulticastAddress()) {
                     adHoc = true;
                 }
-            }        
+            }
         } catch (URISyntaxException e) {
             //ignore
         }
     }
-    
+
     private synchronized Dispatch<Object> getDispatchInternal(boolean addSeq, String action) {
         if (dispatch == null) {
             AddressingFeature f = new AddressingFeature(true, true);
@@ -242,7 +250,7 @@ public class WSDiscoveryClient implements Closeable {
             epr.setValue(version.getToAddress());
             to.setAddress(epr);
             addrProperties.setTo(to);
-        
+
             if (addSeq) {
                 AppSequenceType s = new AppSequenceType();
                 s.setInstanceId(instanceId);
@@ -251,7 +259,7 @@ public class WSDiscoveryClient implements Closeable {
                 Header h = new Header(seq.getName(),
                                       seq,
                                       new JAXBDataBinding(getJAXBContext()));
-                List<Header> headers = new ArrayList<Header>();
+                List<Header> headers = new ArrayList<>();
                 headers.add(h);
                 p.getRequestContext()
                     .put(Header.HEADER_LIST, headers);
@@ -261,7 +269,7 @@ public class WSDiscoveryClient implements Closeable {
         }
         p.getRequestContext().put(JAXWSAConstants.CLIENT_ADDRESSING_PROPERTIES, addrProperties);
     }
-    
+
     public synchronized void close() throws IOException {
         if (dispatch != null) {
             ((Closeable)dispatch).close();
@@ -286,7 +294,7 @@ public class WSDiscoveryClient implements Closeable {
         getDispatchInternal(true, version.getHelloAction()).invokeOneWay(factory.createHello(hello));
         return hello;
     }
-    
+
     /**
      * Sends the "Hello" to broadcast the availability of a service
      * @param ert The endpoint reference of the Service itself
@@ -304,8 +312,8 @@ public class WSDiscoveryClient implements Closeable {
         return register(hello);
     }
 
-    
-    
+
+
     public void unregister(ByeType bye) {
         getDispatchInternal(true, version.getByeAction()).invokeOneWay(factory.createBye(bye));
     }
@@ -315,7 +323,7 @@ public class WSDiscoveryClient implements Closeable {
         bt.setEndpointReference(hello.getEndpointReference());
         unregister(bt);
     }
-    
+
     public List<EndpointReference> probe() {
         return probe((QName)null);
     }
@@ -325,7 +333,7 @@ public class WSDiscoveryClient implements Closeable {
             p.getTypes().add(type);
         }
         ProbeMatchesType pmt = probe(p, defaultProbeTimeout);
-        List<EndpointReference> er = new ArrayList<EndpointReference>();
+        List<EndpointReference> er = new ArrayList<>();
         for (ProbeMatchType pm : pmt.getProbeMatch()) {
             for (String add : pm.getXAddrs()) {
                 W3CEndpointReferenceBuilder builder = new W3CEndpointReferenceBuilder();
@@ -336,14 +344,14 @@ public class WSDiscoveryClient implements Closeable {
             }
         }
         return er;
-    }    
-    
-    
-    
-    
+    }
+
+
+
+
     public ProbeMatchesType probe(ProbeType params) {
         return probe(params, defaultProbeTimeout);
-    }    
+    }
     public ProbeMatchesType probe(ProbeType params, int timeout) {
         Dispatch<Object> disp = this.getDispatchInternal(false, version.getProbeAction());
         if (adHoc) {
@@ -384,7 +392,7 @@ public class WSDiscoveryClient implements Closeable {
         }
         return (ProbeMatchesType)o;
     }
-    
+
     public ResolveMatchType resolve(W3CEndpointReference ref) {
         return resolve(ref, defaultProbeTimeout);
     }
@@ -430,21 +438,21 @@ public class WSDiscoveryClient implements Closeable {
         }
         return o == null ? null : ((ResolveMatchesType)o).getResolveMatch();
     }
-    
-    
+
+
     private W3CEndpointReference generateW3CEndpointReference() {
         W3CEndpointReferenceBuilder builder = new W3CEndpointReferenceBuilder();
         builder.address(ContextUtils.generateUUID());
         return builder.build();
     }
     private void proccessEndpointReference(EndpointReferenceType ref,
-                                           ScopesType scopes, 
+                                           ScopesType scopes,
                                            List<QName> types,
                                            List<String> xAddrs) {
         QName nm = EndpointReferenceUtils.getPortQName(ref, bus);
         scopes.getValue().add(nm.getNamespaceURI());
         types.add(nm);
-        
+
         String wsdlLocation = EndpointReferenceUtils.getWSDLLocation(ref);
         if (!StringUtils.isEmpty(wsdlLocation)) {
             xAddrs.add(wsdlLocation);

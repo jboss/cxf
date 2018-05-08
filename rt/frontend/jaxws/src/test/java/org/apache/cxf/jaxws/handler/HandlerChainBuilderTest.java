@@ -35,8 +35,8 @@ import org.apache.cxf.jaxws.handler.types.FullyQualifiedClassType;
 import org.apache.cxf.jaxws.handler.types.ParamValueType;
 import org.apache.cxf.jaxws.handler.types.PortComponentHandlerType;
 import org.apache.cxf.jaxws.handler.types.XsdStringType;
-import org.easymock.EasyMock;
 
+import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -166,7 +166,7 @@ public class HandlerChainBuilderTest extends Assert {
     }
 
     private List<PortComponentHandlerType> createHandlerChainType() {
-        List<PortComponentHandlerType> handlers = new ArrayList<PortComponentHandlerType>();
+        List<PortComponentHandlerType> handlers = new ArrayList<>();
 
         PortComponentHandlerType h = new PortComponentHandlerType();
         CString name = new CString();

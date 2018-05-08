@@ -37,6 +37,7 @@ import org.apache.cxf.service.model.BindingMessageInfo;
 import org.apache.cxf.service.model.BindingOperationInfo;
 import org.apache.cxf.service.model.MessageInfo;
 import org.apache.cxf.service.model.OperationInfo;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.After;
@@ -63,7 +64,7 @@ public class OutgoingChainInterceptorTest extends Assert {
 
         control = EasyMock.createNiceControl();
 
-        phases = new ArrayList<Phase>();
+        phases = new ArrayList<>();
         phases.add(new Phase(Phase.SEND, 1000));
         empty = new ArrayList<Interceptor<? extends Message>>();
 

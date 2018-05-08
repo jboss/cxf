@@ -27,7 +27,7 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf-parent</artifactId>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.5-SNAPSHOT</version>
         <relativePath>../parent/pom.xml</relativePath>
     </parent>
     <properties>
@@ -56,7 +56,7 @@
             javax.annotation;version="${cxf.osgi.javax.annotation.version}",
             javax.xml.bind*;version="${cxf.osgi.javax.bind.version}",
             javax.xml.stream*;version="${cxf.osgi.javax.stream.version}",
-            javax.validation*;resolution:=optional;version="${cxf.validation.api.version}", 
+            javax.validation*;resolution:=optional;version="${cxf.validation.api.package.version}", 
             com.sun.xml.bind.api;resolution:=optional,
             com.sun.xml.bind.api.impl;resolution:=optional,
             com.sun.xml.internal.bind.api;resolution:=optional,
@@ -138,15 +138,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.woodstox</groupId>
-            <artifactId>woodstox-core-asl</artifactId>
-        </dependency>
-        <dependency>
-            <!-- this is probably not quite what we want in terms of the behavior of the other tests
-                 than the schema surgery test. -->
-            <groupId>xerces</groupId>
-            <artifactId>xercesImpl</artifactId>
-            <scope>test</scope>
+            <groupId>com.fasterxml.woodstox</groupId>
+            <artifactId>woodstox-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -181,8 +174,8 @@
             <artifactId>xmlschema-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.geronimo.specs</groupId>
-            <artifactId>geronimo-javamail_1.4_spec</artifactId>
+            <groupId>org.apache.geronimo.javamail</groupId>
+            <artifactId>geronimo-javamail_1.4_mail</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -236,7 +229,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.3</version>
+                <version>1.4</version>
                 <executions>
                     <execution>
                         <id>create-noncanonicalrev</id>
@@ -273,11 +266,13 @@
                             <goal>xsdtojava</goal>
                         </goals>
                         <configuration>
+                            <fork>${cxf.xjcplugin.forkmode}</fork>
+                            <additionalJvmArgs>${cxf.xjc.jvmArgs}</additionalJvmArgs>
                             <extensions>
                                 <extension>org.apache.cxf.xjcplugins:cxf-xjc-javadoc:${cxf.xjc-utils.version}</extension>
                                 <extension>org.apache.cxf.xjcplugins:cxf-xjc-dv:${cxf.xjc-utils.version}</extension>
                             </extensions>
-                            <sourceRoot>${basedir}/target/generated/src/main/java</sourceRoot>
+                            <sourceRoot>${basedir}/target/generated-sources/cxf-xjc-plugin</sourceRoot>
                             <xsdOptions>
                                 <xsdOption>
                                     <xsd>${basedir}/src/main/resources/schemas/wsdl/http.xsd</xsd>
@@ -294,6 +289,7 @@
                                     <extensionArgs>
                                         <extensionArg>-Xjavadoc</extensionArg>
                                         <extensionArg>-npa</extensionArg>
+                                        <extensionArg>-Xdv</extensionArg>
                                     </extensionArgs>
                                 </xsdOption>
                                 <xsdOption>
@@ -302,6 +298,7 @@
                                     <extensionArgs>
                                         <extensionArg>-npa</extensionArg>
                                         <extensionArg>-Xjavadoc</extensionArg>
+                                        <extensionArg>-Xdv</extensionArg>
                                     </extensionArgs>
                                 </xsdOption>
                                 <xsdOption>
@@ -321,6 +318,7 @@
                                     <extensionArgs>
                                         <extensionArg>-npa</extensionArg>
                                         <extensionArg>-Xjavadoc</extensionArg>
+                                        <extensionArg>-Xdv</extensionArg>
                                     </extensionArgs>
                                 </xsdOption>
                                 <xsdOption>
@@ -329,6 +327,7 @@
                                     <extensionArgs>
                                         <extensionArg>-Xjavadoc</extensionArg>
                                         <extensionArg>-npa</extensionArg>
+                                        <extensionArg>-Xdv</extensionArg>
                                     </extensionArgs>
                                 </xsdOption>
                             </xsdOptions>

@@ -29,6 +29,7 @@ import javax.xml.ws.handler.MessageContext;
 import org.apache.cxf.message.AbstractWrappedMessage;
 import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.Message;
+
 import org.easymock.IMocksControl;
 import org.junit.After;
 import org.junit.Assert;
@@ -41,13 +42,13 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.isA;
 
 public class AbstractProtocolHandlerInterceptorTest extends Assert {
-    
+
     private IMocksControl control;
     private Binding binding;
     private HandlerChainInvoker invoker;
     private IIOPMessage message;
     private Exchange exchange;
-    
+
     @Before
     public void setUp() {
         control = createNiceControl();
@@ -55,13 +56,13 @@ public class AbstractProtocolHandlerInterceptorTest extends Assert {
         message = control.createMock(IIOPMessage.class);
         exchange = control.createMock(Exchange.class);
         binding = control.createMock(Binding.class);
-        
+
         @SuppressWarnings("rawtypes")
-        List<Handler> list = new ArrayList<Handler>();
+        List<Handler> list = new ArrayList<>();
         list.add(null);
         expect(binding.getHandlerChain()).andReturn(list).anyTimes();
     }
-    
+
     @After
     public void tearDown() {
         control.verify();
@@ -94,24 +95,24 @@ public class AbstractProtocolHandlerInterceptorTest extends Assert {
     }
 
     class IIOPMessage extends AbstractWrappedMessage {
-        public IIOPMessage(Message m) {
+        IIOPMessage(Message m) {
             super(m);
         }
     }
-    
+
     interface IIOPMessageContext extends MessageContext {
-        
+
     }
-     
+
     interface IIOPHandler<T extends IIOPMessageContext> extends Handler<IIOPMessageContext> {
-        
+
     }
-    
+
     class IIOPHandlerInterceptor extends AbstractProtocolHandlerInterceptor<IIOPMessage> {
         IIOPHandlerInterceptor(Binding binding) {
             super(binding);
         }
     }
-    
-    
+
+
 }

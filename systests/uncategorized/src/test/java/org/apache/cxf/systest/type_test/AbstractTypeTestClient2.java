@@ -36,7 +36,6 @@ import org.apache.type_test.types1.Document;
 import org.apache.type_test.types1.EmptyAll;
 import org.apache.type_test.types1.EmptyChoice;
 import org.apache.type_test.types1.EmptyStruct;
-
 import org.apache.type_test.types1.ExtColourEnum;
 import org.apache.type_test.types1.ExtendsSimpleContent;
 import org.apache.type_test.types1.ExtendsSimpleType;
@@ -79,6 +78,7 @@ import org.apache.type_test.types3.StructWithMultipleSubstitutionGroups;
 import org.apache.type_test.types3.StructWithSubstitutionGroup;
 import org.apache.type_test.types3.StructWithSubstitutionGroupAbstract;
 import org.apache.type_test.types3.StructWithSubstitutionGroupNil;
+
 import org.junit.Test;
 
 public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
@@ -111,7 +111,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         if (testDocLiteral) {
             ret = docClient.testEmptyStruct(x, y, z);
         } else if (testXMLBinding) {
-            ret = xmlClient.testEmptyStruct(x, y, z);            
+            ret = xmlClient.testEmptyStruct(x, y, z);
         } else {
             ret = rpcClient.testEmptyStruct(x, y, z);
         }
@@ -150,7 +150,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testEmptyStruct(): Null return value", notNull(derivedX, ret));
         }
     }
-    
+
     //org.apache.type_test.types1.SimpleStruct
 
     protected boolean equals(SimpleStruct x, SimpleStruct y) {
@@ -192,7 +192,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testSimpleStruct(): Incorrect return value", equals(x, ret));
         }
     }
-    
+
     //org.apache.type_test.types1.StructWithNillables
 
     protected boolean equals(StructWithNillables x, StructWithNillables y) {
@@ -208,8 +208,8 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         }
         StructWithNillables x = new StructWithNillables();
         StructWithNillables yOrig = new StructWithNillables();
-        yOrig.setVarFloat(new Float(1.414f));
-        yOrig.setVarInt(new Integer(13));
+        yOrig.setVarFloat(Float.valueOf(1.414f));
+        yOrig.setVarInt(Integer.valueOf(13));
         yOrig.setVarString("Cheerio");
 
         Holder<StructWithNillables> y = new Holder<StructWithNillables>(yOrig);
@@ -232,7 +232,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
     }
 
     //org.apache.type_test.types1.AnonymousStruct
-    // XXX - generated code flattens nested struct into top-level class.
+    //generated code flattens nested struct into top-level class.
     protected boolean equals(AnonymousStruct x, AnonymousStruct y) {
         return (x.getVarFloat() == y.getVarFloat())
             && (x.getVarInt() == y.getVarInt())
@@ -271,7 +271,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testAnonymousStruct(): Incorrect return value", equals(x, ret));
         }
     }
-    
+
     //org.apache.type_test.types1.NestedStruct
 
     protected boolean equals(NestedStruct x, NestedStruct y) {
@@ -306,7 +306,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         SimpleStruct xs = new SimpleStruct();
         xs.setVarFloat(30.14);
         xs.setVarInt(new BigInteger("420"));
-        xs.setVarString("NESTED Hello There"); 
+        xs.setVarString("NESTED Hello There");
         NestedStruct x = new NestedStruct();
         x.setVarFloat(new BigDecimal("3.14"));
         x.setVarInt(42);
@@ -344,7 +344,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testNestedStruct(): Incorrect return value", equals(x, ret));
         }
     }
-    
+
     //org.apache.type_test.types1.FixedArray
     @Test
     public void testFixedArray() throws Exception {
@@ -378,7 +378,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             }
         }
     }
-    
+
     //org.apache.type_test.types1.BoundedArray
     @Test
     public void testBoundedArray() throws Exception {
@@ -403,10 +403,10 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         if (!perfTestOnly) {
             float delta = 0.0f;
 
-            int xSize = x.getItem().size(); 
-            int ySize = y.value.getItem().size(); 
-            int zSize = z.value.getItem().size(); 
-            int retSize = ret.getItem().size(); 
+            int xSize = x.getItem().size();
+            int ySize = y.value.getItem().size();
+            int zSize = z.value.getItem().size();
+            int retSize = ret.getItem().size();
             assertTrue("testBoundedArray() array size incorrect",
                        xSize == ySize && ySize == zSize && zSize == retSize && xSize == 3);
             for (int i = 0; i < xSize; i++) {
@@ -419,7 +419,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             }
         }
     }
-    
+
     //org.apache.type_test.types1.UnboundedArray
 
     protected boolean equals(UnboundedArray x, UnboundedArray y) {
@@ -463,9 +463,9 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             }
         }
     }
-    
+
     //org.apache.type_test.types1.CompoundArray
-    
+
     protected boolean equals(CompoundArray x, CompoundArray y) {
         return x.getArray1().equals(y.getArray1())
             && x.getArray2().equals(y.getArray2());
@@ -516,7 +516,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
 
         List<UnboundedArray> xList = x.getSubarray();
         List<UnboundedArray> yList = yOrig.getSubarray();
-        
+
         for (int i = 0; i < 3; i++) {
             UnboundedArray xx = new UnboundedArray();
             xx.getItem().addAll(Arrays.asList(xs[i]));
@@ -540,7 +540,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
                     assertEquals("testNestedArray(): Incorrect value for inout param",
-                        x.getSubarray().get(i).getItem().get(j), 
+                        x.getSubarray().get(i).getItem().get(j),
                         y.value.getSubarray().get(i).getItem().get(j));
                     assertEquals("testNestedArray(): Incorrect value for out param",
                         yOrig.getSubarray().get(i).getItem().get(j),
@@ -551,9 +551,9 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             }
         }
     }
-    
+
     //org.apache.type_test.types1.StructWithList
-    
+
     protected void assertEquals(String msg, StructWithList x, StructWithList y) throws Exception {
         assertTrue(msg, x != null);
         assertTrue(msg, y != null);
@@ -641,7 +641,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertEquals("testStructWithList(): Incorrect return value", x, ret);
         }
     }
-    
+
     //org.apache.type_test.types1.StructWithUnion
 
     protected void assertEquals(String msg, StructWithUnion x, StructWithUnion y) throws Exception {
@@ -706,7 +706,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertEquals("testStructWithUnion(): Incorrect return value", x, ret);
         }
     }
-    
+
     //org.apache.type_test.types1.EmptyChoice
     @Test
     public void testEmptyChoice() throws Exception {
@@ -733,9 +733,9 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testEmptyChoice(): Null return value", notNull(x, ret));
         }
     }
-    
+
     //org.apache.type_test.types1.SimpleChoice
-    
+
     protected boolean equals(SimpleChoice x, SimpleChoice y) {
         if (x.getVarFloat() != null && y.getVarFloat() != null) {
             return x.getVarFloat().compareTo(y.getVarFloat()) == 0;
@@ -776,7 +776,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testSimpleChoice(): Incorrect return value", equals(x, ret));
         }
     }
-    
+
     //org.apache.type_test.types1.EmptyAll
     @Test
     public void testEmptyAll() throws Exception {
@@ -803,7 +803,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testEmptyAll(): Null return value", notNull(x, ret));
         }
     }
-    
+
     //org.apache.type_test.types1.SimpleAll
 
     protected boolean equals(SimpleAll x, SimpleAll y) {
@@ -848,7 +848,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testSimpleAll(): Incorrect return value", equals(x, ret));
         }
     }
-    
+
     //org.apache.type_test.types1.StructWithOptionals
 
     protected boolean equals(StructWithOptionals x, StructWithOptionals y) {
@@ -864,8 +864,8 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         }
         StructWithOptionals x = new StructWithOptionals();
         StructWithOptionals yOrig = new StructWithOptionals();
-        yOrig.setVarFloat(new Float(1.414f));
-        yOrig.setVarInt(new Integer(13));
+        yOrig.setVarFloat(Float.valueOf(1.414f));
+        yOrig.setVarInt(Integer.valueOf(13));
         yOrig.setVarString("Cheerio");
 
         Holder<StructWithOptionals> y = new Holder<StructWithOptionals>(yOrig);
@@ -887,7 +887,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testStructWithOptionals(): Incorrect return value", equals(x, ret));
         }
     }
-    
+
     //org.apache.type_test.types1.RecursiveStruct
 
     protected boolean equals(RecursiveStruct x, RecursiveStruct y) {
@@ -947,7 +947,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testRecursiveStruct(): Incorrect return value", equals(ret, x));
         }
     }
-    
+
     //org.apache.type_test.types1.RecursiveStructArray
 
     protected boolean equals(RecursiveStructArray x, RecursiveStructArray y) {
@@ -1083,7 +1083,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         RecursiveUnion tmp1 = new RecursiveUnion();
         tmp1.setVarString("RecusiveUnion-1");
         RecursiveUnion tmp2 = new RecursiveUnion();
-        tmp2.setVarString("RecusiveUnion-2"); 
+        tmp2.setVarString("RecusiveUnion-2");
 
         RecursiveUnionData x = new RecursiveUnionData();
         ChoiceArray xChoice = new ChoiceArray();
@@ -1117,7 +1117,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertTrue("testRecursiveUnionData(): Incorrect return value", equals(ret, x));
         }
     }
-    
+
     //org.apache.type_test.types1.ChoiceArray
 
     protected boolean equals(ChoiceArray x, ChoiceArray y) {
@@ -1199,7 +1199,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertEquals(x.getValue(), ret.getValue());
         }
     }
-    
+
     //org.apache.type_test.types1.ExtendsSimpleContent
     @Test
     public void testExtendsSimpleContent() throws Exception {
@@ -1229,7 +1229,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
     }
 
     //org.apache.type_test.types1.Document
-    
+
     protected void equals(String msg, Document x, Document y) throws Exception {
         assertEquals(msg, x.getValue(), y.getValue());
         assertEquals(msg, x.getID(), y.getID());
@@ -1287,7 +1287,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertNull(ret.getID());
         }
     }
-    
+
     // org.apache.type_test.types1.ExtColourEnum
 
     protected boolean equals(ExtColourEnum x, ExtColourEnum y) {
@@ -1301,12 +1301,12 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             return;
         }
         ExtColourEnum x = new ExtColourEnum();
-        x.setAttrib1(new Integer(1));
+        x.setAttrib1(Integer.valueOf(1));
         x.setAttrib2("Ax");
         x.setValue(ColourEnum.fromValue("RED"));
 
         ExtColourEnum yOrig = new ExtColourEnum();
-        yOrig.setAttrib1(new Integer(10));
+        yOrig.setAttrib1(Integer.valueOf(10));
         yOrig.setAttrib2("Ay");
         yOrig.setValue(ColourEnum.fromValue("GREEN"));
 
@@ -1368,7 +1368,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
     //org.apache.type_test.types3.StructWithSubstitutionGroup
 
     protected boolean equals(StructWithSubstitutionGroup x, StructWithSubstitutionGroup y) {
-        if (!x.getSg01BaseElementA().isNil() 
+        if (!x.getSg01BaseElementA().isNil()
             && !y.getSg01BaseElementA().isNil()) {
             SgBaseTypeA xTypeA = x.getSg01BaseElementA().getValue();
             SgBaseTypeA yTypeA = y.getSg01BaseElementA().getValue();
@@ -1450,7 +1450,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         StructWithSubstitutionGroupAbstract yOrig = new StructWithSubstitutionGroupAbstract();
         yOrig.setSg03AbstractBaseElementA(elementB);
 
-        Holder<StructWithSubstitutionGroupAbstract> y = 
+        Holder<StructWithSubstitutionGroupAbstract> y =
             new Holder<StructWithSubstitutionGroupAbstract>(yOrig);
         Holder<StructWithSubstitutionGroupAbstract> z = new Holder<StructWithSubstitutionGroupAbstract>();
         StructWithSubstitutionGroupAbstract ret;
@@ -1560,21 +1560,21 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         }
         SgBaseTypeA baseA = new SgBaseTypeA();
         baseA.setVarInt(new BigInteger("1"));
-        
+
         SgDerivedTypeB derivedB = new SgDerivedTypeB();
         derivedB.setVarInt(new BigInteger("32"));
         derivedB.setVarString("y-SgDerivedTypeB");
-        
+
         SgDerivedTypeC derivedC = new SgDerivedTypeC();
         derivedC.setVarInt(new BigInteger("1"));
         derivedC.setVarFloat(3.14f);
-        
+
         ObjectFactory objectFactory = new ObjectFactory();
         JAXBElement<? extends SgBaseTypeA> x1 = objectFactory.createSg01DerivedElementB(derivedB);
         JAXBElement<? extends SgBaseTypeA> x2 = objectFactory.createSg02BaseElementA(baseA);
         JAXBElement<? extends SgBaseTypeA> y1 = objectFactory.createSg01DerivedElementB(derivedB);
         JAXBElement<? extends SgBaseTypeA> y2 = objectFactory.createSg02DerivedElementC(derivedC);
-        
+
         StructWithMultipleSubstitutionGroups x = new StructWithMultipleSubstitutionGroups();
         x.setVarFloat(111.1f);
         x.setVarInt(new BigInteger("100"));
@@ -1588,9 +1588,9 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         yOrig.setSg01BaseElementA(y1);
         yOrig.setSg02BaseElementA(y2);
 
-        Holder<StructWithMultipleSubstitutionGroups> y = 
+        Holder<StructWithMultipleSubstitutionGroups> y =
             new Holder<StructWithMultipleSubstitutionGroups>(yOrig);
-        Holder<StructWithMultipleSubstitutionGroups> z = 
+        Holder<StructWithMultipleSubstitutionGroups> z =
             new Holder<StructWithMultipleSubstitutionGroups>();
         StructWithMultipleSubstitutionGroups ret;
         if (testDocLiteral) {
@@ -1640,7 +1640,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         ObjectFactory objectFactory = new ObjectFactory();
         JAXBElement<? extends SgBaseTypeA> elementB = objectFactory.createSg03DerivedElementB(derivedB);
         JAXBElement<? extends SgBaseTypeA> elementC = objectFactory.createSg03DerivedElementC(derivedC);
-        
+
         ChoiceWithSubstitutionGroupAbstract x = new ChoiceWithSubstitutionGroupAbstract();
         x.setSg03AbstractBaseElementA(elementC);
         ChoiceWithSubstitutionGroupAbstract yOrig = new ChoiceWithSubstitutionGroupAbstract();
@@ -1699,9 +1699,8 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
                 SgBaseTypeA yTypeA = y.getSg04NillableBaseElementA().getValue();
                 return equals(xTypeA, yTypeA);
             }
-        } else {
-            return y.getSg04NillableBaseElementA() == null;
         }
+        return y.getSg04NillableBaseElementA() == null;
     }
     @Test
     public void testChoiceWithSubstitutionGroupNil() throws Exception {
@@ -1709,13 +1708,13 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             return;
         }
         ObjectFactory objectFactory = new ObjectFactory();
-        
+
         ChoiceWithSubstitutionGroupNil x = new ChoiceWithSubstitutionGroupNil();
         JAXBElement<BigInteger> varInt =
             objectFactory.createChoiceWithSubstitutionGroupNilVarInt(null);
         x.setVarInt(varInt);
         ChoiceWithSubstitutionGroupNil yOrig = new ChoiceWithSubstitutionGroupNil();
-        JAXBElement<? extends SgBaseTypeA> elementA = 
+        JAXBElement<? extends SgBaseTypeA> elementA =
             objectFactory.createSg04NillableBaseElementA(null);
         yOrig.setSg04NillableBaseElementA(elementA);
 
@@ -1723,9 +1722,9 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         Holder<ChoiceWithSubstitutionGroupNil> z = new Holder<ChoiceWithSubstitutionGroupNil>();
         ChoiceWithSubstitutionGroupNil ret;
         if (testDocLiteral) {
-            ret = docClient.testChoiceWithSubstitutionGroupNil(x, y, z); 
+            ret = docClient.testChoiceWithSubstitutionGroupNil(x, y, z);
         } else if (testXMLBinding) {
-            ret = xmlClient.testChoiceWithSubstitutionGroupNil(x, y, z); 
+            ret = xmlClient.testChoiceWithSubstitutionGroupNil(x, y, z);
         } else {
             ret = rpcClient.testChoiceWithSubstitutionGroupNil(x, y, z);
         }
@@ -1754,17 +1753,15 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
                 SgDerivedTypeC xTypeC = (SgDerivedTypeC)x;
                 SgDerivedTypeC yTypeC = (SgDerivedTypeC)y;
                 return equals(xTypeC, yTypeC);
-            } else {
-                return false;
             }
+            return false;
         } else if (x instanceof SgDerivedTypeB) {
             if (y instanceof SgDerivedTypeB) {
                 SgDerivedTypeB xTypeB = (SgDerivedTypeB)x;
                 SgDerivedTypeB yTypeB = (SgDerivedTypeB)y;
                 return equals(xTypeB, yTypeB);
-            } else {
-                return false;
             }
+            return false;
         }
         return true;
     }
@@ -1810,7 +1807,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         x.setSg01BaseElementA(elementA);
         ChoiceWithSubstitutionGroup yOrig = new ChoiceWithSubstitutionGroup();
         yOrig.setSg01BaseElementA(elementB);
-        
+
         Holder<ChoiceWithSubstitutionGroup> y =
             new Holder<ChoiceWithSubstitutionGroup>(yOrig);
         Holder<ChoiceWithSubstitutionGroup> z =
@@ -1970,7 +1967,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         List<RecMostInnerType> mity = y.getRecMostInner();
         List<RecInnerType> itx = x.getRecInner();
         List<RecInnerType> ity = y.getRecInner();
- 
+
         if (mitx.size() != mity.size() || itx.size() != ity.size()) {
             return false;
         }
@@ -2047,7 +2044,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
                 equals(ret, otx));
         }
     }
- 
+
     protected void equals(String msg, SimpleContent1 x, SimpleContent1 y) throws Exception {
         assertEquals(msg, x.getAttrib1A(), y.getAttrib1A());
         assertEquals(msg, x.getAttrib1B(), y.getAttrib1B());
@@ -2060,13 +2057,13 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         }
         SimpleContent1 x1 = new SimpleContent1();
         x1.setValue("foo");
-        x1.setAttrib1A(new Byte((byte)1));
-        x1.setAttrib1B(new Short((short)2));
+        x1.setAttrib1A(Byte.valueOf((byte)1));
+        x1.setAttrib1B(Short.valueOf((short)2));
 
         SimpleContent1 y1 = new SimpleContent1();
         y1.setValue("bar");
-        y1.setAttrib1A(new Byte((byte)3));
-        y1.setAttrib1B(new Short((short)4));
+        y1.setAttrib1A(Byte.valueOf((byte)3));
+        y1.setAttrib1B(Short.valueOf((short)4));
 
         Holder<SimpleContent1> y1Holder = new Holder<SimpleContent1>(y1);
         Holder<SimpleContent1> z1 = new Holder<SimpleContent1>();
@@ -2083,7 +2080,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             equals("testSimpleContent1(): Incorrect value for out param", y1, z1.value);
             equals("testSimpleContent1(): Incorrect return value", x1, ret);
         }
-    }    
+    }
 
     protected void equals(String msg, SimpleContent2 x, SimpleContent2 y) throws Exception {
         assertEquals(msg, x.getAttrib2A(), y.getAttrib2A());
@@ -2097,17 +2094,17 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         }
         SimpleContent2 x2 = new SimpleContent2();
         x2.setValue("foo");
-        x2.setAttrib1A(new Byte((byte)1));
-        x2.setAttrib1B(new Short((short)2));
-        x2.setAttrib2A(new Integer(5));
-        x2.setAttrib2B(new Long(6));
+        x2.setAttrib1A(Byte.valueOf((byte)1));
+        x2.setAttrib1B(Short.valueOf((short)2));
+        x2.setAttrib2A(Integer.valueOf(5));
+        x2.setAttrib2B(Long.valueOf(6));
 
         SimpleContent2 y2 = new SimpleContent2();
         y2.setValue("bar");
-        y2.setAttrib1A(new Byte((byte)3));
-        y2.setAttrib1B(new Short((short)4));
-        y2.setAttrib2A(new Integer(7));
-        y2.setAttrib2B(new Long(8));
+        y2.setAttrib1A(Byte.valueOf((byte)3));
+        y2.setAttrib1B(Short.valueOf((short)4));
+        y2.setAttrib2A(Integer.valueOf(7));
+        y2.setAttrib2B(Long.valueOf(8));
 
         Holder<SimpleContent2> y2Holder = new Holder<SimpleContent2>(y2);
         Holder<SimpleContent2> z2 = new Holder<SimpleContent2>();
@@ -2125,7 +2122,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             equals("testSimpleContent2(): Incorrect return value", x2, ret);
         }
     }
-    
+
     protected void equals(String msg, SimpleContent3 x, SimpleContent3 y) throws Exception {
         assertEquals(msg, x.getAttrib3A(), y.getAttrib3A());
         assertEquals(msg, x.isAttrib3B(), y.isAttrib3B());
@@ -2138,19 +2135,19 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
         }
         SimpleContent3 x3 = new SimpleContent3();
         x3.setValue("foo");
-        x3.setAttrib1A(new Byte((byte)1));
-        x3.setAttrib1B(new Short((short)2));
-        x3.setAttrib2A(new Integer(5));
-        x3.setAttrib2B(new Long(6));
+        x3.setAttrib1A(Byte.valueOf((byte)1));
+        x3.setAttrib1B(Short.valueOf((short)2));
+        x3.setAttrib2A(Integer.valueOf(5));
+        x3.setAttrib2B(Long.valueOf(6));
         x3.setAttrib3A("xxx");
         x3.setAttrib3B(Boolean.TRUE);
 
         SimpleContent3 y3 = new SimpleContent3();
         y3.setValue("bar");
-        y3.setAttrib1A(new Byte((byte)3));
-        y3.setAttrib1B(new Short((short)4));
-        y3.setAttrib2A(new Integer(7));
-        y3.setAttrib2B(new Long(8));
+        y3.setAttrib1A(Byte.valueOf((byte)3));
+        y3.setAttrib1B(Short.valueOf((short)4));
+        y3.setAttrib2A(Integer.valueOf(7));
+        y3.setAttrib2B(Long.valueOf(8));
         y3.setAttrib3A("yyy");
         y3.setAttrib3B(Boolean.FALSE);
 
@@ -2170,7 +2167,7 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             equals("testSimpleContent3(): Incorrect return value", x3, ret);
         }
     }
-  
+
     protected void assertEquals(String msg, UnionSimpleContent x, UnionSimpleContent y) throws Exception {
         assertTrue(msg, x != null);
         assertTrue(msg, y != null);
@@ -2202,5 +2199,5 @@ public abstract class AbstractTypeTestClient2 extends AbstractTypeTestClient {
             assertEquals("testUnionSimpleContent(): Incorrect return value", x, ret);
         }
     }
-    
+
 }

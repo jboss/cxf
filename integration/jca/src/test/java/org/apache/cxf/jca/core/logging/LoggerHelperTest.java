@@ -24,6 +24,7 @@ import java.util.logging.Handler;
 import java.util.logging.Logger;
 
 import org.apache.cxf.common.logging.LogUtils;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,7 +47,7 @@ public class LoggerHelperTest extends Assert {
     public void testEnableDisableConsoleLogging() {
         Logger rootLogger = LogUtils.getLogger(this.getClass(), null, "");
         Handler handler;
-        
+
         /*Handler handler = LoggerHelper.getHandler(rootLogger, LoggerHelper.CONSOLE_HANDLER);
         assertNotNull("default console appender is there", handler);*/
 
@@ -104,5 +105,5 @@ public class LoggerHelperTest extends Assert {
 
     }
 
-    
+
 }

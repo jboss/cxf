@@ -19,7 +19,7 @@
 package org.apache.cxf.rs.security.saml;
 
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.cxf.common.util.Base64Exception;
 import org.apache.cxf.common.util.Base64Utility;
@@ -30,33 +30,29 @@ import org.apache.wss4j.common.crypto.WSProviderConfig;
 import org.apache.wss4j.common.saml.SamlAssertionWrapper;
 
 public abstract class AbstractSamlOutInterceptor extends AbstractPhaseInterceptor<Message> {
-    
+
     static {
         WSProviderConfig.init();
     }
-    
+
     private boolean useDeflateEncoding = true;
-    
+
     protected AbstractSamlOutInterceptor(String phase) {
         super(phase);
     }
-    
+
     public void setUseDeflateEncoding(boolean deflate) {
         useDeflateEncoding = deflate;
     }
-    
+
     protected SamlAssertionWrapper createAssertion(Message message) throws Fault {
         return SAMLUtils.createAssertion(message);
-        
+
     }
-    
+
     protected String encodeToken(String assertion) throws Base64Exception {
-        byte[] tokenBytes = null;
-        try {
-            tokenBytes = assertion.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException ex) {
-            // won't happen
-        }
+        byte[] tokenBytes = assertion.getBytes(StandardCharsets.UTF_8);
+
         if (useDeflateEncoding) {
             tokenBytes = new DeflateEncoderDecoder().deflateToken(tokenBytes);
         }

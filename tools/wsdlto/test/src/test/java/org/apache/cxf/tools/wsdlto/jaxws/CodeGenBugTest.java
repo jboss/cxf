@@ -18,12 +18,15 @@
  */
 package org.apache.cxf.tools.wsdlto.jaxws;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
@@ -80,7 +83,7 @@ public class CodeGenBugTest extends AbstractCodeGenTest {
     public void testCXF1969() throws Exception {
         env.put(ToolConstants.CFG_WSDLURL, getLocation("/wsdl2java_wsdl/cxf1969/report_incident.wsdl"));
         //wsdl is invalid, but want to test some of the parsing of the invalid parts
-        env.remove(ToolConstants.CFG_VALIDATE_WSDL); 
+        env.remove(ToolConstants.CFG_VALIDATE_WSDL);
         processor.setContext(env);
 
         try {
@@ -222,13 +225,11 @@ public class CodeGenBugTest extends AbstractCodeGenTest {
         env.put(ToolConstants.CFG_WSDLURL, getLocation("/wsdl2java_wsdl/bug305772/hello_world.wsdl"));
         processor.setContext(env);
         processor.execute();
-        File file = new File(output.getCanonicalPath(), "build.xml");
-        FileInputStream fileinput = new FileInputStream(file);
-        BufferedInputStream filebuffer = new BufferedInputStream(fileinput);
-        byte[] buffer = new byte[(int)file.length()];
-        filebuffer.read(buffer);
-        String content = IOUtils.newStringFromBytes(buffer);
-        filebuffer.close();
+
+        Path path = FileSystems.getDefault().getPath(output.getCanonicalPath(), "build.xml");
+        assertTrue(Files.isReadable(path));
+        String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+
         assertTrue("wsdl location should be url style in build.xml", content.indexOf("param1=\"file:") > -1);
 
     }
@@ -487,21 +488,21 @@ public class CodeGenBugTest extends AbstractCodeGenTest {
     @Test
     public void testHelloWorldExternalBindingFile() throws Exception {
         Server server = new Server(0);
-
-        ResourceHandler reshandler = new ResourceHandler();
-        reshandler.setResourceBase(getLocation("/wsdl2java_wsdl/"));
-        // this is the only handler we're supposed to need, so we don't need to
-        // 'add' it.
-        server.setHandler(reshandler);
-        server.start();
-        int port = ((NetworkConnector)server.getConnectors()[0]).getLocalPort();
-        env.put(ToolConstants.CFG_WSDLURL, "http://localhost:" 
-            + port + "/hello_world.wsdl");
-        env.put(ToolConstants.CFG_BINDING, "http://localhost:"
-            + port + "/remote-hello_world_binding.xsd");
-        processor.setContext(env);
-        processor.execute();
         try {
+            ResourceHandler reshandler = new ResourceHandler();
+            reshandler.setResourceBase(getLocation("/wsdl2java_wsdl/"));
+            // this is the only handler we're supposed to need, so we don't need to
+            // 'add' it.
+            server.setHandler(reshandler);
+            server.start();
+            Thread.sleep(250); //give network connector a little time to spin up
+            int port = ((NetworkConnector)server.getConnectors()[0]).getLocalPort();
+            env.put(ToolConstants.CFG_WSDLURL, "http://localhost:"
+                + port + "/hello_world.wsdl");
+            env.put(ToolConstants.CFG_BINDING, "http://localhost:"
+                + port + "/remote-hello_world_binding.xsd");
+            processor.setContext(env);
+            processor.execute();
             reshandler.stop();
         } finally {
             server.stop();
@@ -808,7 +809,7 @@ public class CodeGenBugTest extends AbstractCodeGenTest {
     @Test
     public void testBindingForImportWSDL() throws Exception {
         env.put(ToolConstants.CFG_WSDLURL, getLocation("/wsdl2java_wsdl/cxf1095/hello_world_services.wsdl"));
-        env.put(ToolConstants.CFG_BINDING, 
+        env.put(ToolConstants.CFG_BINDING,
                 new String[] {getLocation("/wsdl2java_wsdl/cxf1095/binding.xml"),
                               getLocation("/wsdl2java_wsdl/cxf1095/binding1.xml")});
         processor.setContext(env);
@@ -1165,7 +1166,7 @@ public class CodeGenBugTest extends AbstractCodeGenTest {
             fail("shouldn't get exception");
         }
     }
-    
+
     @Test
     public void testCXF4128() throws Exception {
         try {
@@ -1180,7 +1181,7 @@ public class CodeGenBugTest extends AbstractCodeGenTest {
             fail("shouldn't get exception");
         }
     }
-    
+
     @Test
     public void testCXF4452() throws Exception {
         try {
@@ -1192,7 +1193,7 @@ public class CodeGenBugTest extends AbstractCodeGenTest {
             fail("shouldn't get exception");
         }
     }
-
+    
     @Test
     public void testCXF5280() throws Exception {
         env.put(ToolConstants.CFG_ALL, "all");

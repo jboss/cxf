@@ -25,6 +25,7 @@ import javax.xml.namespace.QName;
 import javax.xml.ws.soap.SOAPFaultException;
 
 import org.apache.cxf.systest.ws.AbstractWSATestBase;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -54,12 +55,12 @@ public class WSAResponsesClientServerTest extends AbstractWSATestBase {
         } catch (Exception e) {
             String expectedDetail = "A header representing a Message Addressing Property is not valid";
             if (e instanceof SOAPFaultException) {
-                assertTrue("Expect fault deail : " + expectedDetail ,
+                assertTrue("Expect fault deail : " + expectedDetail,
                            e.getMessage().indexOf(expectedDetail) > -1);
             } else {
                 throw e;
             }
-            
+
         }
     }
 

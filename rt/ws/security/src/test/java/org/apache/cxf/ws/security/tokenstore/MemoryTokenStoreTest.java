@@ -18,24 +18,25 @@
  */
 package org.apache.cxf.ws.security.tokenstore;
 
-import java.util.Date;
+import java.time.Instant;
 
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
 import org.apache.cxf.ws.security.SecurityConstants;
+
 import org.junit.BeforeClass;
 
 public class MemoryTokenStoreTest extends org.junit.Assert {
-  
+
     private static TokenStore store;
-    
+
     @BeforeClass
     public static void init() {
         TokenStoreFactory tokenStoreFactory = new MemoryTokenStoreFactory();
         Message message = new MessageImpl();
         store = tokenStoreFactory.newTokenStore(SecurityConstants.TOKEN_STORE_CACHE_INSTANCE, message);
     }
-    
+
     // tests TokenStore apis for storing in the cache.
     @org.junit.Test
     public void testTokenAdd() throws Exception {
@@ -45,7 +46,7 @@ public class MemoryTokenStoreTest extends org.junit.Assert {
         assertEquals(token, store.getToken(key));
         store.remove(token.getId());
         assertNull(store.getToken(key));
-        
+
         String newKey = "xyz";
         store.add(newKey, token);
         assertNull(store.getToken(key));
@@ -53,7 +54,7 @@ public class MemoryTokenStoreTest extends org.junit.Assert {
         store.remove(newKey);
         assertNull(store.getToken(newKey));
     }
-    
+
     // tests TokenStore apis for removing from the cache.
     @org.junit.Test
     public void testTokenRemove() {
@@ -68,17 +69,16 @@ public class MemoryTokenStoreTest extends org.junit.Assert {
         assertNull(store.getToken("test3"));
         store.remove(token1.getId());
         store.remove(token2.getId());
-        assertTrue(store.getTokenIdentifiers().size() == 0);
+        assertTrue(store.getTokenIdentifiers().isEmpty());
     }
-    
+
     @org.junit.Test
     public void testTokenExpiry() {
         SecurityToken token = new SecurityToken();
-        
-        Date expires = new Date();
-        expires.setTime(expires.getTime() + (5L * 60L * 1000L));
+
+        Instant expires = Instant.now().plusSeconds(5L * 60L);
         token.setExpires(expires);
-        
+
         assertFalse(token.isExpired());
         assertFalse(token.isAboutToExpire(100L));
         assertTrue(token.isAboutToExpire((5L * 60L * 1000L) + 1L));

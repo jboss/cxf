@@ -22,10 +22,11 @@ package org.apache.cxf.jaxrs.servlet.jetty;
 import org.apache.cxf.jaxrs.model.AbstractResourceInfo;
 import org.apache.cxf.jaxrs.servlet.AbstractSciTest;
 import org.eclipse.jetty.util.resource.Resource;
+
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 
-public class JettySingleApplicationTest extends AbstractSciTest {  
+public class JettySingleApplicationTest extends AbstractSciTest {
     @Ignore
     public static class EmbeddedJettyServer extends AbstractJettyServer {
         public static final int PORT = allocatePortAsInt(EmbeddedJettyServer.class);
@@ -40,14 +41,14 @@ public class JettySingleApplicationTest extends AbstractSciTest {
                 }, PORT);
         }
     }
-    
+
     @BeforeClass
     public static void startServers() throws Exception {
         AbstractResourceInfo.clearAllMaps();
         assertTrue("server did not launch correctly", launchServer(EmbeddedJettyServer.class, true));
         createStaticBus();
     }
-    
+
     @Override
     protected int getPort() {
         return EmbeddedJettyServer.PORT;

@@ -27,6 +27,7 @@ import javax.xml.namespace.QName;
 
 import org.apache.cxf.interceptor.Interceptor;
 import org.apache.cxf.message.Message;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.Assert;
@@ -34,7 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class PolicyInterceptorProviderRegistryImplTest extends Assert {
 
@@ -45,7 +46,7 @@ public class PolicyInterceptorProviderRegistryImplTest extends Assert {
     @Before
     public void setUp() {
         control = EasyMock.createNiceControl();
-        new Integer(4);
+        Integer.valueOf(4);
     }
 
     @Test
@@ -78,7 +79,7 @@ public class PolicyInterceptorProviderRegistryImplTest extends Assert {
         EasyMock.expect(pp.getInFaultInterceptors()).andReturn(pifl);
         EasyMock.expect(pp.getOutInterceptors()).andReturn(pol);
         EasyMock.expect(pp.getOutFaultInterceptors()).andReturn(pofl);
-        Collection<QName> assertionTypes = new ArrayList<QName>();
+        Collection<QName> assertionTypes = new ArrayList<>();
         assertionTypes.add(ASSERTION);
         EasyMock.expect(pp.getAssertionTypes()).andReturn(assertionTypes);
         control.replay();

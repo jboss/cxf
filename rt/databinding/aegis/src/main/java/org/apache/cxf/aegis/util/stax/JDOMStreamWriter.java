@@ -43,7 +43,7 @@ public class JDOMStreamWriter implements XMLStreamWriter {
 
     private NamespaceContext context;
 
-    private Map<String, Object> properties = new HashMap<String, Object>();
+    private Map<String, Object> properties = new HashMap<>();
 
     public JDOMStreamWriter() {
     }
@@ -56,7 +56,7 @@ public class JDOMStreamWriter implements XMLStreamWriter {
     }
 
     public void flush() throws XMLStreamException {
-    }    
+    }
 
     public void writeStartElement(String local) throws XMLStreamException {
         newChild(new Element(local));
@@ -178,7 +178,6 @@ public class JDOMStreamWriter implements XMLStreamWriter {
     }
 
     public void writeCharacters(char[] text, int start, int len) throws XMLStreamException {
-        // TODO Auto-generated method stub
         currentNode.addContent(new String(text, start, len));
     }
 

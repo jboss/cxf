@@ -27,6 +27,7 @@ import org.apache.cxf.service.model.OperationInfo;
 import org.apache.cxf.service.model.ServiceInfo;
 import org.apache.cxf.tools.common.model.JavaField;
 import org.apache.cxf.tools.fortest.withannotation.doc.GreeterArray;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -43,22 +44,22 @@ public class ResponseWrapperTest extends Assert {
                 return op;
             }
         }
-        return null;        
+        return null;
     }
-    
+
     @Test
     public void testBuildFields() {
         // Test String[]
         Class<?> testingClass = GreeterArray.class;
         OperationInfo opInfo = getOperation(testingClass, "sayStringArray");
         assertNotNull(opInfo);
-        
+
         ResponseWrapper responseWrapper = new ResponseWrapper();
 
         MessageInfo message = opInfo.getUnwrappedOperation().getOutput();
         Method method = (Method)opInfo.getProperty("operation.method");
 
-        JavaField field  = responseWrapper.buildFields(method, message).get(0);
+        JavaField field = responseWrapper.buildFields(method, message).get(0);
         assertEquals("_return", field.getParaName());
         assertEquals("String[]", field.getType());
 
@@ -75,7 +76,7 @@ public class ResponseWrapperTest extends Assert {
         assertEquals("int[]", field.getType());
 
         // Test TestDataBean[]
-        
+
         opInfo = getOperation(testingClass, "sayTestDataBeanArray");
         assertNotNull(opInfo);
 
@@ -93,11 +94,11 @@ public class ResponseWrapperTest extends Assert {
         Class<?> testingClass = Class.forName(pkgName + ".Greeter");
 
         OperationInfo opInfo = getOperation(testingClass, "sayHi");
-        
+
         Wrapper wrapper = new ResponseWrapper();
         wrapper.setOperationInfo(opInfo);
         assertEquals(pkgName, wrapper.getJavaClass().getPackageName());
         assertEquals("SayHiResponse", wrapper.getJavaClass().getName());
-        
+
     }
 }

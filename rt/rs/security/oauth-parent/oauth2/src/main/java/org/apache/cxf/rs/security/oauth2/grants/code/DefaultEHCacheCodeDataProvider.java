@@ -18,29 +18,35 @@
  */
 package org.apache.cxf.rs.security.oauth2.grants.code;
 
-import net.sf.ehcache.Ehcache;
+import java.util.ArrayList;
+import java.util.List;
 
+import net.sf.ehcache.Ehcache;
 import org.apache.cxf.Bus;
+import org.apache.cxf.BusFactory;
+import org.apache.cxf.helpers.CastUtils;
+import org.apache.cxf.rs.security.oauth2.common.Client;
+import org.apache.cxf.rs.security.oauth2.common.UserSubject;
 import org.apache.cxf.rs.security.oauth2.provider.DefaultEHCacheOAuthDataProvider;
 import org.apache.cxf.rs.security.oauth2.provider.OAuthServiceException;
 
-public class DefaultEHCacheCodeDataProvider extends DefaultEHCacheOAuthDataProvider 
+public class DefaultEHCacheCodeDataProvider extends DefaultEHCacheOAuthDataProvider
     implements AuthorizationCodeDataProvider {
     public static final String CODE_GRANT_CACHE_KEY = "cxf.oauth2.codegrant.cache";
-    
-    private long codeLifetime = 3600L;
+
+    private long codeLifetime = 10 * 60;
     private Ehcache codeGrantCache;
-    
+
     protected DefaultEHCacheCodeDataProvider() {
-        this(DEFAULT_CONFIG_URL, null);
+        this(DEFAULT_CONFIG_URL, BusFactory.getThreadDefaultBus(true));
     }
-    
+
     protected DefaultEHCacheCodeDataProvider(String configFileURL, Bus bus) {
         this(configFileURL, bus, CLIENT_CACHE_KEY, CODE_GRANT_CACHE_KEY,
              ACCESS_TOKEN_CACHE_KEY, REFRESH_TOKEN_CACHE_KEY);
     }
-    
-    protected DefaultEHCacheCodeDataProvider(String configFileURL, 
+
+    protected DefaultEHCacheCodeDataProvider(String configFileURL,
                                                Bus bus,
                                                String clientCacheKey,
                                                String codeCacheKey,
@@ -51,28 +57,62 @@ public class DefaultEHCacheCodeDataProvider extends DefaultEHCacheOAuthDataProvi
     }
 
     @Override
+    protected void doRemoveClient(Client c) {
+        removeClientCodeGrants(c);
+        super.doRemoveClient(c);
+    }
+
+    protected void removeClientCodeGrants(Client c) {
+        for (ServerAuthorizationCodeGrant grant : getCodeGrants(c, null)) {
+            removeCodeGrant(grant.getCode());
+        }
+    }
+
+    @Override
     public ServerAuthorizationCodeGrant createCodeGrant(AuthorizationCodeRegistration reg)
         throws OAuthServiceException {
-        ServerAuthorizationCodeGrant grant = AbstractCodeDataProvider.initCodeGrant(reg, codeLifetime);
+        ServerAuthorizationCodeGrant grant = doCreateCodeGrant(reg);
         saveCodeGrant(grant);
         return grant;
     }
 
+    protected ServerAuthorizationCodeGrant doCreateCodeGrant(AuthorizationCodeRegistration reg)
+        throws OAuthServiceException {
+        return AbstractCodeDataProvider.initCodeGrant(reg, codeLifetime);
+    }
+
+    public List<ServerAuthorizationCodeGrant> getCodeGrants(Client c, UserSubject sub) {
+        List<String> keys = CastUtils.cast(codeGrantCache.getKeys());
+        List<ServerAuthorizationCodeGrant> grants =
+            new ArrayList<>(keys.size());
+        for (String key : keys) {
+            ServerAuthorizationCodeGrant grant = getCodeGrant(key);
+            if (AbstractCodeDataProvider.isCodeMatched(grant, c, sub)) {
+                grants.add(grant);
+            }
+        }
+        return grants;
+    }
+
     @Override
     public ServerAuthorizationCodeGrant removeCodeGrant(String code) throws OAuthServiceException {
-        ServerAuthorizationCodeGrant grant = getCacheValue(codeGrantCache, 
-                                                                  code, 
-                                                                  ServerAuthorizationCodeGrant.class);
+        ServerAuthorizationCodeGrant grant = getCodeGrant(code);
         if (grant != null) {
             codeGrantCache.remove(code);
         }
         return grant;
     }
-        
-    protected void saveCodeGrant(ServerAuthorizationCodeGrant grant) { 
+
+    public ServerAuthorizationCodeGrant getCodeGrant(String code) throws OAuthServiceException {
+        return getCacheValue(codeGrantCache,
+                             code,
+                             ServerAuthorizationCodeGrant.class);
+    }
+
+    protected void saveCodeGrant(ServerAuthorizationCodeGrant grant) {
         putCacheValue(codeGrantCache, grant.getCode(), grant, grant.getExpiresIn());
     }
-    
+
     public void setCodeLifetime(long codeLifetime) {
         this.codeLifetime = codeLifetime;
     }

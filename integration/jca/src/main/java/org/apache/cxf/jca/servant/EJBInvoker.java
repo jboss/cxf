@@ -28,18 +28,17 @@ import org.apache.cxf.service.invoker.AbstractInvoker;
 
 
 public class EJBInvoker extends AbstractInvoker {
-    
+
     private static final Object[] EMPTY_OBJECT = new Object[0];
-    
+
     private EJBHome home;
-    
+
     private Method createMethod;
-     
+
     public EJBInvoker(EJBHome home) {
         this.home = home;
         try {
-            if (!home.getEJBMetaData().isSession() || !home.getEJBMetaData().isStatelessSession())
-            {
+            if (!home.getEJBMetaData().isSession() || !home.getEJBMetaData().isStatelessSession()) {
                 throw new IllegalArgumentException("home must be for a stateless session bean");
             }
             createMethod = home.getClass().getMethod("create", new Class[0]);
@@ -47,8 +46,8 @@ public class EJBInvoker extends AbstractInvoker {
             throw new IllegalArgumentException("Unable to initialize invoker: " + ex);
         }
     }
-    
-    
+
+
     @Override
     public Object getServiceObject(Exchange context) {
         Object ejbObject = null;

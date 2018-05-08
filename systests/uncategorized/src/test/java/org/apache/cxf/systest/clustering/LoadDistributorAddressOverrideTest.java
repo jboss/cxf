@@ -21,9 +21,10 @@ package org.apache.cxf.systest.clustering;
 
 import java.util.HashMap;
 import java.util.Map;
-import javax.xml.ws.WebServiceException;
-import org.apache.cxf.clustering.LoadDistributorTargetSelector;
 
+import javax.xml.ws.WebServiceException;
+
+import org.apache.cxf.clustering.LoadDistributorTargetSelector;
 import org.apache.cxf.clustering.SequentialStrategy;
 import org.apache.cxf.endpoint.ConduitSelector;
 import org.apache.cxf.frontend.ClientProxy;
@@ -38,7 +39,7 @@ public class LoadDistributorAddressOverrideTest  extends FailoverAddressOverride
     protected String getConfig() {
         return FAILOVER_CONFIG;
     }
-    
+
     private String responseFrom(String response) {
         if (response.endsWith(REPLICA_A)) {
             return REPLICA_A;
@@ -50,9 +51,9 @@ public class LoadDistributorAddressOverrideTest  extends FailoverAddressOverride
             return response;
         }
     }
-    
-    private void incrementResponseCount(Map< String, Integer > responseCounts
-            , String response) {
+
+    private void incrementResponseCount(Map< String, Integer > responseCounts,
+            String response) {
         String responder = responseFrom(response);
         Integer currentCount = responseCounts.get(responder);
         responseCounts.put(responder, 1 + (currentCount == null ? 0 : currentCount));
@@ -65,7 +66,7 @@ public class LoadDistributorAddressOverrideTest  extends FailoverAddressOverride
         startTarget(REPLICA_C);
         setupGreeterA();
         verifyStrategy(greeter, SequentialStrategy.class, 3);
-        Map< String, Integer > responseCounts = new HashMap< String, Integer >();
+        Map< String, Integer > responseCounts = new HashMap<>();
         for (int i = 0; i < 12; ++i) {
             String response = greeter.greetMe("fred");
             assertNotNull("expected non-null response", response);
@@ -79,14 +80,14 @@ public class LoadDistributorAddressOverrideTest  extends FailoverAddressOverride
         stopTarget(REPLICA_B);
         stopTarget(REPLICA_C);
     }
-    
+
     @Test
     public void testDistributedSequentialStrategyWithFailover() throws Exception {
         startTarget(REPLICA_A);
         startTarget(REPLICA_C);
         setupGreeterA();
         verifyStrategy(greeter, SequentialStrategy.class, 3);
-        Map< String, Integer > responseCounts = new HashMap< String, Integer >();
+        Map< String, Integer > responseCounts = new HashMap<>();
         for (int i = 0; i < 12; ++i) {
             String response = greeter.greetMe("fred");
             assertNotNull("expected non-null response", response);
@@ -102,7 +103,7 @@ public class LoadDistributorAddressOverrideTest  extends FailoverAddressOverride
         stopTarget(REPLICA_A);
         stopTarget(REPLICA_C);
     }
-    
+
     @Test
     public void testDistributedSequentialStrategyWithoutFailover() throws Exception {
         startTarget(REPLICA_A);
@@ -116,8 +117,8 @@ public class LoadDistributorAddressOverrideTest  extends FailoverAddressOverride
         } else {
             fail("unexpected conduit selector: " + conduitSelector);
         }
-        
-        Map< String, Integer > responseCounts = new HashMap< String, Integer >();
+
+        Map< String, Integer > responseCounts = new HashMap<>();
         for (int i = 0; i < 12; ++i) {
             try {
                 String response = greeter.greetMe("fred");

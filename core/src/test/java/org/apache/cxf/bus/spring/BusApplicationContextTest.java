@@ -18,19 +18,19 @@
  */
 
 package org.apache.cxf.bus.spring;
+import org.springframework.beans.BeansException;
 
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.springframework.beans.BeansException;
 
 public class BusApplicationContextTest extends Assert {
-       
+
     @Test
     public void testGetResources() {
         BusApplicationContext ctx = null;
 
-        try { 
+        try {
             ctx = new BusApplicationContext("nowhere.xml", false);
             fail("Bus creation should have thrown exception.");
         } catch (BeansException bex) {

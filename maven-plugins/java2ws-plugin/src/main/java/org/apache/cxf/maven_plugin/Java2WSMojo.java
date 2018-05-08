@@ -25,8 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.cxf.helpers.FileUtils;
+import org.apache.cxf.helpers.JavaUtils;
 import org.apache.cxf.tools.common.CommandInterfaceUtils;
 import org.apache.cxf.tools.java2ws.JavaToWS;
 import org.apache.maven.artifact.Artifact;
@@ -53,7 +54,7 @@ public class Java2WSMojo extends AbstractMojo {
     private String className;
 
     /**
-     * @parameter  expression="${project.build.outputDirectory}"
+     * @parameter expression="${project.build.outputDirectory}"
      * @required
      */
     private String classpath;
@@ -92,15 +93,15 @@ public class Java2WSMojo extends AbstractMojo {
      * @parameter
      */
     private String address;
-    
-    
+
+
     /**
      * @parameter
      */
     private String classifier;
 
     /**
-     * @parameter  expression="${project.compileClasspathElements}"
+     * @parameter expression="${project.compileClasspathElements}"
      * @required
      */
     private List<?> classpathElements;
@@ -149,6 +150,12 @@ public class Java2WSMojo extends AbstractMojo {
      * @parameter default-value="false"
      */
     private Boolean genWrapperbean;
+
+    /**
+     * @parameter
+     */
+    private String portName;
+
 
     /**
      * Attach the generated wsdl file to the list of files to be deployed
@@ -203,6 +210,22 @@ public class Java2WSMojo extends AbstractMojo {
     private String additionalJvmArgs;
 
     public void execute() throws MojoExecutionException {
+        if (JavaUtils.isJava9Compatible()) {
+            fork = true;
+            additionalJvmArgs = "--add-modules java.activation,java.xml.bind,java.xml.ws " 
+                    + "--add-exports=java.xml.bind/com.sun.xml.internal.bind.v2.runtime=ALL-UNNAMED "
+                    + "--add-exports=jdk.xml.dom/org.w3c.dom.html=ALL-UNNAMED "
+                    + "--add-exports=java.xml/com.sun.org.apache.xerces.internal.impl.xs=ALL-UNNAMED "
+                    + "--add-exports=java.xml.bind/com.sun.xml.internal.bind.marshaller=ALL-UNNAMED "
+                    + "--add-opens java.xml.ws/javax.xml.ws.wsaddressing=ALL-UNNAMED "
+                    + "--add-opens java.base/java.security=ALL-UNNAMED "
+                    + "--add-opens java.base/java.net=ALL-UNNAMED "
+                    + "--add-opens java.base/java.lang=ALL-UNNAMED "
+                    + "--add-opens java.base/java.util=ALL-UNNAMED "
+                    + "--add-opens java.base/java.util.concurrent=ALL-UNNAMED " 
+                    + (additionalJvmArgs == null ? "" : additionalJvmArgs); 
+        }
+        System.setProperty("org.apache.cxf.JDKBugHacks.defaultUsesCaches", "true");
         if (skip) {
             getLog().info("Skipping Java2WS execution");
             return;
@@ -214,7 +237,7 @@ public class Java2WSMojo extends AbstractMojo {
             String cp = classLoaderSwitcher.switchClassLoader(project, false,
                                                               classpath, classpathElements);
             if (fork) {
-                List<String> artifactsPath = new ArrayList<String>(pluginArtifacts.size());
+                List<String> artifactsPath = new ArrayList<>(pluginArtifacts.size());
                 for (Artifact a : pluginArtifacts) {
                     File file = a.getFile();
                     if (file == null) {
@@ -237,10 +260,13 @@ public class Java2WSMojo extends AbstractMojo {
     }
 
     private List<String> initArgs(String cp) {
-        List<String> args = new ArrayList<String>();
+        List<String> args = new ArrayList<>();
 
         if (fork) {
-            args.add(additionalJvmArgs);
+            String[] split = additionalJvmArgs.split("\\s+");
+            for (String each : split) {
+                args.add(each);
+            }
             // @see JavaToWS#isExitOnFinish()
             args.add("-DexitOnFinish=true");
         }
@@ -283,12 +309,12 @@ public class Java2WSMojo extends AbstractMojo {
             }
         }
 
-        if (frontend != null) {
+        if (!StringUtils.isEmpty(frontend)) {
             args.add("-frontend");
             args.add(frontend);
         }
 
-        if (databinding != null) {
+        if (!StringUtils.isEmpty(databinding)) {
             args.add("-databinding");
             args.add(databinding);
         }
@@ -315,13 +341,13 @@ public class Java2WSMojo extends AbstractMojo {
         }
 
         // target namespace arg
-        if (targetNamespace != null) {
+        if (!StringUtils.isEmpty(targetNamespace)) {
             args.add("-t");
             args.add(targetNamespace);
         }
 
         // servicename arg
-        if (serviceName != null) {
+        if (!StringUtils.isEmpty(serviceName)) {
             args.add("-servicename");
             args.add(serviceName);
         }
@@ -337,9 +363,15 @@ public class Java2WSMojo extends AbstractMojo {
         }
 
         // address arg
-        if (address != null) {
+        if (!StringUtils.isEmpty(address)) {
             args.add("-address");
             args.add(address);
+        }
+
+        // portname arg
+        if (!StringUtils.isEmpty(portName)) {
+            args.add("-portname");
+            args.add(portName);
         }
 
         if (argline != null) {
@@ -433,14 +465,10 @@ public class Java2WSMojo extends AbstractMojo {
         if (attachWsdl && outputFile != null) {
             File wsdlFile = new File(outputFile);
             if (wsdlFile.exists()) {
-                if (classifier != null) {
-                    projectHelper.attachArtifact(project, wsdlFile.getName(), classifier, wsdlFile);
-                } else {
-                    projectHelper.attachArtifact(project, wsdlFile.getName(), wsdlFile);
-                }
+                
                 boolean hasWsdlAttached = false;
                 for (Artifact a : project.getAttachedArtifacts()) {
-                    if ("wsdl".equals(a.getType())) {
+                    if ("wsdl".equals(a.getType()) && classifier.equals(a.getClassifier())) {
                         hasWsdlAttached = true;
                     }
                 }

@@ -19,68 +19,61 @@
 package org.apache.cxf.common.util;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.SequenceInputStream;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 public final class CompressionUtils {
     private CompressionUtils() {
-        
+
     }
-    public static InputStream inflate(byte[] deflatedToken) 
+    public static InputStream inflate(byte[] deflatedToken)
         throws DataFormatException {
         return inflate(deflatedToken, true);
     }
-    public static InputStream inflate(byte[] deflatedToken, boolean nowrap) 
+    public static InputStream inflate(byte[] deflatedToken, boolean nowrap)
         throws DataFormatException {
-        Inflater inflater = new Inflater(nowrap);
+        Inflater inflater = new Inflater(true);
         inflater.setInput(deflatedToken);
-        
-        byte[] input = new byte[deflatedToken.length * 2];
-        int inflatedLen = 0;
-        int inputLen = 0;
-        byte[] inflatedToken = input;
+
+        byte[] buffer = new byte[deflatedToken.length];
+        int inflateLen;
+        ByteArrayOutputStream inflatedToken = new ByteArrayOutputStream();
         while (!inflater.finished()) {
-            inputLen = inflater.inflate(input);
-            if (!inflater.finished()) {
-                
-                if (inputLen == 0) {
-                    if (inflater.needsInput()) {
-                        throw new DataFormatException("Inflater can not inflate all the token bytes");
-                    } else {
-                        break;
-                    }
+            inflateLen = inflater.inflate(buffer, 0, deflatedToken.length);
+            if (inflateLen == 0 && !inflater.finished()) {
+                if (inflater.needsInput()) {
+                    throw new DataFormatException("Inflater can not inflate all the token bytes");
                 }
-                
-                inflatedToken = new byte[input.length + inflatedLen];
-                System.arraycopy(input, 0, inflatedToken, inflatedLen, inputLen);
-                inflatedLen += inputLen;
+                break;
             }
+
+            inflatedToken.write(buffer, 0, inflateLen);
         }
-        InputStream is = new ByteArrayInputStream(input, 0, inputLen);
-        if (inflatedToken != input) {
-            is = new SequenceInputStream(new ByteArrayInputStream(inflatedToken, 0, inflatedLen),
-                                         is);
-        }
-        return is;
+
+        return new ByteArrayInputStream(inflatedToken.toByteArray());
     }
-    
+
     public static byte[] deflate(byte[] tokenBytes) {
         return deflate(tokenBytes, true);
     }
-    
+
     public static byte[] deflate(byte[] tokenBytes, boolean nowrap) {
-        Deflater compresser = new Deflater(Deflater.DEFLATED, nowrap);
-        
+        return deflate(tokenBytes, Deflater.DEFLATED, nowrap);
+    }
+
+    public static byte[] deflate(byte[] tokenBytes, int level, boolean nowrap) {
+        Deflater compresser = new Deflater(level, nowrap);
+
         compresser.setInput(tokenBytes);
         compresser.finish();
-        
+
         byte[] output = new byte[tokenBytes.length * 2];
-        
+
         int compressedDataLength = compresser.deflate(output);
-        
+
         byte[] result = new byte[compressedDataLength];
         System.arraycopy(output, 0, result, 0, compressedDataLength);
         return result;

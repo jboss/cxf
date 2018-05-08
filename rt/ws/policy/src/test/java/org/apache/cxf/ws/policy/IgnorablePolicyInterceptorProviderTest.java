@@ -34,14 +34,14 @@ import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
 import org.apache.cxf.ws.policy.builder.primitive.PrimitiveAssertion;
 import org.apache.neethi.Assertion;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
- * 
+ *
  */
 public class IgnorablePolicyInterceptorProviderTest extends Assert {
     private static final QName ONEWAY_QNAME = new QName("http://tempuri.org/policy", "OneWay");

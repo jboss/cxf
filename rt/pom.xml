@@ -27,52 +27,18 @@
     <parent>
         <groupId>org.apache.cxf</groupId>
         <artifactId>cxf</artifactId>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.5-SNAPSHOT</version>
     </parent>
     <modules>
         <module>wsdl</module>
-        <module>transports/local</module>
-        <module>databinding/jaxb</module>
-        <module>databinding/xmlbeans</module>
-        <module>databinding/aegis</module>
-        <module>databinding/sdo</module>
-        <module>databinding/jibx</module>
+        <module>transports</module>
+        <module>databinding</module>
         <module>bindings</module>
-        <module>features/clustering</module>
-        <module>features/logging</module>
-        <module>features/metrics</module>
-        <module>features/throttling</module>
-        <module>frontend/simple</module>
-        <module>frontend/jaxws</module>
-        <module>frontend/jaxrs</module>
-        <module>frontend/js</module>
-        <module>transports/http</module>
-        <module>transports/http-jetty</module>
-        <module>transports/http-hc</module>
-        <module>transports/http-netty/netty-server</module>
-        <module>transports/http-netty/netty-client</module>
-        <module>transports/jms</module>
-        <module>transports/udp</module>
-        <module>transports/websocket</module>
-        <module>ws/policy</module>
-        <module>ws/addr</module>
-        <module>ws/security</module>
-        <module>ws/rm</module>
-        <module>ws/mex</module>
-        <module>ws/eventing</module>
-        <module>rs/client</module>
-        <module>rs/http-sci</module>
-        <module>rs/description</module>
-        <module>rs/extensions/providers</module>
-        <module>rs/extensions/search</module>
-        <module>rs/security/xml</module>
-        <module>rs/security/jose</module>
-        <module>rs/security/oauth-parent</module>
-        <module>rs/security/sso/saml</module>
-        <module>rs/security/sso/oidc</module>
-        <module>rs/security/cors</module>
+        <module>features</module>
+        <module>frontend</module>
+        <module>ws</module>
+        <module>rs</module>
         <module>management</module>
-        <module>management-web</module>
         <module>javascript</module>
         <module>security</module>
         <module>security-saml</module>

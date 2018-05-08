@@ -21,6 +21,9 @@ package org.apache.cxf.helpers;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.Method;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -48,37 +51,104 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.common.util.StringUtils;
 
 /**
  * Few simple utils to read DOM. This is originally from the Jakarta Commons Modeler.
  */
 public final class DOMUtils {
+    private static boolean isJre9SAAJ;
     private static final Map<ClassLoader, DocumentBuilder> DOCUMENT_BUILDERS
         = Collections.synchronizedMap(new WeakHashMap<ClassLoader, DocumentBuilder>());
     private static final String XMLNAMESPACE = "xmlns";
+    private static volatile Document emptyDocument;
+
+
+
+    static {
+        try {
+            Method[] methods = DOMUtils.class.getClassLoader().
+                loadClass("com.sun.xml.messaging.saaj.soap.SOAPDocumentImpl").getMethods();
+            for (Method method : methods) {
+                if (method.getName().equals("register")) {
+                    //this is the 1.4+ SAAJ impl
+                    setJava9SAAJ(true);
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException cnfe) {
+            LogUtils.getL7dLogger(DOMUtils.class).finest(
+                "can't load class com.sun.xml.messaging.saaj.soap.SOAPDocumentImpl");
+
+            try {
+                Method[] methods = DOMUtils.class.getClassLoader().
+                    loadClass("com.sun.xml.internal.messaging.saaj.soap.SOAPDocumentImpl").getMethods();
+                for (Method method : methods) {
+                    if (method.getName().equals("register")) {
+                        //this is the SAAJ impl in JDK9
+                        setJava9SAAJ(true);
+                        break;
+                    }
+                }
+            } catch (ClassNotFoundException cnfe1) {
+                LogUtils.getL7dLogger(DOMUtils.class).finest(
+                    "can't load class com.sun.xml.internal.messaging.saaj.soap.SOAPDocumentImpl");
+            }
+        }
+    }
 
     private DOMUtils() {
     }
 
     private static DocumentBuilder getDocumentBuilder() throws ParserConfigurationException {
-        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        ClassLoader loader = getContextClassLoader();
         if (loader == null) {
-            loader = DOMUtils.class.getClassLoader();
+            loader = getClassLoader(DOMUtils.class);
         }
         if (loader == null) {
-            return DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
+            f.setNamespaceAware(true);
+            f.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            return f.newDocumentBuilder();
         }
         DocumentBuilder factory = DOCUMENT_BUILDERS.get(loader);
         if (factory == null) {
             DocumentBuilderFactory f2 = DocumentBuilderFactory.newInstance();
             f2.setNamespaceAware(true);
+            f2.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            f2.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             factory = f2.newDocumentBuilder();
             DOCUMENT_BUILDERS.put(loader, factory);
         }
         return factory;
     }
-    
+
+    private static ClassLoader getContextClassLoader() {
+        final SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+                public ClassLoader run() {
+                    return Thread.currentThread().getContextClassLoader();
+                }
+            });
+        }
+        return Thread.currentThread().getContextClassLoader();
+    }
+
+    private static ClassLoader getClassLoader(final Class<?> clazz) {
+        final SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+                public ClassLoader run() {
+                    return clazz.getClassLoader();
+                }
+            });
+        }
+        return clazz.getClassLoader();
+    }
+
     /**
      * Creates a new Document object
      * @throws ParserConfigurationException
@@ -94,10 +164,47 @@ public final class DOMUtils {
         }
     }
 
-    
+    private static synchronized Document createEmptyDocument() {
+        if (emptyDocument == null) {
+            emptyDocument = createDocument();
+
+            // uncomment this to see if anything is actually setting anything into the empty doc
+            /*
+            final Document doc  = createDocument();
+            emptyDocument = (Document)org.apache.cxf.common.util.ProxyHelper.getProxy(
+                DOMUtils.class.getClassLoader(),
+                new Class<?>[] {Document.class},
+                new java.lang.reflect.InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                        if (method.getName().contains("create")) {
+                            return method.invoke(doc, args);
+                        }
+                        throw new IllegalStateException("Cannot modify factory document");
+                    }
+                });
+            */
+        }
+        return emptyDocument;
+    }
+    /**
+     * Returns a static Document that should always be "empty".  It's useful as a factory for
+     * for creating Elements and other nodes that will be traversed later and don't need to
+     * be attached into a document
+     * @return
+     */
+    public static Document getEmptyDocument() {
+        Document doc = emptyDocument;
+        if (doc == null) {
+            doc = createEmptyDocument();
+        }
+        return doc;
+    }
+
+
     /**
      * This function is much like getAttribute, but returns null, not "", for a nonexistent attribute.
-     * 
+     *
      * @param e
      * @param attributeName
      */
@@ -159,7 +266,7 @@ public final class DOMUtils {
                     b = new StringBuilder(s).append(((Text)n1).getNodeValue());
                     s = null;
                 }
-            } 
+            }
             n1 = n1.getNextSibling();
         }
         if (b != null) {
@@ -170,7 +277,7 @@ public final class DOMUtils {
 
     /**
      * Get the first element child.
-     * 
+     *
      * @param parent lookup direct childs
      * @param name name of the element. If null return the first element.
      */
@@ -200,7 +307,7 @@ public final class DOMUtils {
         return null;
     }
 
-    
+
     public static boolean hasAttribute(Element element, String value) {
         NamedNodeMap attributes = element.getAttributes();
         for (int i = 0; i < attributes.getLength(); i++) {
@@ -210,7 +317,7 @@ public final class DOMUtils {
             }
         }
         return false;
-    }    
+    }
     public static String getAttribute(Node element, String attName) {
         NamedNodeMap attrs = element.getAttributes();
         if (attrs == null) {
@@ -261,7 +368,7 @@ public final class DOMUtils {
 
     /**
      * Find the first direct child with a given attribute.
-     * 
+     *
      * @param parent
      * @param elemName name of the element, or null for any
      * @param attName attribute we're looking for
@@ -305,7 +412,7 @@ public final class DOMUtils {
     public static QName getElementQName(Element el) {
         return new QName(el.getNamespaceURI(), el.getLocalName());
     }
-    
+
     /**
      * Creates a QName object based on the qualified name
      * and using the Node as a base to lookup the namespace
@@ -334,17 +441,17 @@ public final class DOMUtils {
 
         return new QName(ns, localName, prefix);
     }
-    
+
     public static QName convertStringToQName(String expandedQName) {
         return convertStringToQName(expandedQName, "");
     }
-    
+
     public static QName convertStringToQName(String expandedQName, String prefix) {
         int ind1 = expandedQName.indexOf('{');
         if (ind1 != 0) {
             return new QName(expandedQName);
         }
-        
+
         int ind2 = expandedQName.indexOf('}');
         if (ind2 <= ind1 + 1 || ind2 >= expandedQName.length() - 1) {
             return null;
@@ -362,8 +469,8 @@ public final class DOMUtils {
             }
         }
         return dropElements;
-    }    
-    
+    }
+
 
     /**
      * Get the first direct child with a given type
@@ -392,7 +499,7 @@ public final class DOMUtils {
 
     /**
      * Return the first element child with the specified qualified name.
-     * 
+     *
      * @param parent
      * @param q
      */
@@ -404,7 +511,7 @@ public final class DOMUtils {
 
     /**
      * Return the first element child with the specified qualified name.
-     * 
+     *
      * @param parent
      * @param ns
      * @param lp
@@ -424,13 +531,13 @@ public final class DOMUtils {
 
     /**
      * Return child elements with specified name.
-     * 
+     *
      * @param parent
      * @param ns
      * @param localName
      */
     public static List<Element> getChildrenWithName(Element parent, String ns, String localName) {
-        List<Element> r = new ArrayList<Element>();
+        List<Element> r = new ArrayList<>();
         for (Node n = parent.getFirstChild(); n != null; n = n.getNextSibling()) {
             if (n instanceof Element) {
                 Element e = (Element)n;
@@ -442,16 +549,16 @@ public final class DOMUtils {
         }
         return r;
     }
-    
+
     /**
      * Returns all child elements with specified namespace.
-     * 
+     *
      * @param parent the element to search under
      * @param ns the namespace to find elements in
      * @return all child elements with specified namespace
      */
     public static List<Element> getChildrenWithNamespace(Element parent, String ns) {
-        List<Element> r = new ArrayList<Element>();
+        List<Element> r = new ArrayList<>();
         for (Node n = parent.getFirstChild(); n != null; n = n.getNextSibling()) {
             if (n instanceof Element) {
                 Element e = (Element)n;
@@ -466,7 +573,7 @@ public final class DOMUtils {
 
     /**
      * Get the first child of the specified type.
-     * 
+     *
      * @param parent
      * @param type
      */
@@ -520,7 +627,7 @@ public final class DOMUtils {
             return new InputSource(new StringReader(""));
         }
     }
-    
+
     public static String getPrefixRecursive(Element el, String ns) {
         String prefix = getPrefix(el, ns);
         if (prefix == null && el.getParentNode() instanceof Element) {
@@ -544,7 +651,7 @@ public final class DOMUtils {
 
     /**
      * Get all prefixes defined, up to the root, for a namespace URI.
-     * 
+     *
      * @param element
      * @param namespaceUri
      * @param prefixes
@@ -559,7 +666,7 @@ public final class DOMUtils {
 
     /**
      * Get all prefixes defined on this element for the specified namespace.
-     * 
+     *
      * @param element
      * @param namespaceUri
      * @param prefixes
@@ -590,7 +697,7 @@ public final class DOMUtils {
     /**
      * Starting from a node, find the namespace declaration for a prefix. for a matching namespace
      * declaration.
-     * 
+     *
      * @param node search up from here to search for namespace definitions
      * @param searchPrefix the prefix we are searching for
      * @return the namespace if found.
@@ -623,12 +730,32 @@ public final class DOMUtils {
 
         return null;
     }
-  
+
     public static List<Element> findAllElementsByTagNameNS(Element elem, String nameSpaceURI,
                                                            String localName) {
         List<Element> ret = new LinkedList<Element>();
         findAllElementsByTagNameNS(elem, nameSpaceURI, localName, ret);
         return ret;
+    }
+
+    /**
+     * Try to get the DOM Node from the SAAJ Node with JAVA9
+     * @param node The original node we need check
+     * @return The DOM node
+     */
+    public static Node getDomElement(Node node) {
+        if (node != null && isJava9SAAJ()) {
+            //java9 hack since EA 159
+            try {
+                Method method = node.getClass().getMethod("getDomElement");
+                node = (Node)method.invoke(node);
+            } catch (NoSuchMethodException e) {
+                //best effort to try, do nothing if NoSuchMethodException
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return node;
     }
 
     private static void findAllElementsByTagNameNS(Element el, String nameSpaceURI, String localName,
@@ -694,7 +821,7 @@ public final class DOMUtils {
      * Set a namespace/prefix on an element if it is not set already. First off, it searches for the element
      * for the prefix associated with the specified namespace. If the prefix isn't null, then this is
      * returned. Otherwise, it creates a new attribute using the namespace/prefix passed as parameters.
-     * 
+     *
      * @param element
      * @param namespace
      * @param prefix
@@ -711,12 +838,20 @@ public final class DOMUtils {
 
     /**
      * Add a namespace prefix definition to an element.
-     * 
+     *
      * @param element
      * @param namespaceUri
      * @param prefix
      */
     public static void addNamespacePrefix(Element element, String namespaceUri, String prefix) {
         element.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + prefix, namespaceUri);
+    }
+
+    public static boolean isJava9SAAJ() {
+        return isJre9SAAJ;
+    }
+
+    private static void setJava9SAAJ(boolean isJava9SAAJ) {
+        DOMUtils.isJre9SAAJ = isJava9SAAJ;
     }
 }

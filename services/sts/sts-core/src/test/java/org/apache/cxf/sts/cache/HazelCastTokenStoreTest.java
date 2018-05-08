@@ -18,21 +18,23 @@
  */
 package org.apache.cxf.sts.cache;
 
-import java.util.Date;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
 import org.apache.cxf.ws.security.tokenstore.TokenStore;
+
 import org.junit.BeforeClass;
 
 public class HazelCastTokenStoreTest extends org.junit.Assert {
-  
+
     private static TokenStore store;
-    
+
     @BeforeClass
     public static void init() throws Exception {
         store = new HazelCastTokenStore("default");
     }
-    
+
     // tests TokenStore apis for storing in the cache.
     @org.junit.Test
     public void testTokenAdd() throws Exception {
@@ -43,7 +45,7 @@ public class HazelCastTokenStoreTest extends org.junit.Assert {
         assertEquals(token.getId(), cachedToken.getId());
         store.remove(token.getId());
         assertNull(store.getToken(key));
-        
+
         String newKey = "xyz";
         store.add(newKey, token);
         assertNull(store.getToken(key));
@@ -52,30 +54,26 @@ public class HazelCastTokenStoreTest extends org.junit.Assert {
         store.remove(newKey);
         assertNull(store.getToken(newKey));
     }
-    
+
     // tests TokenStore apis for storing in the cache with various expiration times
     @org.junit.Test
     public void testTokenAddExpiration() throws Exception {
         SecurityToken expiredToken = new SecurityToken("expiredToken");
-        Date currentDate = new Date();
-        long currentTime = currentDate.getTime();
-        Date expiry = new Date();
-        expiry.setTime(currentTime - 5000L);
-        expiredToken.setExpires(expiry);
+        ZonedDateTime expiry = ZonedDateTime.now(ZoneOffset.UTC).minusSeconds(5L);
+        expiredToken.setExpires(expiry.toInstant());
         store.add(expiredToken);
         assertTrue(store.getTokenIdentifiers().isEmpty());
-        
+
         SecurityToken farFutureToken = new SecurityToken("farFuture");
-        expiry = new Date();
-        expiry.setTime(Long.MAX_VALUE);
-        farFutureToken.setExpires(expiry);
+        expiry = ZonedDateTime.now(ZoneOffset.UTC).plusYears(50L);
+        farFutureToken.setExpires(expiry.toInstant());
         store.add(farFutureToken);
-        
+
         assertTrue(store.getTokenIdentifiers().size() == 1);
         store.remove(farFutureToken.getId());
         assertTrue(store.getTokenIdentifiers().isEmpty());
     }
-    
+
     // tests TokenStore apis for removing from the cache.
     @org.junit.Test
     public void testTokenRemove() {
@@ -90,6 +88,6 @@ public class HazelCastTokenStoreTest extends org.junit.Assert {
         assertNull(store.getToken("test3"));
         store.remove(token1.getId());
         store.remove(token2.getId());
-        assertTrue(store.getTokenIdentifiers().size() == 0);
+        assertTrue(store.getTokenIdentifiers().isEmpty());
     }
 }

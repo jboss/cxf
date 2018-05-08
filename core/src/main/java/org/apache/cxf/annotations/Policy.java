@@ -21,6 +21,7 @@ package org.apache.cxf.annotations;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -31,32 +32,33 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE, ElementType.METHOD })
+@Inherited
 public @interface Policy {
-    
+
     String uri();
-    
+
     boolean includeInWSDL() default true;
-    
-    
+
+
     /**
-     * The place to put the PolicyReference.  The Default depends on the 
+     * The place to put the PolicyReference.  The Default depends on the
      * location of the annotation.   On the method in the SEI, it would be
-     * the binding/operation, on the SEI, it would be the binding, on the 
+     * the binding/operation, on the SEI, it would be the binding, on the
      * service impl, the service element.
      * @return location
      */
     Placement placement() default Placement.DEFAULT;
-    
+
     /**
      * If Placement is PORT_TYPE_OPERATION_FAULT, or BINDING_OPERATION_FAULT,
-     * return the fault class associated with this documentation 
+     * return the fault class associated with this documentation
      * @return the fault class
      */
     Class<?> faultClass() default DEFAULT.class;
-    
+
     enum Placement {
         DEFAULT,
-        
+
         PORT_TYPE,
         PORT_TYPE_OPERATION,
         PORT_TYPE_OPERATION_INPUT,
@@ -72,7 +74,7 @@ public @interface Policy {
         SERVICE,
         SERVICE_PORT,
     };
-    
-    static final class DEFAULT { }
+
+    final class DEFAULT { }
 }
 

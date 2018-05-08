@@ -20,7 +20,7 @@ package org.apache.cxf.rs.security.oidc.common;
 
 import java.util.Map;
 
-import org.apache.cxf.jaxrs.provider.json.JsonMapObject;
+import org.apache.cxf.jaxrs.json.basic.JsonMapObject;
 
 public class UserAddress extends JsonMapObject {
     public static final String STREET = "street_address";
@@ -29,14 +29,15 @@ public class UserAddress extends JsonMapObject {
     public static final String COUNTRY = "country";
     public static final String REGION = "region";
     public static final String FORMATTED = "formatted";
-    
+    private static final long serialVersionUID = -6065703167243134105L;
+
     public UserAddress() {
     }
-    
+
     public UserAddress(Map<String, Object> claims) {
         super(claims);
     }
-    
+
     public void setStreet(String name) {
         setProperty(STREET, name);
     }

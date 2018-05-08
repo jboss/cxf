@@ -124,9 +124,8 @@ public final class ProcessorUtil {
     public static String resolvePartType(MessagePartInfo part, ToolContext env) {
         if (env != null) {
             return resolvePartType(part, env, false);
-        } else {
-            return resolvePartType(part);
         }
+        return resolvePartType(part);
     }
 
     public static String resolvePartType(MessagePartInfo part, ToolContext context, boolean fullName) {
@@ -135,9 +134,8 @@ public final class ProcessorUtil {
             String primitiveType = JAXBUtils.builtInTypeToJavaType(part.getTypeQName().getLocalPart());
             if (part.getTypeQName() != null &&  primitiveType != null) {
                 return primitiveType;
-            } else {
-                return resolvePartType(part);
             }
+            return resolvePartType(part);
         }
         String name = "";
         if (part.isElement()) {
@@ -169,12 +167,11 @@ public final class ProcessorUtil {
     }
 
     public static String mangleNameToVariableName(String vName) {
-        String result  = NameUtil.mangleNameToVariableName(vName);
+        String result = NameUtil.mangleNameToVariableName(vName);
         if (JavaUtils.isJavaKeyword(result)) {
             return KEYWORDS_PREFIX + result;
-        } else {
-            return result;
         }
+        return result;
     }
 
     public static String parsePackageName(String namespace, String defaultPackageName) {
@@ -190,31 +187,24 @@ public final class ProcessorUtil {
     public static String getAbsolutePath(String location) throws IOException {
         if (location.startsWith("http://")) {
             return location;
-        } else {
-            return resolvePath(new File(location).getAbsolutePath());
         }
+        return new File(location).getAbsolutePath().replace('\\', '/');
 
     }
 
     public static URL getWSDLURL(String location) throws Exception {
         if (location.startsWith("http://")) {
             return new URL(location);
-        } else {
-            return new File(getAbsolutePath(location)).toURI().toURL();
         }
-    }
-
-    private static String resolvePath(String path) {
-        return path.replace('\\', '/');
+        return new File(getAbsolutePath(location)).toURI().toURL();
     }
 
     public static String classNameToFilePath(String className) {
         String str;
         if (className.indexOf(".") < 0) {
             return className;
-        } else {
-            str = className.replaceAll("\\.", "/");
         }
+        str = className.replaceAll("\\.", "/");
         return str;
     }
 
@@ -282,7 +272,7 @@ public final class ProcessorUtil {
         }
     }
 
-    private static String escapeSpace(String url) {
+    static String escapeSpace(String url) {
         StringBuilder buf = new StringBuilder();
         for (int i = 0; i < url.length(); i++) {
             if (url.charAt(i) == ' ') {
@@ -362,7 +352,7 @@ public final class ProcessorUtil {
     }
 
     public static List<QName> getWrappedElementQNames(ToolContext context, QName partElement) {
-        List<QName> qnames = new ArrayList<QName>();
+        List<QName> qnames = new ArrayList<>();
         if (partElement == null) {
             return qnames;
         }
@@ -373,7 +363,7 @@ public final class ProcessorUtil {
     }
 
     public static List<WrapperElement> getWrappedElement(ToolContext context, QName partElement) {
-        List<WrapperElement> qnames = new ArrayList<WrapperElement>();
+        List<WrapperElement> qnames = new ArrayList<>();
 
         ServiceInfo serviceInfo = context.get(ServiceInfo.class);
         SchemaCollection schema = serviceInfo.getXmlSchemaCollection();
@@ -381,14 +371,14 @@ public final class ProcessorUtil {
         XmlSchemaElement elementByName = schema.getElementByQName(partElement);
 
         XmlSchemaComplexType type = (XmlSchemaComplexType)elementByName.getSchemaType();
-        
+
         XmlSchemaSequence seq = (XmlSchemaSequence)type.getParticle();
 
-        qnames.addAll(createWrappedElements(seq));    
+        qnames.addAll(createWrappedElements(seq));
 
         //If it's extension
         if (seq == null && type.getContentModel() != null) {
-            
+
             XmlSchemaContent xmlSchemaConent = type.getContentModel().getContent();
             if (xmlSchemaConent instanceof XmlSchemaComplexContentExtension) {
                 XmlSchemaComplexContentExtension extension = (XmlSchemaComplexContentExtension)type
@@ -414,8 +404,8 @@ public final class ProcessorUtil {
     }
 
     private static List<WrapperElement> createWrappedElements(XmlSchemaSequence seq) {
-       
-        List<WrapperElement> qnames = new ArrayList<WrapperElement>();
+
+        List<WrapperElement> qnames = new ArrayList<>();
         if (seq != null) {
 
             List<XmlSchemaSequenceMember> items = seq.getItems();
@@ -433,7 +423,7 @@ public final class ProcessorUtil {
         }
         return qnames;
     }
-    
+
     public static boolean isSchemaFormQualified(ToolContext context, QName partElement) {
         ServiceInfo serviceInfo = context.get(ServiceInfo.class);
         SchemaCollection schemaCol = serviceInfo.getXmlSchemaCollection();

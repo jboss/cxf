@@ -20,23 +20,35 @@ package org.apache.cxf.ext.logging;
 
 import java.util.UUID;
 
+import org.apache.cxf.common.util.PropertyUtils;
 import org.apache.cxf.ext.logging.event.LogEvent;
 import org.apache.cxf.ext.logging.event.LogEventSender;
+import org.apache.cxf.ext.logging.event.PrettyLoggingFilter;
+import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.AbstractPhaseInterceptor;
 
-abstract class AbstractLoggingInterceptor extends AbstractPhaseInterceptor<Message> {
+public abstract class AbstractLoggingInterceptor extends AbstractPhaseInterceptor<Message> {
     public static final int DEFAULT_LIMIT = 48 * 1024;
-
+    public static final int DEFAULT_THRESHOLD = -1;
+    public static final String CONTENT_SUPPRESSED = "--- Content suppressed ---";
+    private static final String  LIVE_LOGGING_PROP = "org.apache.cxf.logging.enable"; 
     protected int limit = DEFAULT_LIMIT;
-    protected long threshold = -1;
+    protected long threshold = DEFAULT_THRESHOLD;
+    protected boolean logBinary;
+    protected boolean logMultipart = true;
 
     protected LogEventSender sender;
 
     public AbstractLoggingInterceptor(String phase, LogEventSender sender) {
         super(phase);
         this.sender = sender;
+    }
+
+    protected static boolean isLoggingDisabledNow(Message message) throws Fault {
+        Object liveLoggingProp = message.getContextualProperty(LIVE_LOGGING_PROP);
+        return liveLoggingProp != null && PropertyUtils.isFalse(liveLoggingProp);
     }
     
     public void setLimit(int lim) {
@@ -53,6 +65,26 @@ abstract class AbstractLoggingInterceptor extends AbstractPhaseInterceptor<Messa
 
     public long getInMemThreshold() {
         return threshold;
+    }
+
+    public void setPrettyLogging(boolean prettyLogging) {
+        if (sender instanceof PrettyLoggingFilter) {
+            ((PrettyLoggingFilter)this.sender).setPrettyLogging(prettyLogging);
+        }
+    }
+
+    protected boolean shouldLogContent(LogEvent event) {
+        return event.isBinaryContent() && logBinary
+            || event.isMultipartContent() && logMultipart
+            || !event.isBinaryContent() && !event.isMultipartContent();
+    }
+
+    public void setLogBinary(boolean logBinary) {
+        this.logBinary = logBinary;
+    }
+
+    public void setLogMultipart(boolean logMultipart) {
+        this.logMultipart = logMultipart;
     }
 
     public void createExchangeId(Message message) {

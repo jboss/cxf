@@ -28,6 +28,7 @@ import org.apache.cxf.bus.managers.ServiceContractResolverRegistryImpl;
 import org.apache.cxf.endpoint.ServiceContractResolverRegistry;
 import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
 import org.apache.hello_world_soap_http.Greeter;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -36,11 +37,11 @@ public class JarResolverTest extends AbstractBusClientServerTestBase {
     private final QName serviceName = new QName("http://apache.org/hello_world_soap_http", "SOAPService");
 
     private final QName portName = new QName("http://apache.org/hello_world_soap_http", "SoapPort");
-    
+
     @BeforeClass
     public static void startServers() throws Exception {
         assertTrue("server did not launch correctly", launchServer(Server.class, true));
-        
+
     }
     @Test
     public void testResolver() throws Exception {
@@ -49,7 +50,7 @@ public class JarResolverTest extends AbstractBusClientServerTestBase {
 
         createBus();
         assertNotNull(bus);
-        ServiceContractResolverRegistryImpl registry = 
+        ServiceContractResolverRegistryImpl registry =
             new ServiceContractResolverRegistryImpl();
         registry.setBus(bus);
         assertNotNull(bus.getExtension(ServiceContractResolverRegistry.class));
@@ -59,7 +60,7 @@ public class JarResolverTest extends AbstractBusClientServerTestBase {
 
         Service service = Service.create(serviceName);
         //service.addPort(portName, SOAPBinding.SOAP11HTTP_BINDING,
-        //                "http://localhost:9000/SoapContext/SoapPort"); 
+        //                "http://localhost:9000/SoapContext/SoapPort");
         Greeter greeter = service.getPort(portName,  Greeter.class);
         updateAddressPort(greeter, PORT);
 

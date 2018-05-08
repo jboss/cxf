@@ -22,38 +22,46 @@ import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import javax.persistence.ElementCollection;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+import javax.persistence.MapKeyColumn;
+import javax.persistence.MappedSuperclass;
+
 /**
  * Base Access Token representation
  */
+@MappedSuperclass
 public abstract class AccessToken implements Serializable {
 
     private static final long serialVersionUID = -5750544301887053480L;
-    
+
     private String tokenKey;
     private String tokenType;
     private String refreshToken;
     private long expiresIn = -1;
     private long issuedAt = -1;
-    
-    
+    private String issuer;
+
+
     private Map<String, String> parameters = new LinkedHashMap<String, String>();
-    
+
     protected AccessToken() {
-        
+
     }
-    
+
     protected AccessToken(String tokenType, String tokenKey) {
         this.tokenType = tokenType;
         this.tokenKey = tokenKey;
     }
-    
+
     protected AccessToken(String tokenType, String tokenKey,
                           long expiresIn, long issuedAt) {
         this(tokenType, tokenKey);
         this.expiresIn = expiresIn;
         this.issuedAt = issuedAt;
     }
-    
+
     protected AccessToken(String tokenType, String tokenKey,
                           long expiresIn, long issuedAt,
                           String refreshToken,
@@ -70,19 +78,20 @@ public abstract class AccessToken implements Serializable {
     public String getTokenType() {
         return tokenType;
     }
-    
+
     public void setTokenType(String type) {
         this.tokenType = type;
     }
-    
+
     /**
      * Returns the token key
      * @return the key
      */
+    @Id
     public String getTokenKey() {
         return tokenKey;
     }
-    
+
     public void setTokenKey(String key) {
         this.tokenKey = key;
     }
@@ -104,11 +113,13 @@ public abstract class AccessToken implements Serializable {
     public String getRefreshToken() {
         return refreshToken;
     }
-    
+
     /**
-     * Gets token parameters 
+     * Gets token parameters
      * @return
      */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @MapKeyColumn(name = "propName")
     public Map<String, String> getParameters() {
         return parameters;
     }
@@ -132,12 +143,20 @@ public abstract class AccessToken implements Serializable {
     public void setIssuedAt(long issuedAt) {
         this.issuedAt = issuedAt;
     }
-    
+
     /**
      * Sets additional token parameters
      * @param parameters the token parameters
      */
     public void setParameters(Map<String, String> parameters) {
         this.parameters = parameters;
+    }
+
+    public String getIssuer() {
+        return issuer;
+    }
+
+    public void setIssuer(String issuer) {
+        this.issuer = issuer;
     }
 }

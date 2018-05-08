@@ -24,15 +24,16 @@ import java.util.Enumeration;
 
 import org.apache.cxf.staxutils.StaxUtils;
 import org.apache.cxf.tools.common.ToolTestBase;
+
 import org.junit.Before;
 import org.junit.Test;
 
 public class WSDLValidationTest extends ToolTestBase {
-    @Before    
+    @Before
     public void setUp() {
         super.setUp();
     }
-    
+
     @Test
     public void testValidateDefaultOpMessageNames() throws Exception {
         String[] args = new String[] {"-verbose",
@@ -109,8 +110,8 @@ public class WSDLValidationTest extends ToolTestBase {
         String[] args = new String[] {"-verbose",
                                       getLocation("/validator_wsdl/hello_world_import.wsdl")};
         WSDLValidator.main(args);
-        
-        assertTrue("Is not valid wsdl!: " + getStdOut(),
+
+        assertTrue("Is not valid wsdl!: " + getStdOut() + "\n" + getStdErr(),
                    getStdOut().indexOf("Passed Validation") > -1);
     }
 
@@ -119,7 +120,7 @@ public class WSDLValidationTest extends ToolTestBase {
         String[] args = new String[] {"-verbose",
                                       getLocation("/validator_wsdl/hello_world_schema_import.wsdl")};
         WSDLValidator.main(args);
-        
+
         assertTrue("Is not valid wsdl: " + getStdOut(),
                    getStdOut().indexOf("Passed Validation") > -1);
     }
@@ -143,7 +144,7 @@ public class WSDLValidationTest extends ToolTestBase {
     @Test
     public void testWSIBPR2726() throws Exception {
         String[] args = new String[] {"-verbose",
-                                      getLocation("/validator_wsdl/jms_test_R2726.wsdl")};     
+                                      getLocation("/validator_wsdl/jms_test_R2726.wsdl")};
         WSDLValidator.main(args);
         assertTrue(getStdErr().indexOf("WSI-BP-1.0 R2726") > -1);
     }

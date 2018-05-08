@@ -20,15 +20,17 @@
 package org.apache.cxf.helpers;
 
 import java.nio.charset.Charset;
+
 import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 
 /**
- * 
+ *
  */
 public class HttpHeaderHelperTest {
-    
-    @Test 
+
+    @Test
     public void testMapCharset() {
         String cs = HttpHeaderHelper.mapCharset("utf-8");
         assertEquals(Charset.forName("utf-8").name(), cs);
@@ -38,6 +40,17 @@ public class HttpHeaderHelperTest {
         assertEquals(Charset.forName("utf-8").name(), cs);
         cs = HttpHeaderHelper.mapCharset("'utf-8'");
         assertEquals(Charset.forName("utf-8").name(), cs);
+    }
+
+    @Test
+    public void testEmptyCharset() {
+        String cs = HttpHeaderHelper.mapCharset(HttpHeaderHelper.findCharset("foo/bar; charset="));
+        assertEquals("ISO-8859-1", cs);
+    }
+    @Test
+    public void testEmptyCharset2() {
+        String cs = HttpHeaderHelper.mapCharset(HttpHeaderHelper.findCharset("foo/bar; charset=;"));
+        assertEquals("ISO-8859-1", cs);
     }
 
 }

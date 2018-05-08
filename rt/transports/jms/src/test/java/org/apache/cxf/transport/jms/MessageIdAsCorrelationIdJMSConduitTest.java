@@ -29,6 +29,7 @@ import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
 import org.apache.cxf.transport.jms.util.TestReceiver;
 import org.apache.cxf.ws.addressing.EndpointReferenceType;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -45,12 +46,12 @@ public class MessageIdAsCorrelationIdJMSConduitTest {
     public void testSendReceiveWithTempReplyQueue() throws Exception {
         sendAndReceive(true, null);
     }
-    
+
     @Test
     public void testSendReceive() throws Exception {
         sendAndReceive(true, "testreply");
     }
-    
+
     public void sendAndReceive(boolean synchronous, String replyDestination) throws Exception {
         BusFactory bf = BusFactory.newInstance();
         Bus bus = bf.createBus();

@@ -37,10 +37,10 @@ public final class JMSUtil {
     private static final char[] CORRELATTION_ID_PADDING = {
         '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'
     };
-    
+
     private JMSUtil() {
     }
-    
+
     public static Message receive(Session session,
                                   Destination replyToDestination,
                                   String correlationId,
@@ -75,7 +75,7 @@ public final class JMSUtil {
 
     /**
      * Create a JMS of the appropriate type populated with the given payload.
-     * 
+     *
      * @param payload the message payload, expected to be either of type String or byte[] depending on payload
      *            type
      * @param session the JMS session
@@ -96,17 +96,19 @@ public final class JMSUtil {
         }
         return message;
     }
-    
+
     public static Queue createQueue(Connection connection, String name) throws JMSException {
         Session session = null;
         try {
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             return session.createQueue(name);
         } finally {
-            session.close();
+            if (session != null) {
+                session.close();
+            }
         }
     }
-    
+
     public static int getNumMessages(Connection connection, Queue queue) throws JMSException {
         Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
         QueueBrowser browser = session.createBrowser(queue);

@@ -18,28 +18,34 @@
  */
 package org.apache.cxf.rs.security.oidc.common;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
+import org.apache.cxf.rs.security.oauth2.utils.OAuthConstants;
 
-public class IdToken extends UserInfo {
+public class IdToken extends AbstractUserInfo {
     public static final String AUTH_TIME_CLAIM = "auth_time";
-    public static final String NONCE_CLAIM = "nonce";
+    public static final String NONCE_CLAIM = OAuthConstants.NONCE;
     public static final String ACR_CLAIM = "acr";
     public static final String AZP_CLAIM = "azp";
     public static final String AMR_CLAIM = "amr";
-    
+    public static final String ACCESS_TOKEN_HASH_CLAIM = "at_hash";
+    public static final String AUTH_CODE_HASH_CLAIM = "c_hash";
+    private static final long serialVersionUID = -2243170791872714855L;
+
+
     public IdToken() {
     }
-    
+
     public IdToken(JwtClaims claims) {
         this(claims.asMap());
     }
-    
+
     public IdToken(Map<String, Object> claims) {
-        super(claims);
+        super(new LinkedHashMap<String, Object>(claims));
     }
     public void setAuthenticationTime(Long time) {
         setProperty(AUTH_TIME_CLAIM, time);
@@ -71,5 +77,17 @@ public class IdToken extends UserInfo {
     public String getAuthorizedParty() {
         return (String)getProperty(AZP_CLAIM);
     }
-    
+    public void setAccessTokenHash(String at) {
+        setProperty(ACCESS_TOKEN_HASH_CLAIM, at);
+    }
+    public String getAccessTokenHash() {
+        return (String)getProperty(ACCESS_TOKEN_HASH_CLAIM);
+    }
+    public void setAuthorizationCodeHash(String at) {
+        setProperty(AUTH_CODE_HASH_CLAIM, at);
+    }
+    public String getAuthorizationCodeHash() {
+        return (String)getProperty(AUTH_CODE_HASH_CLAIM);
+    }
+
 }

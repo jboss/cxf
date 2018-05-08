@@ -53,8 +53,8 @@ import org.apache.cxf.wsdl11.WSDLServiceFactory;
 import org.apache.hello_world_doc_lit_bare.types.TradePriceData;
 import org.apache.hello_world_soap_http.types.GreetMe;
 import org.apache.hello_world_soap_http.types.GreetMeResponse;
-import org.easymock.IMocksControl;
 
+import org.easymock.IMocksControl;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -169,7 +169,6 @@ public class DocLiteralInInterceptorTest extends Assert {
         assertNull(parameters);
     }
 
-     //TODO: remove duplicate code in setUpUsingHelloWorld and setUpUsingDocLit
     private void setUpUsingHelloWorld() throws Exception {
         String ns = "http://apache.org/hello_world_soap_http";
         WSDLServiceFactory factory = new WSDLServiceFactory(bus, getClass()

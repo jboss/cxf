@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -46,16 +47,16 @@ import org.apache.cxf.common.util.CachedClass;
 import org.apache.cxf.common.util.StringUtils;
 
 /**
- * 
+ *
  */
-public final class JAXBContextCache {  
-    
+public final class JAXBContextCache {
+
     /**
      * Return holder of the context, classes, etc...
      * Do NOT hold onto these strongly as that can lock the JAXBContext and Set<Class> objects
      * into memory.  It preferred to grab the context and classes (if needed) from this object
      * immediately after the call to getCachedContextAndSchemas and then discard it.  The
-     * main purpose of this class is to hold onto the context/set strongly until the caller 
+     * main purpose of this class is to hold onto the context/set strongly until the caller
      * has a chance to copy those into a place where they can hold onto it strongly as
      * needed.
      */
@@ -66,11 +67,6 @@ public final class JAXBContextCache {
         private CachedContextAndSchemas(JAXBContext context, Set<Class<?>> classes, CachedContextAndSchemasInternal i) {
             this.context = context;
             this.classes = classes;
-            ccas = new WeakReference<CachedContextAndSchemasInternal>(i);
-        }
-        private CachedContextAndSchemas(CachedContextAndSchemasInternal i) {
-            this.context = i.getContext();
-            this.classes = i.getClasses();
             ccas = new WeakReference<CachedContextAndSchemasInternal>(i);
         }
         public JAXBContext getContext() {
@@ -93,7 +89,7 @@ public final class JAXBContextCache {
                 i.setSchemas(schemas);
             }
         }
-        
+
     }
     private static final class CachedContextAndSchemasInternal {
         private final WeakReference<JAXBContext> context;
@@ -119,16 +115,16 @@ public final class JAXBContextCache {
         public void setSchemas(Collection<DOMSource> schemas) {
             this.schemas = schemas;
         }
-    }   
-    
+    }
+
     private static final Map<Set<Class<?>>, Map<String, CachedContextAndSchemasInternal>> JAXBCONTEXT_CACHE
         = new CacheMap<Set<Class<?>>, Map<String, CachedContextAndSchemasInternal>>();
 
     private static final Map<Package, CachedClass> OBJECT_FACTORY_CACHE
         = new CacheMap<Package, CachedClass>();
-    
+
     private static final boolean HAS_MOXY;
-    
+
     static {
         boolean b = false;
         try {
@@ -139,11 +135,11 @@ public final class JAXBContextCache {
         }
         HAS_MOXY = b;
     }
-    
+
     private JAXBContextCache() {
         //utility class
     }
-    
+
     /**
      * Clear any caches to make sure new contexts are created
      */
@@ -159,7 +155,7 @@ public final class JAXBContextCache {
     public static void scanPackages(Set<Class<?>> classes) {
         JAXBUtils.scanPackages(classes, OBJECT_FACTORY_CACHE);
     }
-    
+
     public static CachedContextAndSchemas getCachedContextAndSchemas(Class<?> ... cls) throws JAXBException {
         Set<Class<?>> classes = new HashSet<Class<?>>();
         for (Class<?> c : cls) {
@@ -168,16 +164,16 @@ public final class JAXBContextCache {
         scanPackages(classes);
         return JAXBContextCache.getCachedContextAndSchemas(classes, null, null, null, false);
     }
-    
+
     public static CachedContextAndSchemas getCachedContextAndSchemas(String pkg,
                                                                      Map<String, Object> props,
-                                                                     ClassLoader loader) 
+                                                                     ClassLoader loader)
         throws JAXBException {
         Set<Class<?>> classes = new HashSet<Class<?>>();
         addPackage(classes, pkg, loader);
         return getCachedContextAndSchemas(classes, null, props, null, true);
     }
-    
+
     public static CachedContextAndSchemas getCachedContextAndSchemas(final Set<Class<?>> classes,
                                                                      String defaultNs,
                                                                      Map<String, Object> props,
@@ -193,7 +189,7 @@ public final class JAXBContextCache {
             }
         }
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         if (defaultNs != null) {
             if (HAS_MOXY) {
                 map.put("eclipselink.default-target-namespace", defaultNs);
@@ -208,7 +204,7 @@ public final class JAXBContextCache {
         Map<String, CachedContextAndSchemasInternal> cachedContextAndSchemasInternalMap = null;
         if (typeRefs == null || typeRefs.isEmpty()) {
             synchronized (JAXBCONTEXT_CACHE) {
-                
+
                 if (exact) {
                     cachedContextAndSchemasInternalMap
                         = JAXBCONTEXT_CACHE.get(classes);
@@ -216,7 +212,7 @@ public final class JAXBContextCache {
                         cachedContextAndSchemasInternal = cachedContextAndSchemasInternalMap.get(defaultNs);
                     }
                 } else {
-                    for (Entry<Set<Class<?>>, Map<String, CachedContextAndSchemasInternal>> k 
+                    for (Entry<Set<Class<?>>, Map<String, CachedContextAndSchemasInternal>> k
                             : JAXBCONTEXT_CACHE.entrySet()) {
                         Set<Class<?>> key = k.getKey();
                         if (key != null && key.containsAll(classes)) {
@@ -233,10 +229,14 @@ public final class JAXBContextCache {
                 if (cachedContextAndSchemasInternal != null) {
                     context = cachedContextAndSchemasInternal.getContext();
                     if (context == null) {
-                        JAXBCONTEXT_CACHE.remove(cachedContextAndSchemasInternal.getClasses());
+                        final Set<Class<?>> cls = cachedContextAndSchemasInternal.getClasses();
+                        if (cls != null) {
+                            JAXBCONTEXT_CACHE.remove(cls);
+                        }
                         cachedContextAndSchemasInternal = null;
                     } else {
-                        return new CachedContextAndSchemas(cachedContextAndSchemasInternal);
+                        return new CachedContextAndSchemas(context, cachedContextAndSchemasInternal.getClasses(),
+                            cachedContextAndSchemasInternal);
                     }
                 }
             }
@@ -245,14 +245,14 @@ public final class JAXBContextCache {
         try {
             context = createContext(classes, map, typeRefs);
         } catch (JAXBException ex) {
-            // load jaxb needed class and try to create jaxb context 
+            // load jaxb needed class and try to create jaxb context
             boolean added = addJaxbObjectFactory(ex, classes);
             if (added) {
                 try {
                     context = AccessController.doPrivileged(new PrivilegedExceptionAction<JAXBContext>() {
                         public JAXBContext run() throws Exception {
                             return JAXBContext.newInstance(classes
-                                                          .toArray(new Class[classes.size()]), null);
+                                                          .toArray(new Class<?>[classes.size()]), null);
                         }
                     });
                 } catch (PrivilegedActionException e) {
@@ -267,10 +267,10 @@ public final class JAXBContextCache {
         synchronized (JAXBCONTEXT_CACHE) {
             if (typeRefs == null || typeRefs.isEmpty()) {
                 if (cachedContextAndSchemasInternalMap == null) {
-                    cachedContextAndSchemasInternalMap 
+                    cachedContextAndSchemasInternalMap
                         = new CacheMap<String, CachedContextAndSchemasInternal>();
-                } 
-                cachedContextAndSchemasInternalMap.put((defaultNs != null) ? defaultNs : "", 
+                }
+                cachedContextAndSchemasInternalMap.put((defaultNs != null) ? defaultNs : "",
                     cachedContextAndSchemasInternal);
                 JAXBCONTEXT_CACHE.put(classes, cachedContextAndSchemasInternalMap);
             }
@@ -278,7 +278,7 @@ public final class JAXBContextCache {
 
         return new CachedContextAndSchemas(context, classes, cachedContextAndSchemasInternal);
     }
-    
+
     private static boolean checkObjectFactoryNamespaces(Class<?> clz) {
         for (Method meth : clz.getMethods()) {
             XmlElementDecl decl = meth.getAnnotation(XmlElementDecl.class);
@@ -291,8 +291,8 @@ public final class JAXBContextCache {
 
         return false;
     }
-    
-    
+
+
     private static JAXBContext createContext(final Set<Class<?>> classes,
                                       final Map<String, Object> map,
                                       Collection<Object> typeRefs)
@@ -319,7 +319,7 @@ public final class JAXBContextCache {
                         && m.getParameterTypes().length == 9) {
                         try {
                             return (JAXBContext)m.invoke(null,
-                                     classes.toArray(new Class[classes.size()]),
+                                     classes.toArray(new Class<?>[classes.size()]),
                                      typeRefs,
                                      map.get(pfx + "subclassReplacements"),
                                      map.get(pfx + "defaultNamespaceRemap"),
@@ -344,7 +344,7 @@ public final class JAXBContextCache {
         try {
             ctx = AccessController.doPrivileged(new PrivilegedExceptionAction<JAXBContext>() {
                 public JAXBContext run() throws Exception {
-                    return JAXBContext.newInstance(classes.toArray(new Class[classes.size()]), map);
+                    return JAXBContext.newInstance(classes.toArray(new Class<?>[classes.size()]), map);
                 }
             });
         } catch (PrivilegedActionException e2) {
@@ -355,7 +355,7 @@ public final class JAXBContextCache {
                     && ex.getMessage().contains("com.sun.xml.bind.defaultNamespaceRemap")) {
                     map.put("com.sun.xml.internal.bind.defaultNamespaceRemap",
                             map.remove("com.sun.xml.bind.defaultNamespaceRemap"));
-                    ctx = JAXBContext.newInstance(classes.toArray(new Class[classes.size()]), map);
+                    ctx = JAXBContext.newInstance(classes.toArray(new Class<?>[classes.size()]), map);
                 } else {
                     throw ex;
                 }
@@ -403,11 +403,11 @@ public final class JAXBContextCache {
             //ignore
         }
         try (InputStream ins = loader.getResourceAsStream("/" + pkg.replace('.', '/') + "/jaxb.index");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(ins, "UTF-8"))) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(ins, StandardCharsets.UTF_8))) {
             if (!StringUtils.isEmpty(pkg)) {
                 pkg += ".";
             }
-    
+
             String line = reader.readLine();
             while (line != null) {
                 line = line.trim();

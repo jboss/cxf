@@ -47,67 +47,67 @@ public class CatalogStore {
     private final SpanReceiverHost spanReceiverHost;
     private final Connection connection;
     private final String tableName;
-    
+
     public CatalogStore(final Configuration configuration, final String tableName) throws IOException {
         this.connection = ConnectionFactory.createConnection(configuration);
         this.spanReceiverHost = SpanReceiverHost.getInstance(configuration);
         this.tableName = tableName;
     }
-    
+
     public boolean remove(final String key) throws IOException {
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+        try (Table table = connection.getTable(TableName.valueOf(tableName))) {
             if (get(key) != null) {
                 final Delete delete = new Delete(Bytes.toBytes(key));
                 table.delete(delete);
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     public JsonObject get(final String key) throws IOException {
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+        try (Table table = connection.getTable(TableName.valueOf(tableName))) {
             final Get get = new Get(Bytes.toBytes(key));
-            final Result result =  table.get(get);
-            
+            final Result result = table.get(get);
+
             if (!result.isEmpty()) {
                 final Cell cell = result.getColumnLatestCell(Bytes.toBytes("c"), Bytes.toBytes("title"));
-                
+
                 return Json.createObjectBuilder()
                     .add("id", Bytes.toString(CellUtil.cloneRow(cell)))
                     .add("title", Bytes.toString(CellUtil.cloneValue(cell)))
                     .build();
             }
         }
-        
+
         return null;
     }
-    
+
     public void put(final String key, final String title) throws IOException {
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+        try (Table table = connection.getTable(TableName.valueOf(tableName))) {
             final Put put = new Put(Bytes.toBytes(key));
             put.addColumn(Bytes.toBytes("c"), Bytes.toBytes("title"), Bytes.toBytes(title));
             table.put(put);
         }
     }
-    
+
     public JsonArray scan() throws IOException {
         final JsonArrayBuilder builder = Json.createArrayBuilder();
-        
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+
+        try (Table table = connection.getTable(TableName.valueOf(tableName))) {
             final Scan scan = new Scan();
             final ResultScanner results = table.getScanner(scan);
             for (final Result result: results) {
                 final Cell cell = result.getColumnLatestCell(Bytes.toBytes("c"), Bytes.toBytes("title"));
-                
+
                 builder.add(Json.createObjectBuilder()
                     .add("id", Bytes.toString(CellUtil.cloneRow(cell)))
                     .add("title", Bytes.toString(CellUtil.cloneValue(cell)))
                 );
             }
         }
-        
+
         return builder.build();
     }
 

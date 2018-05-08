@@ -20,6 +20,7 @@ package org.apache.cxf.tools.java2wsdl.generator.wsdl11;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -42,7 +43,7 @@ public final class DateTypeCustomGenerator extends AbstractGenerator<File> {
     private static final String CALENDAR_ADAPTER = "javax.xml.bind.DatatypeConverter";
 
     private String wsdlName;
-    private List<String> schemaFiles = new ArrayList<String>();
+    private List<String> schemaFiles = new ArrayList<>();
 
     public void addSchemaFiles(final Collection<String> s) {
         this.schemaFiles.addAll(s);
@@ -60,7 +61,7 @@ public final class DateTypeCustomGenerator extends AbstractGenerator<File> {
     }
 
     public List<String> getSchemaNamespaces() {
-        List<String> ns = new ArrayList<String>();
+        List<String> ns = new ArrayList<>();
         for (SchemaInfo schema : getServiceModel().getSchemas()) {
             ns.add(schema.getNamespaceURI());
         }
@@ -80,14 +81,14 @@ public final class DateTypeCustomGenerator extends AbstractGenerator<File> {
             generator.setAttributes("datetype", dateType.getName());
 
             if (allowImports()) {
-                if (schemaFiles.size() == 0) {
+                if (schemaFiles.isEmpty()) {
                     return null;
                 }
                 generator.setAttributes("schemaFiles", schemaFiles);
             } else {
                 generator.setAttributes("wsdlName", wsdlName);
                 List<String> ns = getSchemaNamespaces();
-                if (ns.size() == 0) {
+                if (ns.isEmpty()) {
                     return null;
                 }
                 generator.setAttributes("targetNamespaces", ns);
@@ -95,7 +96,7 @@ public final class DateTypeCustomGenerator extends AbstractGenerator<File> {
 
             try {
                 generator.doWrite(getTemplate(), new FileWriterUtil(xjb.getParent(), getOutputStreamCreator())
-                    .getWriter(xjb, "UTF-8"));
+                    .getWriter(xjb, StandardCharsets.UTF_8.name()));
             } catch (Exception e) {
                 e.printStackTrace();
             }

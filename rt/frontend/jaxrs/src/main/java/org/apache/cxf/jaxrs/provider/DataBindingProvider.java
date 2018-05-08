@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.Produces;
@@ -48,10 +49,10 @@ import org.apache.cxf.staxutils.StaxUtils;
 public class DataBindingProvider<T> implements MessageBodyReader<T>, MessageBodyWriter<T> {
 
     private DataBinding binding;
-    
+
     public DataBindingProvider() {
     }
-    
+
     public DataBindingProvider(DataBinding db) {
         binding = db;
     }
@@ -59,12 +60,12 @@ public class DataBindingProvider<T> implements MessageBodyReader<T>, MessageBody
     public void setDataBinding(DataBinding db) {
         binding = db;
     }
-    
+
     public boolean isReadable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mt) {
         return true;
     }
 
-    public T readFrom(Class<T> clazz, Type genericType, Annotation[] annotations, MediaType type, 
+    public T readFrom(Class<T> clazz, Type genericType, Annotation[] annotations, MediaType type,
                       MultivaluedMap<String, String> headers, InputStream is)
         throws IOException {
         XMLStreamReader reader = null;
@@ -84,11 +85,11 @@ public class DataBindingProvider<T> implements MessageBodyReader<T>, MessageBody
         }
     }
 
-    protected XMLStreamReader createReader(Class<?> clazz, Type genericType, InputStream is) 
+    protected XMLStreamReader createReader(Class<?> clazz, Type genericType, InputStream is)
         throws Exception {
         return StaxUtils.createXMLStreamReader(is);
     }
-    
+
     public long getSize(T t, Class<?> type, Type genericType, Annotation[] annotations, MediaType mt) {
         if (byte[].class.isAssignableFrom(t.getClass())) {
             return ((byte[])t).length;
@@ -100,12 +101,12 @@ public class DataBindingProvider<T> implements MessageBodyReader<T>, MessageBody
         return true;
     }
 
-    public void writeTo(T o, Class<?> clazz, Type genericType, Annotation[] annotations, 
+    public void writeTo(T o, Class<?> clazz, Type genericType, Annotation[] annotations,
                         MediaType m, MultivaluedMap<String, Object> headers, OutputStream os)
         throws IOException {
         XMLStreamWriter writer = null;
         try {
-            String enc = HttpUtils.getSetEncoding(m, headers, "UTF-8");
+            String enc = HttpUtils.getSetEncoding(m, headers, StandardCharsets.UTF_8.name());
             writer = createWriter(clazz, genericType, enc, os);
             writeToWriter(writer, o);
         } catch (Exception ex) {
@@ -114,14 +115,14 @@ public class DataBindingProvider<T> implements MessageBodyReader<T>, MessageBody
             StaxUtils.close(writer);
         }
     }
-    
+
     protected void writeToWriter(XMLStreamWriter writer, Object o) throws Exception {
         DataWriter<XMLStreamWriter> dataWriter = binding.createWriter(XMLStreamWriter.class);
         dataWriter.write(o, writer);
         writer.flush();
     }
-    
-    protected XMLStreamWriter createWriter(Class<?> clazz, Type genericType, String enc, OutputStream os) 
+
+    protected XMLStreamWriter createWriter(Class<?> clazz, Type genericType, String enc, OutputStream os)
         throws Exception {
         return StaxUtils.createXMLStreamWriter(os);
     }

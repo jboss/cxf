@@ -20,13 +20,14 @@
 package org.apache.cxf.ws.policy;
 
 import org.apache.neethi.Policy;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class PolicyRegistryImplTest extends Assert {
 
@@ -40,6 +41,6 @@ public class PolicyRegistryImplTest extends Assert {
         reg.register(key, policy);
         assertSame(policy, reg.lookup(key));
         reg.remove(key);
-        assertNull(reg.lookup(key));        
+        assertNull(reg.lookup(key));
     }
 }

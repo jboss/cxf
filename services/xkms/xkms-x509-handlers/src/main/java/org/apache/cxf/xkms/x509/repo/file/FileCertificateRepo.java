@@ -20,11 +20,13 @@ package org.apache.cxf.xkms.x509.repo.file;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -50,6 +52,7 @@ public class FileCertificateRepo implements CertificateRepo {
     private static final String TRUSTED_CAS_PATH = "trusted_cas";
     private static final String CRLS_PATH = "crls";
     private static final String CAS_PATH = "cas";
+    private static final String SPLIT_REGEX = "\\s*,\\s*";
     private final File storageDir;
     private final CertificateFactory certFactory;
 
@@ -73,7 +76,7 @@ public class FileCertificateRepo implements CertificateRepo {
     public void saveCACertificate(X509Certificate cert, UseKeyWithType id) {
         saveCategorizedCertificate(cert, id, false, true);
     }
-    
+
     public void saveCRL(X509CRL crl, UseKeyWithType id) {
         String name = crl.getIssuerX500Principal().getName();
         try {
@@ -82,14 +85,14 @@ public class FileCertificateRepo implements CertificateRepo {
             if (!p.matcher(path).find()) {
                 throw new URISyntaxException(path, "Input did not match [a-zA-Z_0-9-_].");
             }
-            
+
             File certFile = new File(storageDir + "/" + CRLS_PATH, path);
             certFile.getParentFile().mkdirs();
-            FileOutputStream fos = new FileOutputStream(certFile);
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
-            bos.write(crl.getEncoded());
-            bos.close();
-            fos.close();
+            try (OutputStream os = Files.newOutputStream(certFile.toPath());
+                BufferedOutputStream bos = new BufferedOutputStream(os)) {
+                bos.write(crl.getEncoded());
+                bos.close();
+            }
         } catch (Exception e) {
             throw new RuntimeException("Error saving CRL " + name + ": " + e.getMessage(), e);
         }
@@ -108,11 +111,11 @@ public class FileCertificateRepo implements CertificateRepo {
             File certFile = new File(storageDir + "/" + category,
                                      getCertPath(cert, id));
             certFile.getParentFile().mkdirs();
-            FileOutputStream fos = new FileOutputStream(certFile);
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
-            bos.write(cert.getEncoded());
-            bos.close();
-            fos.close();
+            try (OutputStream os = Files.newOutputStream(certFile.toPath());
+                BufferedOutputStream bos = new BufferedOutputStream(os)) {
+                bos.write(cert.getEncoded());
+                bos.close();
+            }
         } catch (Exception e) {
             throw new RuntimeException("Error saving certificate " + cert.getSubjectDN() + ": " + e.getMessage(), e);
         }
@@ -174,14 +177,17 @@ public class FileCertificateRepo implements CertificateRepo {
         return certificateFiles.toArray(new File[certificateFiles.size()]);
     }
 
-    public X509Certificate readCertificate(File certFile) throws CertificateException, FileNotFoundException {
-        FileInputStream fis = new FileInputStream(certFile);
-        return (X509Certificate)certFactory.generateCertificate(fis);
+    public X509Certificate readCertificate(File certFile) throws CertificateException, FileNotFoundException,
+        IOException {
+        try (InputStream is = Files.newInputStream(certFile.toPath())) {
+            return (X509Certificate)certFactory.generateCertificate(is);
+        }
     }
-    
-    public X509CRL readCRL(File crlFile) throws FileNotFoundException, CRLException {
-        FileInputStream fis = new FileInputStream(crlFile);
-        return (X509CRL)certFactory.generateCRL(fis);
+
+    public X509CRL readCRL(File crlFile) throws FileNotFoundException, CRLException, IOException {
+        try (InputStream is = Files.newInputStream(crlFile.toPath())) {
+            return (X509CRL)certFactory.generateCRL(is);
+        }
     }
 
     @Override
@@ -227,7 +233,7 @@ public class FileCertificateRepo implements CertificateRepo {
         }
         return results;
     }
-    
+
     @Override
     public List<X509CRL> getCRLs() {
         List<X509CRL> results = new ArrayList<>();
@@ -247,7 +253,7 @@ public class FileCertificateRepo implements CertificateRepo {
             }
 
         }
-        
+
         return results;
     }
 
@@ -267,7 +273,8 @@ public class FileCertificateRepo implements CertificateRepo {
                                        certFile.getAbsolutePath()));
                 return null;
             }
-            return (X509Certificate)certFactory.generateCertificate(new FileInputStream(certFile));
+            InputStream input = Files.newInputStream(certFile.toPath());
+            return (X509Certificate)certFactory.generateCertificate(input);
         } catch (Exception e) {
             LOG.warn(String.format("Cannot load certificate by endpoint: %s. Error: %s", endpoint,
                                    e.getMessage()), e);
@@ -279,16 +286,22 @@ public class FileCertificateRepo implements CertificateRepo {
     public X509Certificate findBySubjectDn(String subjectDn) {
         List<X509Certificate> result = new ArrayList<>();
         File[] list = getX509Files();
+        String[] sDnArray = subjectDn.split(SPLIT_REGEX);
+        Arrays.sort(sDnArray);
         for (File certFile : list) {
             try {
                 if (certFile.isDirectory()) {
                     continue;
                 }
                 X509Certificate cert = readCertificate(certFile);
-                LOG.debug("Searching for " + subjectDn + ". Checking cert " 
+                LOG.debug("Searching for " + subjectDn + ". Checking cert "
                     + cert.getSubjectDN().getName() + ", " + cert.getSubjectX500Principal().getName());
-                if (subjectDn.equalsIgnoreCase(cert.getSubjectDN().getName())
-                    || subjectDn.equalsIgnoreCase(cert.getSubjectX500Principal().getName())) {
+                String[] csDnArray = cert.getSubjectDN().getName().split(SPLIT_REGEX);
+                Arrays.sort(csDnArray);
+                String[] csX500Array = cert.getSubjectX500Principal().getName().split(SPLIT_REGEX);
+                Arrays.sort(csX500Array);
+                if (arraysEqualsIgnoreCaseIgnoreWhiteSpace(sDnArray, csDnArray)
+                    || arraysEqualsIgnoreCaseIgnoreWhiteSpace(sDnArray, csX500Array)) {
                     result.add(cert);
                 }
             } catch (Exception e) {
@@ -301,6 +314,19 @@ public class FileCertificateRepo implements CertificateRepo {
             return result.get(0);
         }
         return null;
+    }
+
+
+    private boolean arraysEqualsIgnoreCaseIgnoreWhiteSpace(String[] s1, String[] s2) {
+        if (s1 == null || s2 == null || s1.length != s2.length) {
+            return false;
+        }
+        for (int i = 0; i < s1.length; i++) {
+            if (!s1[i].trim().equalsIgnoreCase(s2[i].trim())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

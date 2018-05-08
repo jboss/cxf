@@ -488,10 +488,10 @@ public class BeanTest extends AbstractAegisTest {
         assertTrue(bigByteOk);
 
         SimpleBean bean = new SimpleBean();
-        bean.setBigByte(new Byte((byte)0xfe));
+        bean.setBigByte(Byte.valueOf((byte)0xfe));
         bean.setLittleByte((byte)0xfd);
         Element element = writeObjectToElement(type, bean, getContext());
-        Byte bb = new Byte((byte)0xfe);
+        Byte bb = Byte.valueOf((byte)0xfe);
         String bbs = bb.toString();
         assertValid("/b:root/bz:bigByte[text()='" + bbs + "']", element);
 
@@ -757,23 +757,23 @@ public class BeanTest extends AbstractAegisTest {
             this.howdy = howdy;
         }
     }
-    
+
     public interface SerializableBean extends Serializable {
         String getString();
     }
-    
+
     public interface CloneableBean extends Cloneable {
         String getString();
     }
-    
+
     public interface SimpleInterface {
         String getString();
     }
-    
+
     public interface ExtendingInterface extends SimpleInterface {
         String getAnotherString();
     }
-    
+
     public enum EnumBean {
         VALUE1, VALUE2;
     }

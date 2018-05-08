@@ -23,17 +23,18 @@ import java.util.List;
 
 import javax.jws.WebParam;
 import javax.jws.WebService;
+
 import org.apache.cxf.aegis.type.java5.XmlType;
 
 
 /**
- * 
+ *
  */
 @WebService(name = "AegisJaxWsWsdlNs", targetNamespace = "http://v1_1_2.rtf2pdf.doc.ws.daisy.marbes.cz")
 public interface AegisJaxWsWsdlNs {
 
     void updateVO(@WebParam(name = "VO")VO vo);
-    
+
     Integer updateInteger(@WebParam(name = "idInteger") Integer idInteger);
 
 
@@ -41,7 +42,7 @@ public interface AegisJaxWsWsdlNs {
 
 
     @XmlType(name = "VOX", namespace = "http://wo.rtf2pdf.doc.ws.daisy.marbes.cz")
-    public class VO {
+    class VO {
 
         private String str;
 

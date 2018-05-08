@@ -32,15 +32,15 @@ import org.apache.cxf.management.annotation.ManagedOperationParameters;
 import org.apache.cxf.management.annotation.ManagedResource;
 
 @ManagedResource(componentName = "AnnotationTest", description = "My Managed Bean",
-                 persistPolicy = "OnUpdate", currencyTimeLimit = 15 , 
-                 log = false ,
+                 persistPolicy = "OnUpdate", currencyTimeLimit = 15,
+                 log = false,
                  logFile = "jmx.log", persistPeriod = 200,
                  persistLocation = "/local/work", persistName = "bar.jmx")
 @ManagedNotifications({@ManagedNotification(name = "My Notification",
                                             notificationTypes = {"type.foo", "type.bar" }) })
 public class AnnotationTestInstrumentation implements ManagedComponent {
 
-    private String name; 
+    private String name;
 
     private String nickName;
 
@@ -53,7 +53,7 @@ public class AnnotationTestInstrumentation implements ManagedComponent {
     public int getAge() {
         return age;
     }
-        
+
     public void setAge(int a) {
         this.age = a;
     }
@@ -106,5 +106,5 @@ public class AnnotationTestInstrumentation implements ManagedComponent {
     public ObjectName getObjectName() throws JMException {
         return new ObjectName("org.apache.cxf:type=AnnotationTestInstrumentation");
     }
-    
+
 }

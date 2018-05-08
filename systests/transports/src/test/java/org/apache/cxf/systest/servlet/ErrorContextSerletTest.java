@@ -19,6 +19,7 @@
 package org.apache.cxf.systest.servlet;
 
 import com.meterware.servletunit.ServletRunner;
+
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusException;
 
@@ -36,13 +37,13 @@ public class ErrorContextSerletTest extends AbstractServletTest {
         // don't set up the bus, let the servlet do it
         return null;
     }
-    
+
     @Before
     public void setUp() throws Exception {
         // do nothing here
-             
-    } 
-    
+
+    }
+
     @Test
     public void testInvoke() {
         try {
@@ -54,7 +55,7 @@ public class ErrorContextSerletTest extends AbstractServletTest {
             // supprot spring 2.0.x and sping 2.5
             assertTrue("we expect a Bean Exception here",
                       ex instanceof org.springframework.beans.FatalBeanException);
-        } 
+        }
     }
 
 

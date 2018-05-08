@@ -36,6 +36,7 @@ import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.connector.CXFConnectionFactory;
 import org.apache.hello_world_soap_http.Greeter;
+
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
@@ -55,18 +56,18 @@ public class ManagedConnectionFactoryImplTest extends Assert {
 
     @Before
     public void setUp() throws Exception {
-        
+
         mci = createManagedConnectionFactoryImpl();
-        
+
         URL wsdl = getClass().getResource("/wsdl/hello_world.wsdl");
-        
-        QName serviceName = new QName("http://apache.org/hello_world_soap_http", "SOAPService"); 
-        
+
+        QName serviceName = new QName("http://apache.org/hello_world_soap_http", "SOAPService");
+
         QName portName = new QName("http://apache.org/hello_world_soap_http", "SoapPort");
-        
+
         cri = new CXFConnectionRequestInfo(Greeter.class, wsdl, serviceName,
                                               portName);
-        
+
         cri2 = new CXFConnectionRequestInfo(Greeter.class, wsdl, new QName("service2"),
                                               new QName("fooPort2"));
         cri3 = new CXFConnectionRequestInfo(Greeter.class, wsdl, new QName("service3"),
@@ -97,7 +98,7 @@ public class ManagedConnectionFactoryImplTest extends Assert {
 
     @Test
     public void testSetEJBServicePropertiesPollInterval() throws Exception {
-        final Integer value = new Integer(10);
+        final Integer value = Integer.valueOf(10);
         Properties p = new Properties();
         ManagedConnectionFactoryImpl mcf = new ManagedConnectionFactoryImpl(p);
 
@@ -116,7 +117,7 @@ public class ManagedConnectionFactoryImplTest extends Assert {
         propsmcf.setLogLevel(logLevel);
         assertTrue("prop is set", props.containsValue(logLevel));
     }
-  
+
 
     @Test
     public void testGetPropsURLFromBadURL() throws Exception {
@@ -144,7 +145,6 @@ public class ManagedConnectionFactoryImplTest extends Assert {
             .getDeclaredMethod("hashCode", (Class[])null));
         assertEquals("equal with its self", mci, mci);
         assertTrue("not equal with another", !mci.equals(new ManagedConnectionFactoryImpl()));
-        assertTrue("not equal with another thing", !mci.equals(this));
     }
 
     @Test
@@ -152,7 +152,7 @@ public class ManagedConnectionFactoryImplTest extends Assert {
         mci = new ManagedConnectionFactoryImplTester();
         Object unboundMC = mci.createManagedConnection(null, null);
         assertNotNull("MC must not be null.", unboundMC);
-        Set<Object> mcSet = new HashSet<Object>();
+        Set<Object> mcSet = new HashSet<>();
         mcSet.add(unboundMC);
         assertSame("Must be same managed connection instance.",
                    mci.matchManagedConnections(mcSet, null, cri), unboundMC);
@@ -161,9 +161,9 @@ public class ManagedConnectionFactoryImplTest extends Assert {
     @Test
     public void testMatchManagedConnectionsWithBoundConnections() throws Exception {
 
-    
+
         Subject subj = new Subject();
-        BusFactory bf = BusFactory.newInstance();        
+        BusFactory bf = BusFactory.newInstance();
         Bus bus = bf.createBus();
         BusFactory.setDefaultBus(bus);
         ManagedConnectionFactoryImpl factory = EasyMock.createMock(ManagedConnectionFactoryImpl.class);
@@ -171,9 +171,9 @@ public class ManagedConnectionFactoryImplTest extends Assert {
         // In ManagedConnectionImpl:
         // one for getCXFServiceFromBus , another for createInvocationHandler
         EasyMock.expectLastCall().andReturn(bus).times(4);
-       
+
         EasyMock.replay(factory);
-       
+
 
         ManagedConnectionImpl mc1 = new ManagedConnectionImpl(factory, cri, subj);
         Object connection = mc1.getConnection(subj, cri);
@@ -185,8 +185,8 @@ public class ManagedConnectionFactoryImplTest extends Assert {
         assertNotNull("connection must not be null.", connection);
         */
 //        EasyMock.verify(factory);
-        
-        Set<ManagedConnection> mcSet = new HashSet<ManagedConnection>();
+
+        Set<ManagedConnection> mcSet = new HashSet<>();
         mcSet.add(mc1);
         //mcSet.add(mc2);
 
@@ -208,7 +208,7 @@ public class ManagedConnectionFactoryImplTest extends Assert {
             mci.createConnectionFactory();
             fail("expect non managed not supported on null MC");
         } catch (ResourceException expectd) {
-            // do nothing here 
+            // do nothing here
         }
     }
 
@@ -305,7 +305,7 @@ public class ManagedConnectionFactoryImplTest extends Assert {
         return new ManagedConnectionFactoryImpl();
     }
 
-    
+
 }
 
 class ManagedConnectionFactoryImplTester extends ManagedConnectionFactoryImpl {
@@ -321,5 +321,5 @@ class ManagedConnectionFactoryImplTester extends ManagedConnectionFactoryImpl {
         //busFactory = new BusFactory(this);
         initCalledCount++;
     }
-    
+
 }

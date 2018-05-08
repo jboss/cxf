@@ -21,6 +21,7 @@ package org.apache.cxf.js.rhino;
 
 import java.io.File;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
@@ -33,9 +34,9 @@ public class JsServiceFactoryBean {
     private Bus bus;
 
     public JsServiceFactoryBean() {
-        providerFactory = new ProviderFactory(); 
+        providerFactory = new ProviderFactory();
     }
-    
+
     public Bus getBus() {
         if (bus == null) {
             bus = BusFactory.getThreadDefaultBus();
@@ -46,35 +47,35 @@ public class JsServiceFactoryBean {
     public void setBus(Bus bus) {
         this.bus = bus;
     }
-    
+
     public void setAddress(String addr) {
         address = addr;
     }
-    
+
     public String getAddress() {
         return address;
     }
-    
+
     public void setIsBaseAddr(boolean isBase) {
         isBaseAddr = isBase;
     }
-    
+
     public boolean getIsBaseAddr() {
         return isBaseAddr;
     }
-    
+
     public void setJs(String file) {
         js = file;
     }
-    
+
     public String getJs() {
         return js;
     }
-    
+
     public void create() throws Exception {
         BusFactory.setDefaultBus(bus);
         String jsFileString = getClass().getResource(js).toURI().getPath();
-        jsFileString = URLDecoder.decode(jsFileString, "UTF-8");
+        jsFileString = URLDecoder.decode(jsFileString, StandardCharsets.UTF_8.name());
         File file = new File(jsFileString);
         providerFactory.createAndPublish(file, address, isBaseAddr);
     }

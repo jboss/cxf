@@ -26,10 +26,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.helpers.IOUtils;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.Assert;
@@ -48,16 +50,16 @@ public abstract class CachedStreamTestBase extends Assert {
     protected abstract Object getInputStreamObject(Object cache) throws IOException;
     protected abstract String readFromStreamObject(Object cache) throws IOException;
     protected abstract String readPartiallyFromStreamObject(Object cache, int len) throws IOException;
-    
+
     @Test
     public void testResetOut() throws IOException {
         String result = initTestData(16);
         Object cache = createCache();
         String test = getResetOutValue(result, cache);
-        assertEquals("The test stream content isn't same ", test , result);
+        assertEquals("The test stream content isn't same ", test, result);
         close(cache);
     }
-    
+
     @Test
     public void testDeleteTmpFile() throws IOException {
         Object cache = createCache();
@@ -89,7 +91,7 @@ public abstract class CachedStreamTestBase extends Assert {
         //assert tmp file is deleted after the input stream is closed
         assertFalse(tempFile.exists());
     }
-    
+
     @Test
     public void testEncryptAndDecryptWithDeleteOnClose() throws IOException {
         // need a 8-bit cipher so that all bytes are flushed when the stream is flushed.
@@ -97,7 +99,7 @@ public abstract class CachedStreamTestBase extends Assert {
             verifyEncryptAndDecryptWithDeleteOnClose(cipher);
         }
     }
-    
+
     private void verifyEncryptAndDecryptWithDeleteOnClose(String cipher) throws IOException {
         Object cache = createCache(4, cipher);
         final String text = "Hello Secret World!";
@@ -110,7 +112,7 @@ public abstract class CachedStreamTestBase extends Assert {
         Object fin = getInputStreamObject(cache);
 
         assertTrue("file is deleted", tmpfile.exists());
-        
+
         final String dectext = readFromStreamObject(fin);
         assertEquals("text is not decoded correctly", text, dectext);
 
@@ -133,7 +135,7 @@ public abstract class CachedStreamTestBase extends Assert {
         final String text = "Hello Secret World!";
         File tmpfile = getTmpFile(text, cache);
         assertNotNull(tmpfile);
-        
+
         final String enctext = readFromStream(new FileInputStream(tmpfile));
         assertFalse("text is not encoded", text.equals(enctext));
 
@@ -141,7 +143,7 @@ public abstract class CachedStreamTestBase extends Assert {
 
         close(cache);
         assertTrue("file is deleted", tmpfile.exists());
-        
+
         // the file is deleted when cos is closed while all the associated inputs are closed
         final String dectext = readFromStreamObject(fin);
         assertEquals("text is not decoded correctly", text, dectext);
@@ -186,16 +188,16 @@ public abstract class CachedStreamTestBase extends Assert {
 
     @Test
     public void testUseSysProps() throws Exception {
-        String old = System.getProperty("org.apache.cxf.io.CachedOutputStream.Threshold");
+        String old = System.getProperty(CachedConstants.THRESHOLD_SYS_PROP);
         try {
-            System.clearProperty("org.apache.cxf.io.CachedOutputStream.Threshold");
+            System.clearProperty(CachedConstants.THRESHOLD_SYS_PROP);
             reloadDefaultProperties();
             Object cache = createCache();
             File tmpfile = getTmpFile("Hello World!", cache);
             assertNull("expects no tmp file", tmpfile);
             close(cache);
-            
-            System.setProperty("org.apache.cxf.io.CachedOutputStream.Threshold", "4");
+
+            System.setProperty(CachedConstants.THRESHOLD_SYS_PROP, "4");
             reloadDefaultProperties();
             cache = createCache();
             tmpfile = getTmpFile("Hello World!", cache);
@@ -205,7 +207,7 @@ public abstract class CachedStreamTestBase extends Assert {
             assertFalse("expects no tmp file", tmpfile.exists());
         } finally {
             if (old != null) {
-                System.setProperty("org.apache.cxf.io.CachedOutputStream.Threshold", old);
+                System.setProperty(CachedConstants.THRESHOLD_SYS_PROP, old);
             }
         }
     }
@@ -213,22 +215,22 @@ public abstract class CachedStreamTestBase extends Assert {
 
     @Test
     public void testUseBusProps() throws Exception {
-        Bus oldbus = BusFactory.getThreadDefaultBus(false); 
+        Bus oldbus = BusFactory.getThreadDefaultBus(false);
         try {
             Object cache = createCache(64);
             File tmpfile = getTmpFile("Hello World!", cache);
             assertNull("expects no tmp file", tmpfile);
             close(cache);
-            
+
             IMocksControl control = EasyMock.createControl();
-            
+
             Bus b = control.createMock(Bus.class);
-            EasyMock.expect(b.getProperty("bus.io.CachedOutputStream.Threshold")).andReturn("4");
-            EasyMock.expect(b.getProperty("bus.io.CachedOutputStream.MaxSize")).andReturn(null);
-            EasyMock.expect(b.getProperty("bus.io.CachedOutputStream.CipherTransformation")).andReturn(null);
-        
+            EasyMock.expect(b.getProperty(CachedConstants.THRESHOLD_BUS_PROP)).andReturn("4");
+            EasyMock.expect(b.getProperty(CachedConstants.MAX_SIZE_BUS_PROP)).andReturn(null);
+            EasyMock.expect(b.getProperty(CachedConstants.CIPHER_TRANSFORMATION_BUS_PROP)).andReturn(null);
+
             BusFactory.setThreadDefaultBus(b);
-            
+
             control.replay();
 
             cache = createCache();
@@ -237,13 +239,13 @@ public abstract class CachedStreamTestBase extends Assert {
             assertTrue("expects a tmp file", tmpfile.exists());
             close(cache);
             assertFalse("expects no tmp file", tmpfile.exists());
-            
+
             control.verify();
         } finally {
             BusFactory.setThreadDefaultBus(oldbus);
         }
     }
-    
+
     private static void close(Object obj) throws IOException {
         if (obj instanceof Closeable) {
             ((Closeable)obj).close();
@@ -253,31 +255,31 @@ public abstract class CachedStreamTestBase extends Assert {
     protected static String readFromStream(InputStream is) throws IOException {
         try (ByteArrayOutputStream buf = new ByteArrayOutputStream()) {
             IOUtils.copyAndCloseInput(is, buf);
-            return new String(buf.toByteArray(), "UTF-8");
+            return new String(buf.toByteArray(), StandardCharsets.UTF_8);
         }
     }
 
     protected static String readPartiallyFromStream(InputStream is, int len) throws IOException {
         try (ByteArrayOutputStream buf = new ByteArrayOutputStream()) {
             IOUtils.copyAtLeast(is, buf, len);
-            return new String(buf.toByteArray(), "UTF-8");
+            return new String(buf.toByteArray(), StandardCharsets.UTF_8);
         }
     }
- 
+
     protected static String readFromReader(Reader is) throws IOException {
         try (StringWriter writer = new StringWriter()) {
             IOUtils.copyAndCloseInput(is, writer);
             return writer.toString();
         }
     }
-    
+
     protected static String readPartiallyFromReader(Reader is, int len) throws IOException {
         try (StringWriter writer = new StringWriter()) {
             IOUtils.copyAtLeast(is, writer, len);
             return writer.toString();
         }
     }
-    
+
     private static String initTestData(int packetSize) {
         String temp = "abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+?><[]/0123456789";
         String result = new String();
@@ -287,5 +289,5 @@ public abstract class CachedStreamTestBase extends Assert {
         return result;
     }
 }
-    
-   
+
+

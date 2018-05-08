@@ -30,7 +30,7 @@ public class Handler extends URLStreamHandler {
     }
 
     class HandlerUrlConnection extends URLConnection {
-        public HandlerUrlConnection(URL someUrl) {
+        HandlerUrlConnection(URL someUrl) {
             super(someUrl);
         }
 
@@ -42,9 +42,8 @@ public class Handler extends URLStreamHandler {
 
             if (bytes != null) {
                 return new java.io.ByteArrayInputStream(bytes);
-            } else {
-                throw new java.io.IOException(url.getPath() + " not found");
             }
+            throw new java.io.IOException(url.getPath() + " not found");
         }
     }
 }

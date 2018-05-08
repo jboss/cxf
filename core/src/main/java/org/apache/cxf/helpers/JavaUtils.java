@@ -27,7 +27,7 @@ public final class JavaUtils {
 
     /** Use this character as suffix */
     static final char KEYWORD_PREFIX = '_';
-
+   
     /**
      * These are java keywords as specified at the following URL.
      * http://java.sun.com/docs/books/jls/third_edition/html/lexical.html#3.9
@@ -35,7 +35,7 @@ public final class JavaUtils {
      * literal values, but for the purposes of this array, they can be treated
      * as literals.
      */
-    private static final Set<String> KEYWORDS = new HashSet<String>(Arrays.asList(
+    private static final Set<String> KEYWORDS = new HashSet<>(Arrays.asList(
         "abstract", "assert", "boolean", "break", "byte", "case", "catch",
         "char", "class", "const", "continue", "default", "do", "double",
         "else", "enum", "extends", "false", "final", "finally", "float", "for", "goto",
@@ -46,16 +46,27 @@ public final class JavaUtils {
         "void", "volatile", "while"
     ));
 
+    private static boolean isJava9Compatible;
+    
+    static {
+        String version = System.getProperty("java.version");
+        if (version.indexOf('.') > 0) {
+            version = version.substring(0, version.indexOf('.'));
+        }
+        
+        setJava9Compatible(Integer.valueOf(version) >= 9);
+    }
+
     private JavaUtils() {
     }
-    
+
     /**
      * checks if the input string is a valid java keyword.
-     * 
+     *
      * @return boolean true/false
      */
     public static boolean isJavaKeyword(String keyword) {
-        return KEYWORDS.contains(keyword); 
+        return KEYWORDS.contains(keyword);
     }
 
     /**
@@ -66,4 +77,11 @@ public final class JavaUtils {
         return KEYWORD_PREFIX + keyword;
     }
 
+    public static boolean isJava9Compatible() {
+        return isJava9Compatible;
+    }
+
+    private static void setJava9Compatible(boolean java9Compatible) {
+        JavaUtils.isJava9Compatible = java9Compatible;
+    }
 }

@@ -25,28 +25,28 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class RequestDispatcherProviderTest extends Assert {
-    
+
     @Test
     public void testIsWriteableEnum() {
-        
+
         RequestDispatcherProvider p = new RequestDispatcherProvider();
         p.setClassResources(
             Collections.singletonMap(TestEnum.class.getName() + "." + TestEnum.ONE, "/test.jsp"));
         assertTrue(p.isWriteable(TestEnum.ONE.getClass(), null, null, null));
         assertEquals("/test.jsp", p.getResourcePath(TestEnum.ONE.getClass(), TestEnum.ONE));
     }
-    
+
     @Test
     public void testIsWriteableEnum2() {
-        
+
         RequestDispatcherProvider p = new RequestDispatcherProvider();
         p.setEnumResources(
             Collections.singletonMap(TestEnum.ONE, "/test.jsp"));
         assertTrue(p.isWriteable(TestEnum.ONE.getClass(), null, null, null));
         assertEquals("/test.jsp", p.getResourcePath(TestEnum.ONE.getClass(), TestEnum.ONE));
     }
-    
-    private static enum TestEnum {
+
+    private enum TestEnum {
         ONE,
         TWO
     }

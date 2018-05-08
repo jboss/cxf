@@ -31,40 +31,41 @@ import org.apache.cxf.message.MessageImpl;
 import org.apache.cxf.service.ServiceImpl;
 import org.apache.cxf.service.invoker.Invoker;
 import org.apache.cxf.service.model.ServiceInfo;
+
 import org.easymock.EasyMock;
 import org.easymock.IMocksControl;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class ServiceInvokerInterceptorTest extends Assert {
-    
+
     @Test
     public void testInterceptor() throws Exception {
         ServiceInvokerInterceptor intc = new ServiceInvokerInterceptor();
-        
+
         MessageImpl m = new MessageImpl();
         Exchange exchange = new ExchangeImpl();
         m.setExchange(exchange);
         exchange.setInMessage(m);
-        
+
         exchange.setOutMessage(new MessageImpl());
-        
+
         TestInvoker i = new TestInvoker();
         Endpoint endpoint = createEndpoint(i);
         exchange.put(Endpoint.class, endpoint);
         Object input = new Object();
-        List<Object> lst = new ArrayList<Object>();
+        List<Object> lst = new ArrayList<>();
         lst.add(input);
         m.setContent(List.class, lst);
-        
+
         intc.handleMessage(m);
-        
+
         assertTrue(i.invoked);
-        
+
         List<?> list = exchange.getOutMessage().getContent(List.class);
         assertEquals(input, list.get(0));
     }
-    
+
     Endpoint createEndpoint(Invoker i) throws Exception {
         IMocksControl control = EasyMock.createNiceControl();
         Endpoint endpoint = control.createMock(Endpoint.class);
@@ -73,12 +74,12 @@ public class ServiceInvokerInterceptorTest extends Assert {
         service.setInvoker(i);
         service.setExecutor(new SimpleExecutor());
         EasyMock.expect(endpoint.getService()).andReturn(service).anyTimes();
-        
+
         control.replay();
 
         return endpoint;
     }
-    
+
     static class TestInvoker implements Invoker {
         boolean invoked;
         public Object invoke(Exchange exchange, Object o) {
@@ -88,12 +89,12 @@ public class ServiceInvokerInterceptorTest extends Assert {
             return o;
         }
     }
-    
+
     static class SimpleExecutor implements Executor {
 
         public void execute(Runnable command) {
             command.run();
         }
-        
+
     }
 }

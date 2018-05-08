@@ -28,6 +28,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -52,8 +53,10 @@ import javax.activation.MailcapCommandMap;
 import javax.activation.URLDataSource;
 
 import org.apache.cxf.common.util.StringUtils;
+import org.apache.cxf.common.util.SystemPropertyAction;
 import org.apache.cxf.helpers.HttpHeaderHelper;
 import org.apache.cxf.interceptor.Fault;
+import org.apache.cxf.io.CachedConstants;
 import org.apache.cxf.io.CachedOutputStream;
 import org.apache.cxf.message.Attachment;
 import org.apache.cxf.message.Message;
@@ -61,14 +64,14 @@ import org.apache.cxf.message.MessageUtils;
 
 public final class AttachmentUtil {
     public static final String BODY_ATTACHMENT_ID = "root.message@cxf.apache.org";
-    
+
     private static volatile int counter;
     private static final String ATT_UUID = UUID.randomUUID().toString();
-    
+
     private static final Random BOUND_RANDOM = new Random();
     private static final CommandMap DEFAULT_COMMAND_MAP = CommandMap.getDefaultCommandMap();
     private static final MailcapCommandMap COMMAND_MAP = new EnhancedMailcapCommandMap();
-    
+
     static final class EnhancedMailcapCommandMap extends MailcapCommandMap {
         @Override
         public synchronized DataContentHandler createDataContentHandler(
@@ -94,8 +97,8 @@ public final class AttachmentUtil {
         public synchronized CommandInfo[] getAllCommands(String mimeType) {
             CommandInfo[] commands = super.getAllCommands(mimeType);
             CommandInfo[] defaultCommands = DEFAULT_COMMAND_MAP.getAllCommands(mimeType);
-            List<CommandInfo> cmdList = new ArrayList<CommandInfo>(Arrays.asList(commands));
-            
+            List<CommandInfo> cmdList = new ArrayList<>(Arrays.asList(commands));
+
             // Add CommandInfo which does not exist in current command map.
             for (CommandInfo defCmdInfo : defaultCommands) {
                 String defCmdName = defCmdInfo.getCommandName();
@@ -110,7 +113,7 @@ public final class AttachmentUtil {
                     cmdList.add(defCmdInfo);
                 }
             }
-            
+
             CommandInfo[] allCommandArray = new CommandInfo[0];
             return cmdList.toArray(allCommandArray);
         }
@@ -131,7 +134,7 @@ public final class AttachmentUtil {
         public synchronized String[] getMimeTypes() {
             String[] mimeTypes = super.getMimeTypes();
             String[] defMimeTypes = DEFAULT_COMMAND_MAP.getMimeTypes();
-            Set<String> mimeTypeSet = new HashSet<String>();
+            Set<String> mimeTypeSet = new HashSet<>();
             mimeTypeSet.addAll(Arrays.asList(mimeTypes));
             mimeTypeSet.addAll(Arrays.asList(defMimeTypes));
             String[] mimeArray = new String[0];
@@ -144,22 +147,21 @@ public final class AttachmentUtil {
     private AttachmentUtil() {
 
     }
-    
+
     static {
-        COMMAND_MAP.addMailcap("image/*;;x-java-content-handler=" 
+        COMMAND_MAP.addMailcap("image/*;;x-java-content-handler="
                                + ImageDataContentHandler.class.getName());
     }
 
     public static CommandMap getCommandMap() {
         return COMMAND_MAP;
     }
-    
+
     public static boolean isMtomEnabled(Message message) {
-        Object prop = message.getContextualProperty(org.apache.cxf.message.Message.MTOM_ENABLED); 
-        return MessageUtils.isTrue(prop);
+        return MessageUtils.getContextualBoolean(message, Message.MTOM_ENABLED, false);
     }
-    
-    public static void setStreamedAttachmentProperties(Message message, CachedOutputStream bos) 
+
+    public static void setStreamedAttachmentProperties(Message message, CachedOutputStream bos)
         throws IOException {
         Object directory = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_DIRECTORY);
         if (directory != null) {
@@ -169,15 +171,16 @@ public final class AttachmentUtil {
                 bos.setOutputDir(new File((String)directory));
             }
         }
-        
+
         Object threshold = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_MEMORY_THRESHOLD);
         if (threshold != null) {
             if (threshold instanceof Long) {
                 bos.setThreshold((Long)threshold);
             } else {
-                bos.setThreshold(Long.valueOf((String)threshold));
+                bos.setThreshold(Long.parseLong((String)threshold));
             }
-        } else {
+        } else if (SystemPropertyAction.getProperty(CachedConstants.THRESHOLD_SYS_PROP) == null) {
+            // Use the default AttachmentDeserializer Threshold only if there is no system property defined
             bos.setThreshold(AttachmentDeserializer.THRESHOLD);
         }
 
@@ -186,15 +189,15 @@ public final class AttachmentUtil {
             if (maxSize instanceof Long) {
                 bos.setMaxSize((Long) maxSize);
             } else {
-                bos.setMaxSize(Long.valueOf((String)maxSize));
+                bos.setMaxSize(Long.parseLong((String)maxSize));
             }
         }
     }
-    
+
     public static String createContentID(String ns) throws UnsupportedEncodingException {
         // tend to change
         String cid = "cxf.apache.org";
-        
+
         String name = ATT_UUID + "-" + String.valueOf(++counter);
         if (ns != null && (ns.length() > 0)) {
             try {
@@ -209,7 +212,8 @@ public final class AttachmentUtil {
                 cid = ns;
             }
         }
-        return URLEncoder.encode(name, "UTF-8") + "@" + URLEncoder.encode(cid, "UTF-8");
+        return URLEncoder.encode(name, StandardCharsets.UTF_8.name()) + "@"
+            + URLEncoder.encode(cid, StandardCharsets.UTF_8.name());
     }
 
     public static String getUniqueBoundaryValue() {
@@ -223,15 +227,15 @@ public final class AttachmentUtil {
             mostSigBits = BOUND_RANDOM.nextLong();
             leastSigBits = BOUND_RANDOM.nextLong();
         }
-        
+
         mostSigBits &= 0xFFFFFFFFFFFF0FFFL;  //clear version
         mostSigBits |= 0x0000000000004000L;  //set version
 
         leastSigBits &= 0x3FFFFFFFFFFFFFFFL; //clear the variant
         leastSigBits |= 0x8000000000000000L; //set to IETF variant
-        
+
         UUID result = new UUID(mostSigBits, leastSigBits);
-        
+
         return "uuid:" + result.toString();
     }
 
@@ -261,10 +265,10 @@ public final class AttachmentUtil {
         }
         return dataHandlers == null ? new LinkedHashMap<String, DataHandler>() : dataHandlers;
     }
-    
+
     static class DHMap extends AbstractMap<String, DataHandler> {
         final Collection<Attachment> list;
-        public DHMap(Collection<Attachment> l) {
+        DHMap(Collection<Attachment> l) {
             list = l;
         }
         public Set<Map.Entry<String, DataHandler>> entrySet() {
@@ -276,7 +280,7 @@ public final class AttachmentUtil {
                         public boolean hasNext() {
                             return it.hasNext();
                         }
-                        public java.util.Map.Entry<String, DataHandler> next() {
+                        public Map.Entry<String, DataHandler> next() {
                             final Attachment a = it.next();
                             return new Map.Entry<String, DataHandler>() {
                                 @Override
@@ -320,9 +324,9 @@ public final class AttachmentUtil {
             }
             list.add(new AttachmentImpl(key, value));
             return ret;
-        }        
+        }
     }
-    
+
     public static String cleanContentId(String id) {
         if (id != null) {
             if (id.startsWith("<")) {
@@ -335,7 +339,7 @@ public final class AttachmentUtil {
             }
             // urldecode. Is this bad even without cid:? What does decode do with malformed %-signs, anyhow?
             try {
-                id = URLDecoder.decode(id, "UTF-8");
+                id = URLDecoder.decode(id, StandardCharsets.UTF_8.name());
             } catch (UnsupportedEncodingException e) {
                 //ignore, keep id as is
             }
@@ -346,15 +350,15 @@ public final class AttachmentUtil {
         }
         return id;
     }
-    
+
     static String getHeaderValue(List<String> v) {
-        if (v != null && v.size() > 0) {
+        if (v != null && !v.isEmpty()) {
             return v.get(0);
         }
         return null;
     }
     static String getHeaderValue(List<String> v, String delim) {
-        if (v != null && v.size() > 0) {
+        if (v != null && !v.isEmpty()) {
             StringBuilder b = new StringBuilder();
             for (String s : v) {
                 if (b.length() > 0) {
@@ -372,19 +376,19 @@ public final class AttachmentUtil {
     static String getHeader(Map<String, List<String>> headers, String h, String delim) {
         return getHeaderValue(headers.get(h), delim);
     }
-    public static Attachment createAttachment(InputStream stream, Map<String, List<String>> headers) 
+    public static Attachment createAttachment(InputStream stream, Map<String, List<String>> headers)
         throws IOException {
-     
+
         String id = cleanContentId(getHeader(headers, "Content-ID"));
 
         AttachmentImpl att = new AttachmentImpl(id);
-        
+
         final String ct = getHeader(headers, "Content-Type");
         String cd = getHeader(headers, "Content-Disposition");
         String fileName = getContentDispositionFileName(cd);
-        
+
         String encoding = null;
-        
+
         for (Map.Entry<String, List<String>> e : headers.entrySet()) {
             String name = e.getKey();
             if (name.equalsIgnoreCase("Content-Transfer-Encoding")) {
@@ -398,20 +402,22 @@ public final class AttachmentUtil {
         if (encoding == null) {
             encoding = "binary";
         }
-        DataSource source = new AttachmentDataSource(ct, 
-                                                     decode(stream, encoding));
+        InputStream ins =  decode(stream, encoding);
+        if (ins != stream) {
+            headers.remove("Content-Transfer-Encoding");
+        }
+        DataSource source = new AttachmentDataSource(ct, ins);
         if (!StringUtils.isEmpty(fileName)) {
             ((AttachmentDataSource)source).setName(fileName);
         }
-        att.setDataHandler(new DataHandler(source));        
+        att.setDataHandler(new DataHandler(source));
         return att;
     }
-    
+
     static String getContentDispositionFileName(String cd) {
         if (StringUtils.isEmpty(cd)) {
             return null;
         }
-        //TODO: save ContentDisposition directly 
         ContentDisposition c = new ContentDisposition(cd);
         String s = c.getParameter("filename");
         if (s == null) {
@@ -419,13 +425,16 @@ public final class AttachmentUtil {
         }
         return s;
     }
-    
+
     public static InputStream decode(InputStream in, String encoding) throws IOException {
+        if (encoding == null) {
+            return in;
+        }
         encoding = encoding.toLowerCase();
 
         // some encodings are just pass-throughs, with no real decoding.
-        if ("binary".equals(encoding) 
-            || "7bit".equals(encoding) 
+        if ("binary".equals(encoding)
+            || "7bit".equals(encoding)
             || "8bit".equals(encoding)) {
             return in;
         } else if ("base64".equals(encoding)) {
@@ -435,7 +444,7 @@ public final class AttachmentUtil {
         } else {
             throw new IOException("Unknown encoding " + encoding);
         }
-    }    
+    }
     public static boolean isTypeSupported(String contentType, List<String> types) {
         if (contentType == null) {
             return false;
@@ -449,15 +458,15 @@ public final class AttachmentUtil {
         return false;
     }
 
-    public static Attachment createMtomAttachment(boolean isXop, String mimeType, String elementNS, 
+    public static Attachment createMtomAttachment(boolean isXop, String mimeType, String elementNS,
                                                  byte[] data, int offset, int length, int threshold) {
         if (!isXop || length <= threshold) {
             return null;
-        }        
+        }
         if (mimeType == null) {
             mimeType = "application/octet-stream";
         }
-        
+
         ByteDataSource source = new ByteDataSource(data, offset, length);
         source.setContentType(mimeType);
         DataHandler handler = new DataHandler(source);
@@ -472,12 +481,12 @@ public final class AttachmentUtil {
         att.setXOP(isXop);
         return att;
     }
-    
+
     public static Attachment createMtomAttachmentFromDH(
         boolean isXop, DataHandler handler, String elementNS, int threshold) {
         if (!isXop) {
             return null;
-        }        
+        }
 
         // The following is just wrong. Even if the DataHandler has a stream, we should still
         // apply the threshold.
@@ -491,7 +500,7 @@ public final class AttachmentUtil {
                 }
             } else if (ds.getClass().getName().endsWith("ObjectDataSource")) {
                 Object o = handler.getContent();
-                if (o instanceof String 
+                if (o instanceof String
                     && ((String)o).length() < threshold) {
                     return null;
                 } else if (o instanceof byte[] && ((byte[])o).length < threshold) {
@@ -501,7 +510,7 @@ public final class AttachmentUtil {
         } catch (IOException e1) {
         //      ignore, just do the normal attachment thing
         }
-        
+
         String id;
         try {
             id = AttachmentUtil.createContentID(elementNS);
@@ -526,7 +535,7 @@ public final class AttachmentUtil {
         // Is this right? - DD
         if (contentId.startsWith("cid:")) {
             try {
-                contentId = URLDecoder.decode(contentId.substring(4), "UTF-8");
+                contentId = URLDecoder.decode(contentId.substring(4), StandardCharsets.UTF_8.name());
             } catch (UnsupportedEncodingException ue) {
                 contentId = contentId.substring(4);
             }
@@ -540,11 +549,11 @@ public final class AttachmentUtil {
                 throw new Fault(e);
             }
         }
-        
+
     }
 
     private static DataSource loadDataSource(String contentId, Collection<Attachment> atts) {
         return new LazyDataSource(contentId, atts);
     }
-    
+
 }

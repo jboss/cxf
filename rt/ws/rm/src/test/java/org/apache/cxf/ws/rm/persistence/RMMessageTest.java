@@ -19,8 +19,6 @@
 
 package org.apache.cxf.ws.rm.persistence;
 
-import java.io.ByteArrayInputStream;
-
 import org.apache.cxf.helpers.IOUtils;
 import org.apache.cxf.io.CachedOutputStream;
 
@@ -29,11 +27,11 @@ import org.junit.Test;
 
 
 /**
- * 
+ *
  */
 public class RMMessageTest extends Assert {
-    private static final byte[] DATA = 
-        ("<greetMe xmlns=\"http://cxf.apache.org/greeter_control/types\">" 
+    private static final byte[] DATA =
+        ("<greetMe xmlns=\"http://cxf.apache.org/greeter_control/types\">"
         + "<requestType>one</requestType></greetMe>").getBytes();
     private static final String TO = "http://localhost:9999/decoupled_endpoint";
 
@@ -43,30 +41,20 @@ public class RMMessageTest extends Assert {
 
         msg.setTo(TO);
         msg.setMessageNumber(1);
-        
+
         assertEquals(msg.getTo(), TO);
         assertEquals(msg.getMessageNumber(), 1);
     }
-    
-    @Test
-    public void testContentInputStream() throws Exception {
-        RMMessage msg = new RMMessage();
-        msg.setContent(new ByteArrayInputStream(DATA));
-        
-        byte[] msgbytes = IOUtils.readBytesFromStream(msg.getContent());
-        
-        assertArrayEquals(DATA, msgbytes);
-    }
-    
+
     @Test
     public void testContentCachedOutputStream() throws Exception {
         RMMessage msg = new RMMessage();
         CachedOutputStream co = new CachedOutputStream();
         co.write(DATA);
-        msg.setContent(co.getInputStream());
-        
-        byte[] msgbytes = IOUtils.readBytesFromStream(msg.getContent());
-        
+        msg.setContent(co);
+
+        byte[] msgbytes = IOUtils.readBytesFromStream(msg.getContent().getInputStream());
+
         assertArrayEquals(DATA, msgbytes);
         co.close();
     }

@@ -20,6 +20,7 @@ package org.apache.cxf.aegis.type.encoded;
 
 import java.util.Map;
 import java.util.TreeMap;
+
 import javax.xml.namespace.QName;
 
 import org.w3c.dom.Attr;
@@ -37,7 +38,7 @@ import org.junit.Test;
 public class StructTypeTest extends AbstractEncodedTest {
     private StructType addressType;
     private StructType purchaseOrderType;
-    
+
     private Context getLocalContext() {
         AegisContext aegisContext = new AegisContext();
         return new Context(aegisContext);
@@ -81,7 +82,7 @@ public class StructTypeTest extends AbstractEncodedTest {
         reader.getXMLStreamReader().close();
 
         // Test writing
-        Element element = writeObjectToElement(addressType, address, getLocalContext()); 
+        Element element = writeObjectToElement(addressType, address, getLocalContext());
         validateShippingAddress(element);
     }
 

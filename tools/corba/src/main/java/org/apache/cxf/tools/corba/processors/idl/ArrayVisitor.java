@@ -254,18 +254,18 @@ public class ArrayVisitor extends VisitorBase {
         return anonarray;
     }
 
-    class Types {
+    static class Types {
         private XmlSchemaType schemaType;
         private CorbaType corbaType;
         private Scope fullyQualifiedName;
 
-        public Types() {
+        Types() {
             schemaType = null;
             corbaType = null;
         }
 
-        public Types(XmlSchemaType stype, CorbaType ctype,
-                     Scope fqName) {
+        Types(XmlSchemaType stype, CorbaType ctype,
+              Scope fqName) {
             schemaType = stype;
             corbaType = ctype;
             fullyQualifiedName = fqName;

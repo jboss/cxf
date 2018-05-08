@@ -28,12 +28,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.bind.JAXBElement;
-import javax.xml.ws.WebServiceContext;
-import javax.xml.ws.handler.MessageContext;
 
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.helpers.CastUtils;
-import org.apache.cxf.rt.security.claims.ClaimCollection;
 import org.apache.cxf.sts.QNameConstants;
 import org.apache.cxf.sts.event.STSIssueFailureEvent;
 import org.apache.cxf.sts.event.STSIssueSuccessEvent;
@@ -65,7 +62,7 @@ import org.apache.wss4j.common.ext.WSSecurityException;
 import org.apache.wss4j.common.principal.SAMLTokenPrincipal;
 import org.apache.wss4j.common.principal.SAMLTokenPrincipalImpl;
 import org.apache.wss4j.common.saml.SamlAssertionWrapper;
-import org.apache.wss4j.dom.WSSecurityEngineResult;
+import org.apache.wss4j.dom.engine.WSSecurityEngineResult;
 import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.apache.wss4j.dom.handler.WSHandlerResult;
 import org.apache.wss4j.stax.securityEvent.WSSecurityEventConstants;
@@ -78,27 +75,30 @@ import org.apache.xml.security.exceptions.XMLSecurityException;
 public class TokenIssueOperation extends AbstractOperation implements IssueOperation, IssueSingleOperation {
 
     static final Logger LOG = LogUtils.getL7dLogger(TokenIssueOperation.class);
-
+    
 
     public RequestSecurityTokenResponseCollectionType issue(
             RequestSecurityTokenType request,
-            WebServiceContext context
+            Principal principal,
+            Map<String, Object> messageContext
     ) {
-        RequestSecurityTokenResponseType response = issueSingle(request, context);
-        RequestSecurityTokenResponseCollectionType responseCollection = 
+        RequestSecurityTokenResponseType response = issueSingle(request, principal, messageContext);
+        RequestSecurityTokenResponseCollectionType responseCollection =
             QNameConstants.WS_TRUST_FACTORY.createRequestSecurityTokenResponseCollectionType();
         responseCollection.getRequestSecurityTokenResponse().add(response);
         return responseCollection;
     }
+
     
     public RequestSecurityTokenResponseCollectionType issue(
             RequestSecurityTokenCollectionType requestCollection,
-            WebServiceContext context
+            Principal principal,
+            Map<String, Object> messageContext
     ) {
-        RequestSecurityTokenResponseCollectionType responseCollection = 
+        RequestSecurityTokenResponseCollectionType responseCollection =
             QNameConstants.WS_TRUST_FACTORY.createRequestSecurityTokenResponseCollectionType();
         for (RequestSecurityTokenType request : requestCollection.getRequestSecurityToken()) {
-            RequestSecurityTokenResponseType response = issueSingle(request, context);
+            RequestSecurityTokenResponseType response = issueSingle(request, principal, messageContext);
             responseCollection.getRequestSecurityTokenResponse().add(response);
         }
         return responseCollection;
@@ -106,29 +106,24 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
 
     public RequestSecurityTokenResponseType issueSingle(
             RequestSecurityTokenType request,
-            WebServiceContext context
+            Principal principal,
+            Map<String, Object> messageContext
     ) {
         long start = System.currentTimeMillis();
         TokenProviderParameters providerParameters = new TokenProviderParameters();
         try {
-            RequestRequirements requestRequirements = parseRequest(request, context);
-    
-            providerParameters = createTokenProviderParameters(requestRequirements, context);
-    
-            // Check if the requested claims can be handled by the configured claim handlers
-            ClaimCollection requestedClaims = providerParameters.getRequestedPrimaryClaims();
-            checkClaimsSupport(requestedClaims);
-            requestedClaims = providerParameters.getRequestedSecondaryClaims();
-            checkClaimsSupport(requestedClaims);
+            RequestRequirements requestRequirements = parseRequest(request, messageContext);
+
+            providerParameters = createTokenProviderParameters(requestRequirements, principal, messageContext);
             providerParameters.setClaimsManager(claimsManager);
-            
+
             String realm = providerParameters.getRealm();
-    
+
             TokenRequirements tokenRequirements = requestRequirements.getTokenRequirements();
             String tokenType = tokenRequirements.getTokenType();
-    
+
             if (stsProperties.getSamlRealmCodec() != null) {
-                SamlAssertionWrapper assertion = fetchSAMLAssertionFromWSSecuritySAMLToken(context);
+                SamlAssertionWrapper assertion = fetchSAMLAssertionFromWSSecuritySAMLToken(messageContext);
 
                 if (assertion != null) {
                     String wssecRealm = stsProperties.getSamlRealmCodec().getRealmFromToken(assertion);
@@ -148,21 +143,21 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
                     providerParameters.setPrincipal(wssecToken.getPrincipal());
                 }
             }
-            
+
             // Validate OnBehalfOf token if present
             if (providerParameters.getTokenRequirements().getOnBehalfOf() != null) {
                 ReceivedToken validateTarget = providerParameters.getTokenRequirements().getOnBehalfOf();
-                handleDelegationToken(validateTarget, providerParameters, context, 
+                handleDelegationToken(validateTarget, providerParameters, principal, messageContext,
                                       realm, requestRequirements);
             }
-            
+
             // See whether ActAs is allowed or not
             if (providerParameters.getTokenRequirements().getActAs() != null) {
                 ReceivedToken validateTarget = providerParameters.getTokenRequirements().getActAs();
-                handleDelegationToken(validateTarget, providerParameters, context, 
+                handleDelegationToken(validateTarget, providerParameters, principal, messageContext,
                                       realm, requestRequirements);
             }
-    
+
             // create token
             TokenProviderResponse tokenResponse = null;
             for (TokenProvider tokenProvider : tokenProviders) {
@@ -188,7 +183,7 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
             if (tokenResponse == null || tokenResponse.getToken() == null) {
                 LOG.log(Level.WARNING, "No token provider found for requested token type: " + tokenType);
                 throw new STSException(
-                        "No token provider found for requested token type: " + tokenType, 
+                        "No token provider found for requested token type: " + tokenType,
                         STSException.REQUEST_FAILED
                 );
             }
@@ -196,9 +191,9 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
             try {
                 KeyRequirements keyRequirements = requestRequirements.getKeyRequirements();
                 EncryptionProperties encryptionProperties = providerParameters.getEncryptionProperties();
-                RequestSecurityTokenResponseType response = 
+                RequestSecurityTokenResponseType response =
                     createResponse(
-                            encryptionProperties, tokenResponse, tokenRequirements, keyRequirements, context
+                            encryptionProperties, tokenResponse, tokenRequirements, keyRequirements
                     );
                 STSIssueSuccessEvent event = new STSIssueSuccessEvent(providerParameters,
                         System.currentTimeMillis() - start);
@@ -208,7 +203,7 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
                 LOG.log(Level.WARNING, "", ex);
                 throw new STSException("Error in creating the response", ex, STSException.REQUEST_FAILED);
             }
-        
+
         } catch (RuntimeException ex) {
             LOG.log(Level.SEVERE, "Cannot issue token: " + ex.getMessage(), ex);
             STSIssueFailureEvent event = new STSIssueFailureEvent(providerParameters,
@@ -217,33 +212,34 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
             throw ex;
         }
     }
-    
+
     private void handleDelegationToken(
         ReceivedToken validateTarget,
         TokenProviderParameters providerParameters,
-        WebServiceContext context,
+        Principal principal,
+        Map<String, Object> messageContext,
         String realm,
         RequestRequirements requestRequirements
     ) {
         TokenValidatorResponse tokenResponse = validateReceivedToken(
-                context, realm, requestRequirements.getTokenRequirements(), validateTarget);
+                principal, messageContext, realm, requestRequirements.getTokenRequirements(), validateTarget);
 
         if (tokenResponse == null) {
             LOG.fine("No Token Validator has been found that can handle this token");
         } else if (validateTarget.getState().equals(STATE.INVALID)) {
             throw new STSException("Incoming token is invalid", STSException.REQUEST_FAILED);
         } else if (validateTarget.getState().equals(STATE.VALID)) {
-            processValidToken(providerParameters, validateTarget, tokenResponse); 
+            processValidToken(providerParameters, validateTarget, tokenResponse);
         } else {
             //[TODO] Add plugin for validation out-of-band
             // Example:
             // If the requestor is in the possession of a certificate (mutual ssl handshake)
             // the STS trusts the token sent in OnBehalfOf element
         }
-        
+
         Principal tokenPrincipal = null;
         Set<Principal> tokenRoles = null;
-        
+
         if (tokenResponse != null) {
             Map<String, Object> additionalProperties = tokenResponse.getAdditionalProperties();
             if (additionalProperties != null) {
@@ -252,19 +248,19 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
             tokenPrincipal = tokenResponse.getPrincipal();
             tokenRoles = tokenResponse.getRoles();
         }
-        
+
         // See whether OnBehalfOf/ActAs is allowed or not
-        performDelegationHandling(requestRequirements, context, validateTarget, tokenPrincipal, tokenRoles);
+        performDelegationHandling(requestRequirements, principal, messageContext,
+                                  validateTarget, tokenPrincipal, tokenRoles);
     }
 
-    private RequestSecurityTokenResponseType createResponse(
+    protected RequestSecurityTokenResponseType createResponse(
             EncryptionProperties encryptionProperties,
-            TokenProviderResponse tokenResponse, 
+            TokenProviderResponse tokenResponse,
             TokenRequirements tokenRequirements,
-            KeyRequirements keyRequirements,
-            WebServiceContext webServiceContext
+            KeyRequirements keyRequirements
     ) throws WSSecurityException {
-        RequestSecurityTokenResponseType response = 
+        RequestSecurityTokenResponseType response =
             QNameConstants.WS_TRUST_FACTORY.createRequestSecurityTokenResponseType();
 
         String context = tokenRequirements.getContext();
@@ -273,26 +269,16 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
         }
 
         // TokenType
-        JAXBElement<String> jaxbTokenType = 
+        JAXBElement<String> jaxbTokenType =
             QNameConstants.WS_TRUST_FACTORY.createTokenType(tokenRequirements.getTokenType());
         response.getAny().add(jaxbTokenType);
 
         // RequestedSecurityToken
-        RequestedSecurityTokenType requestedTokenType = 
+        RequestedSecurityTokenType requestedTokenType =
             QNameConstants.WS_TRUST_FACTORY.createRequestedSecurityTokenType();
-        JAXBElement<RequestedSecurityTokenType> requestedToken = 
+        JAXBElement<RequestedSecurityTokenType> requestedToken =
             QNameConstants.WS_TRUST_FACTORY.createRequestedSecurityToken(requestedTokenType);
-        LOG.fine("Encrypting Issued Token: " + encryptIssuedToken);
-        if (!encryptIssuedToken) {
-            requestedTokenType.setAny(tokenResponse.getToken());
-        } else {
-            requestedTokenType.setAny(
-                encryptToken(
-                    tokenResponse.getToken(), tokenResponse.getTokenId(), 
-                    encryptionProperties, keyRequirements, webServiceContext
-                )
-            );
-        }
+        tokenWrapper.wrapToken(tokenResponse.getToken(), requestedTokenType);
         response.getAny().add(requestedToken);
 
         if (returnReferences) {
@@ -302,13 +288,13 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
             if (attachedReference != null) {
                 requestedAttachedReferenceType = createRequestedReference(attachedReference, true);
             } else {
-                requestedAttachedReferenceType = 
+                requestedAttachedReferenceType =
                     createRequestedReference(
                             tokenResponse.getTokenId(), tokenRequirements.getTokenType(), true
                     );
             }
 
-            JAXBElement<RequestedReferenceType> requestedAttachedReference = 
+            JAXBElement<RequestedReferenceType> requestedAttachedReference =
                 QNameConstants.WS_TRUST_FACTORY.createRequestedAttachedReference(
                         requestedAttachedReferenceType
                 );
@@ -320,13 +306,13 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
             if (unAttachedReference != null) {
                 requestedUnattachedReferenceType = createRequestedReference(unAttachedReference, false);
             } else {
-                requestedUnattachedReferenceType = 
+                requestedUnattachedReferenceType =
                     createRequestedReference(
                             tokenResponse.getTokenId(), tokenRequirements.getTokenType(), false
                     );
             }
 
-            JAXBElement<RequestedReferenceType> requestedUnattachedReference = 
+            JAXBElement<RequestedReferenceType> requestedUnattachedReference =
                 QNameConstants.WS_TRUST_FACTORY.createRequestedUnattachedReference(
                         requestedUnattachedReferenceType
                 );
@@ -338,41 +324,44 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
 
         // RequestedProofToken
         if (tokenResponse.isComputedKey() && keyRequirements.getComputedKeyAlgorithm() != null) {
-            JAXBElement<String> computedKey = 
+            JAXBElement<String> computedKey =
                 QNameConstants.WS_TRUST_FACTORY.createComputedKey(keyRequirements.getComputedKeyAlgorithm());
-            RequestedProofTokenType requestedProofTokenType = 
+            RequestedProofTokenType requestedProofTokenType =
                 QNameConstants.WS_TRUST_FACTORY.createRequestedProofTokenType();
             requestedProofTokenType.setAny(computedKey);
-            JAXBElement<RequestedProofTokenType> requestedProofToken = 
+            JAXBElement<RequestedProofTokenType> requestedProofToken =
                 QNameConstants.WS_TRUST_FACTORY.createRequestedProofToken(requestedProofTokenType);
             response.getAny().add(requestedProofToken);
         } else if (tokenResponse.getEntropy() != null) {
-            Object token = 
+            Object token =
                 constructSecretToken(tokenResponse.getEntropy(), encryptionProperties, keyRequirements);
-            RequestedProofTokenType requestedProofTokenType = 
+            RequestedProofTokenType requestedProofTokenType =
                 QNameConstants.WS_TRUST_FACTORY.createRequestedProofTokenType();
             requestedProofTokenType.setAny(token);
-            JAXBElement<RequestedProofTokenType> requestedProofToken = 
+            JAXBElement<RequestedProofTokenType> requestedProofToken =
                 QNameConstants.WS_TRUST_FACTORY.createRequestedProofToken(requestedProofTokenType);
             response.getAny().add(requestedProofToken);
         }
 
         // Entropy
         if (tokenResponse.isComputedKey() && tokenResponse.getEntropy() != null) {
-            Object token = 
+            Object token =
                 constructSecretToken(tokenResponse.getEntropy(), encryptionProperties, keyRequirements);
             EntropyType entropyType = QNameConstants.WS_TRUST_FACTORY.createEntropyType();
             entropyType.getAny().add(token);
-            JAXBElement<EntropyType> entropyElement = 
+            JAXBElement<EntropyType> entropyElement =
                 QNameConstants.WS_TRUST_FACTORY.createEntropy(entropyType);
             response.getAny().add(entropyElement);
         }
 
         // Lifetime
-        LifetimeType lifetime = 
-            createLifetime(tokenResponse.getCreated(), tokenResponse.getExpires());
-        JAXBElement<LifetimeType> lifetimeType = QNameConstants.WS_TRUST_FACTORY.createLifetime(lifetime);
-        response.getAny().add(lifetimeType);
+        if (includeLifetimeElement) {
+            LifetimeType lifetime =
+                createLifetime(tokenResponse.getCreated(), tokenResponse.getExpires());
+            JAXBElement<LifetimeType> lifetimeType =
+                QNameConstants.WS_TRUST_FACTORY.createLifetime(lifetime);
+            response.getAny().add(lifetimeType);
+        }
 
         // KeySize
         long keySize = tokenResponse.getKeySize();
@@ -380,26 +369,25 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
             keySize = keyRequirements.getKeySize();
         }
         if (keyRequirements.getKeySize() > 0) {
-            JAXBElement<Long> keySizeType = 
+            JAXBElement<Long> keySizeType =
                 QNameConstants.WS_TRUST_FACTORY.createKeySize(keySize);
             response.getAny().add(keySizeType);
         }
 
         return response;
     }
-    
+
     /**
      * Method to fetch SAML assertion from the WS-Security header
      */
     private static SamlAssertionWrapper fetchSAMLAssertionFromWSSecuritySAMLToken(
-        WebServiceContext wsContext
+        Map<String, Object> messageContext
     ) {
-        MessageContext messageContext = wsContext.getMessageContext();
-        final List<WSHandlerResult> handlerResults = 
+        final List<WSHandlerResult> handlerResults =
             CastUtils.cast((List<?>) messageContext.get(WSHandlerConstants.RECV_RESULTS));
 
         // Try DOM results first
-        if (handlerResults != null && handlerResults.size() > 0) {
+        if (handlerResults != null && !handlerResults.isEmpty()) {
             WSHandlerResult handlerResult = handlerResults.get(0);
             List<WSSecurityEngineResult> engineResults = handlerResult.getResults();
 
@@ -410,11 +398,11 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
                 }
             }
         }
-        
+
         // Now try steaming results
         try {
-            org.apache.xml.security.stax.securityToken.SecurityToken securityToken = 
-                findInboundSecurityToken(WSSecurityEventConstants.SamlToken, messageContext);
+            org.apache.xml.security.stax.securityToken.SecurityToken securityToken =
+                findInboundSecurityToken(WSSecurityEventConstants.SAML_TOKEN, messageContext);
             if (securityToken instanceof SamlSecurityToken
                 && ((SamlSecurityToken)securityToken).getSamlAssertionWrapper() != null) {
                 return ((SamlSecurityToken)securityToken).getSamlAssertionWrapper();
@@ -423,17 +411,17 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
             LOG.log(Level.FINE, e.getMessage(), e);
             return null;
         }
-        
+
         return null;
     }
 
     /**
-     * Construct a token containing the secret to return to the client. The secret is returned in a 
+     * Construct a token containing the secret to return to the client. The secret is returned in a
      * BinarySecretType JAXBElement.
      */
     private Object constructSecretToken(
             byte[] secret,
-            EncryptionProperties encryptionProperties, 
+            EncryptionProperties encryptionProperties,
             KeyRequirements keyRequirements
     ) throws WSSecurityException {
         /*if (encryptIssuedToken) {
@@ -444,8 +432,6 @@ public class TokenIssueOperation extends AbstractOperation implements IssueOpera
         String nonce = "http://docs.oasis-open.org/ws-sx/ws-trust/200512/Nonce";
         binarySecretType.setType(nonce);
         binarySecretType.setValue(secret);
-        JAXBElement<BinarySecretType> binarySecret = 
-                QNameConstants.WS_TRUST_FACTORY.createBinarySecret(binarySecretType);
-        return binarySecret;
+        return QNameConstants.WS_TRUST_FACTORY.createBinarySecret(binarySecretType);
     }
 }

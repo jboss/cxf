@@ -31,6 +31,7 @@ import javax.security.auth.callback.CallbackHandler;
 import org.apache.cxf.common.classloader.ClassLoaderUtils;
 import org.apache.cxf.common.classloader.ClassLoaderUtils.ClassLoaderHolder;
 import org.apache.cxf.common.logging.LogUtils;
+import org.apache.cxf.common.util.PropertyUtils;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.PhaseInterceptorChain;
 import org.apache.cxf.resource.ResourceManager;
@@ -39,38 +40,38 @@ import org.apache.cxf.resource.ResourceManager;
  * Some common functionality
  */
 public final class SecurityUtils {
-    
+
     private static final Logger LOG = LogUtils.getL7dLogger(SecurityUtils.class);
-    
+
     private SecurityUtils() {
         // complete
     }
 
-    public static CallbackHandler getCallbackHandler(Object o) throws InstantiationException, 
-    IllegalAccessException, ClassNotFoundException {
+    public static CallbackHandler getCallbackHandler(Object o) throws InstantiationException,
+        IllegalAccessException, ClassNotFoundException {
         CallbackHandler handler = null;
         if (o instanceof CallbackHandler) {
             handler = (CallbackHandler)o;
         } else if (o instanceof String) {
-            handler = (CallbackHandler)ClassLoaderUtils.loadClass((String)o, 
+            handler = (CallbackHandler)ClassLoaderUtils.loadClass((String)o,
                                                                   SecurityUtils.class).newInstance();
         }
         return handler;
     }
-    
+
     public static URL getConfigFileURL(Message message, String configFileKey, String configFileDefault) {
         Object o = message.getContextualProperty(configFileKey);
         if (o == null) {
             o = configFileDefault;
         }
-        
+
         return loadResource(message, o);
     }
-    
+
     public static URL loadResource(Object o) {
         return loadResource((Message)null, o);
     }
-    
+
     public static URL loadResource(Message message, Object o) {
         Message msg = message;
         if (msg == null) {
@@ -82,9 +83,9 @@ public final class SecurityUtils {
         }
         return loadResource(manager, o);
     }
-    
+
     public static URL loadResource(ResourceManager manager, Object o) {
-        
+
         if (o instanceof String) {
             URL url = ClassLoaderUtils.getResource((String)o, SecurityUtils.class);
             if (url != null) {
@@ -113,13 +114,13 @@ public final class SecurityUtils {
                             url = propResourceUri.toURL();
                         } else {
                             File f = new File(propResourceUri.toString());
-                            if (f.exists()) { 
+                            if (f.exists()) {
                                 url = f.toURI().toURL();
                             }
                         }
                     } catch (IOException ex) {
                         // Do nothing
-                    }   
+                    }
                 }
                 return url;
             } finally {
@@ -128,23 +129,27 @@ public final class SecurityUtils {
                 }
             }
         } else if (o instanceof URL) {
-            return (URL)o;        
+            return (URL)o;
         }
         return null;
     }
-    
+
     public static Properties loadProperties(Object o) {
+        return loadProperties(null, o);
+    }
+
+    public static Properties loadProperties(ResourceManager manager, Object o) {
         if (o instanceof Properties) {
             return (Properties)o;
-        } 
-        
+        }
+
         URL url = null;
         if (o instanceof String) {
-            url = SecurityUtils.loadResource(o);
+            url = SecurityUtils.loadResource(manager, o);
         } else if (o instanceof URL) {
             url = (URL)o;
         }
-        
+
         if (url != null) {
             Properties properties = new Properties();
             try {
@@ -157,10 +162,10 @@ public final class SecurityUtils {
             }
             return properties;
         }
-        
+
         return null;
     }
-    
+
     /**
      * Get the security property value for the given property. It also checks for the older "ws-"* property
      * values.
@@ -171,5 +176,18 @@ public final class SecurityUtils {
             return value;
         }
         return message.getContextualProperty("ws-" + property);
+    }
+
+    /**
+     * Get the security property boolean for the given property. It also checks for the older "ws-"* property
+     * values. If none is configured, then the defaultValue parameter is returned.
+     */
+    public static boolean getSecurityPropertyBoolean(String property, Message message, boolean defaultValue) {
+        Object value = getSecurityPropertyValue(property, message);
+
+        if (value != null) {
+            return PropertyUtils.isTrue(value);
+        }
+        return defaultValue;
     }
 }

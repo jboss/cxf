@@ -79,9 +79,9 @@ public class ClientCacheTest extends Assert {
             assertEquals(r1, cached.get().readEntity(String.class));
         } finally {
             feature.close();
-        }    
+        }
     }
-    
+
     @Test
     public void testGetTimeStringAsInputStream() throws Exception {
         CacheControlFeature feature = new CacheControlFeature();
@@ -100,7 +100,7 @@ public class ClientCacheTest extends Assert {
             feature.close();
         }
     }
-    
+
     @Test
     public void testGetTimeStringAsInputStreamAndString() throws Exception {
         CacheControlFeature feature = new CacheControlFeature();
@@ -139,13 +139,13 @@ public class ClientCacheTest extends Assert {
             feature.close();
         }
     }
-    
+
     @Test
     public void testGetJaxbBookCache() {
         CacheControlFeature feature = new CacheControlFeature();
         try {
             final WebTarget base = ClientBuilder.newBuilder().register(feature).build().target(ADDRESS);
-            final Invocation.Builder cached = 
+            final Invocation.Builder cached =
                 setAsLocal(base.request("application/xml")).header(HttpHeaders.CACHE_CONTROL, "public");
             final Response r = cached.get();
             assertEquals(Response.Status.OK.getStatusCode(), r.getStatus());
@@ -156,9 +156,10 @@ public class ClientCacheTest extends Assert {
             assertEquals(b1, cached.get().readEntity(Book.class));
         } finally {
             feature.close();
-        }    
+        }
     }
-    
+
+
     private static Invocation.Builder setAsLocal(final Invocation.Builder client) {
         WebClient.getConfig(client).getRequestContext().put(LocalConduit.DIRECT_DISPATCH, Boolean.TRUE);
         return client;
@@ -195,7 +196,7 @@ public class ClientCacheTest extends Assert {
         private String name;
         private Long id;
         public Book() {
-            
+
         }
         public Book(String name, long id) {
             this.name = name;
@@ -220,10 +221,9 @@ public class ClientCacheTest extends Assert {
             if (o instanceof Book) {
                 Book other = (Book)o;
                 return other.id.equals(id) && other.name.equals(name);
-            } else {
-                return false;
             }
+            return false;
         }
     }
-    
+
 }

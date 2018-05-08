@@ -27,6 +27,7 @@ import org.apache.cxf.aegis.Context;
 import org.apache.cxf.aegis.type.AegisType;
 import org.apache.cxf.aegis.type.basic.BeanTypeInfo;
 import org.apache.cxf.aegis.xml.stax.ElementReader;
+
 import org.junit.Test;
 
 public class SoapArrayTypeTest extends AbstractEncodedTest {
@@ -126,13 +127,13 @@ public class SoapArrayTypeTest extends AbstractEncodedTest {
                           new Object[]{42, new BigDecimal("42.42"), "Forty Two"},
                           objects);
     }
-    
+
     @Test
     public void testUrTypeArrayReadWriteRef1() throws Exception {
         Object[] objects;
         // round trip tests
         objects = readWriteReadRef("arrayUrType1.xml", Object[].class);
-        assertArrayEquals(new Object[]{42, new Float(42.42f), "Forty Two"}, objects);
+        assertArrayEquals(new Object[]{42, Float.valueOf(42.42f), "Forty Two"}, objects);
     }
 
     @Test
@@ -141,7 +142,7 @@ public class SoapArrayTypeTest extends AbstractEncodedTest {
         // round trip tests
         objects = readWriteReadRef("arrayUrType2.xml", Object[].class);
         assertArrayEquals(new Object[]{42, new BigDecimal("42.42"), "Forty Two"}, objects);
-        
+
     }
 
     @Test
@@ -175,13 +176,13 @@ public class SoapArrayTypeTest extends AbstractEncodedTest {
         ElementReader reader = new ElementReader(getClass().getResourceAsStream("arrayStructs.xml"));
         Address[] addresses = (Address[]) createArrayType(Address[].class).readObject(reader, context);
         reader.getXMLStreamReader().close();
-        StructTypeTest.validateShippingAddress(addresses[0]);
-        StructTypeTest.validateBillingAddress(addresses[1]);
+        AbstractEncodedTest.validateShippingAddress(addresses[0]);
+        AbstractEncodedTest.validateBillingAddress(addresses[1]);
 
         // round trip tests
         addresses = readWriteReadRef("arrayStructs.xml", Address[].class);
-        StructTypeTest.validateShippingAddress(addresses[0]);
-        StructTypeTest.validateBillingAddress(addresses[1]);
+        AbstractEncodedTest.validateShippingAddress(addresses[0]);
+        AbstractEncodedTest.validateBillingAddress(addresses[1]);
     }
 
     @Test
@@ -312,7 +313,7 @@ public class SoapArrayTypeTest extends AbstractEncodedTest {
                     if (strings[i][j] != null) {
                         assertEquals(4, strings[i][j].length);
                         for (int k = 0; k < strings[i][j].length; k++) {
-                            assertNull("strings[" + i + "][" + j + "][" + k + "] is not null", 
+                            assertNull("strings[" + i + "][" + j + "][" + k + "] is not null",
                                     strings[i][j][k]);
                         }
                     }
