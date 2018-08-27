@@ -19,6 +19,8 @@
 package org.apache.cxf.systest.jaxb;
 
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
 import java.net.URL;
 
 import javax.xml.namespace.QName;
@@ -29,8 +31,10 @@ import org.w3c.dom.Document;
 import org.apache.cxf.Bus;
 import org.apache.cxf.endpoint.Server;
 import org.apache.cxf.helpers.IOUtils;
+import org.apache.cxf.interceptor.LoggingOutInterceptor;
 import org.apache.cxf.systest.jaxb.model.ExtendedWidget;
 import org.apache.cxf.systest.jaxb.model.Widget;
+import org.apache.cxf.systest.jaxb.service.PropertyOrderException;
 import org.apache.cxf.systest.jaxb.service.TestService;
 import org.apache.cxf.test.TestUtilities;
 import org.apache.cxf.testutil.common.TestUtil;
@@ -44,7 +48,6 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 @ContextConfiguration(locations = { "classpath:extrajaxbclass.xml" })
 public class TestServiceTest extends AbstractJUnit4SpringContextTests {
     static final String PORT = TestUtil.getPortNumber(TestServiceTest.class);
-
     private TestUtilities testUtilities;
 
     public TestServiceTest() {
@@ -73,7 +76,28 @@ public class TestServiceTest extends AbstractJUnit4SpringContextTests {
         Assert.assertEquals(expected, widgetFromService);
     }
 
-    
+    @Test
+    public void testExceptionPropertyOrder() throws Throwable {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintWriter pw = new PrintWriter(baos, true);
+        ((Bus)applicationContext.getBean("cxf")).getOutFaultInterceptors().add(new LoggingOutInterceptor(pw));
+        TestService testClient = getTestClient();
+        ((BindingProvider)testClient).getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY,
+                                                              "http://localhost:" + PORT
+                                                                  + "/service/TestEndpoint");
+        try {
+            testClient.echo("Exception");
+        } catch (PropertyOrderException e) {
+            String payload = baos.toString();
+            Assert.assertTrue("Expect <message> element is before <data> element :" + payload,
+                              payload.indexOf("</message><data") > -1);
+        } finally {
+            if (pw != null) {
+                pw.close();
+            }
+        }
+    }
+
     @Test
     public void testSchema() throws Exception {
         URL url = new URL("http://localhost:" + PORT + "/service/TestService?wsdl");
